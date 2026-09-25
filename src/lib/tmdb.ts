@@ -101,12 +101,13 @@ export const tmdb = {
   discoverMedia: async (
     type: "movie" | "tv",
     genreId?: number,
-    sortBy: string = "popularity.desc"
+    sortBy: string = "popularity.desc",
+    page: number = 1
   ): Promise<MediaItem[]> => {
     const params: Record<string, string> = {
       sort_by: sortBy,
       include_adult: "false",
-      page: "1",
+      page: page.toString(),
     };
 
     if (genreId) {

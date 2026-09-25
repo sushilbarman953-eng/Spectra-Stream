@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Star, SlidersHorizontal, Loader2 } from "lucide-react";
@@ -23,40 +23,118 @@ export const MediaCatalog = ({
   const [items, setItems] = useState<MediaItem[]>(initialItems);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<string>("popularity.desc");
-  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState<number>(1);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
+  const observerRef = useRef<HTMLDivElement | null>(null);
+
+  // Helper to deduplicate array by item ID
+  const appendUniqueItems = (prev: MediaItem[], incoming: MediaItem[]) => {
+    const existingIds = new Set(prev.map((i) => i.id));
+    const unique = incoming.filter((i) => !existingIds.has(i.id));
+    return [...prev, ...unique];
+  };
+
+  // Reset & load page 1 on genre or sort change
   useEffect(() => {
-    // Skip initial fetch since initialItems are supplied by SSR
-    if (selectedGenre === null && sortBy === "popularity.desc") return;
+    if (selectedGenre === null && sortBy === "popularity.desc" && page === 1) {
+      return;
+    }
 
     let isMounted = true;
-    const fetchFiltered = async () => {
-      setLoading(true);
+    const fetchFreshCatalog = async () => {
+      setIsInitialLoading(true);
+      setHasMore(true);
+      setPage(1);
+
       try {
         const queryParams = new URLSearchParams({
           type,
           sort_by: sortBy,
+          page: "1",
           ...(selectedGenre ? { genre: selectedGenre.toString() } : {}),
         });
 
         const res = await fetch(`/api/discover?${queryParams.toString()}`);
         if (res.ok) {
           const data = await res.json();
-          if (isMounted) setItems(data.results || []);
+          if (isMounted) {
+            setItems(data.results || []);
+            if (!data.results || data.results.length === 0) {
+              setHasMore(false);
+            }
+          }
         }
       } catch (err) {
-        console.error("Filter fetch error:", err);
+        console.error("Failed to load initial catalog page:", err);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) setIsInitialLoading(false);
       }
     };
 
-    fetchFiltered();
+    fetchFreshCatalog();
 
     return () => {
       isMounted = false;
     };
   }, [selectedGenre, sortBy, type]);
+
+  // Load next page
+  const loadNextPage = useCallback(async () => {
+    if (isLoadingMore || !hasMore || isInitialLoading) return;
+
+    setIsLoadingMore(true);
+    const nextPage = page + 1;
+
+    try {
+      const queryParams = new URLSearchParams({
+        type,
+        sort_by: sortBy,
+        page: nextPage.toString(),
+        ...(selectedGenre ? { genre: selectedGenre.toString() } : {}),
+      });
+
+      const res = await fetch(`/api/discover?${queryParams.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const incomingResults = data.results || [];
+
+        if (incomingResults.length === 0) {
+          setHasMore(false);
+        } else {
+          setItems((prev) => appendUniqueItems(prev, incomingResults));
+          setPage(nextPage);
+        }
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Failed to load next catalog page:", err);
+      setHasMore(false);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, isInitialLoading, page, type, sortBy, selectedGenre]);
+
+  // Attach IntersectionObserver to sentinel element
+  useEffect(() => {
+    const target = observerRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isInitialLoading) {
+          loadNextPage();
+        }
+      },
+      { rootMargin: "300px" } // Pre-fetch before user reaches absolute bottom
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [loadNextPage, hasMore, isLoadingMore, isInitialLoading]);
 
   return (
     <div className="space-y-6">
@@ -67,7 +145,7 @@ export const MediaCatalog = ({
             {title}
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Discover and filter titles by genre and rating
+            Discover and filter titles by genre and rating with continuous browsing
           </p>
         </div>
 
@@ -125,16 +203,16 @@ export const MediaCatalog = ({
         })}
       </div>
 
-      {/* Loading Indicator */}
-      {loading && (
-        <div className="flex items-center justify-center py-12 gap-2 text-zinc-400 text-xs">
-          <Loader2 className="w-4 h-4 animate-spin text-white" />
-          <span>Updating catalog...</span>
+      {/* Initial Filter Loading Spinner */}
+      {isInitialLoading && (
+        <div className="flex items-center justify-center py-16 gap-2 text-zinc-400 text-xs">
+          <Loader2 className="w-5 h-5 animate-spin text-white" />
+          <span>Refreshing library...</span>
         </div>
       )}
 
       {/* Media Grid */}
-      {!loading && items.length > 0 && (
+      {!isInitialLoading && items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {items.map((item) => {
             const itemTitle = item.title || item.name || "Untitled";
@@ -190,8 +268,21 @@ export const MediaCatalog = ({
         </div>
       )}
 
+      {/* Infinite Scroll Bottom Sentinel */}
+      <div ref={observerRef} className="py-6 flex items-center justify-center">
+        {isLoadingMore && (
+          <div className="flex items-center gap-2 text-zinc-400 text-xs">
+            <Loader2 className="w-4 h-4 animate-spin text-white" />
+            <span>Loading more titles...</span>
+          </div>
+        )}
+        {!hasMore && items.length > 0 && (
+          <p className="text-xs text-zinc-500">You have reached the end of the catalog.</p>
+        )}
+      </div>
+
       {/* Empty State */}
-      {!loading && items.length === 0 && (
+      {!isInitialLoading && items.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center text-zinc-400 gap-2">
           <p className="text-sm">No titles found for this filter combination.</p>
           <button
