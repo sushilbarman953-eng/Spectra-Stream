@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Star, Film, Loader2 } from "lucide-react";
-import { tmdb, MediaItem, IMAGE_BASE } from "@/lib/tmdb";
-import { jikan, AnimeEpisode } from "@/lib/jikan";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { tmdb, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
 import { AnimePlayer } from "@/components/AnimePlayer";
 import { AnimeEpisodeGrid } from "@/components/AnimeEpisodeGrid";
 import { Player } from "@/components/Player";
@@ -19,53 +18,82 @@ export default function WatchPage() {
   const id = params?.id as string;
   const type = (searchParams.get("type") as "movie" | "tv") || "movie";
   const initialEpisode = parseInt(searchParams.get("episode") || "1", 10);
+  const initialSeason = parseInt(searchParams.get("season") || "1", 10);
 
   const [details, setDetails] = useState<any>(null);
+  const [currentSeason, setCurrentSeason] = useState(initialSeason);
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
-  const [animeEpisodes, setAnimeEpisodes] = useState<AnimeEpisode[]>([]);
+  const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const title = details?.title || details?.name || "Loading Title...";
-  const isAnime =
-    details?.genres?.some((g: any) => g.id === 16) ||
-    details?.original_language === "ja";
+  const isSeriesOrAnime = type === "tv";
+  const seasonsCount = details?.number_of_seasons || 1;
 
+  // Load Main Title Metadata
   useEffect(() => {
     let isMounted = true;
-    const loadMediaData = async () => {
+    const loadDetails = async () => {
       setLoading(true);
       try {
         const data = await tmdb.getDetails(type, id);
         if (isMounted) setDetails(data);
-
-        // Fetch MAL / Jikan episodic metadata for anime
-        const animeCheck =
-          data?.genres?.some((g: any) => g.id === 16) ||
-          data?.original_language === "ja";
-
-        if (animeCheck && type === "tv") {
-          const malSearch = await jikan.searchAnime(data.name || data.title);
-          if (malSearch?.mal_id) {
-            const episodes = await jikan.getEpisodes(malSearch.mal_id);
-            if (isMounted) setAnimeEpisodes(episodes);
-          }
-        }
       } catch (err) {
-        console.error("Watch load error:", err);
+        console.error("Watch details error:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    if (id) loadMediaData();
+    if (id) loadDetails();
     return () => {
       isMounted = false;
     };
   }, [id, type]);
 
+  // Load Season Episodes
+  useEffect(() => {
+    if (!isSeriesOrAnime || !id) return;
+
+    let isMounted = true;
+    const fetchEpisodes = async () => {
+      try {
+        const epList = await tmdb.getSeasonEpisodes(id, currentSeason);
+        if (isMounted) {
+          if (epList && epList.length > 0) {
+            setEpisodes(epList);
+          } else {
+            // Fallback: Generate array up to number_of_episodes if season API returned empty
+            const total = details?.number_of_episodes || 25;
+            const fallbackList: EpisodeItem[] = Array.from({ length: total }).map((_, i) => ({
+              id: i + 1,
+              episode_number: i + 1,
+              name: `Episode ${i + 1}`,
+              overview: "Stream this episode on Spectra.",
+            }));
+            setEpisodes(fallbackList);
+          }
+        }
+      } catch (e) {
+        console.error("Episode fetch error:", e);
+      }
+    };
+
+    fetchEpisodes();
+    return () => {
+      isMounted = false;
+    };
+  }, [id, isSeriesOrAnime, currentSeason, details]);
+
   const handleSelectEpisode = (ep: number) => {
     setCurrentEpisode(ep);
-    router.replace(`/watch/${id}?type=${type}&episode=${ep}`);
+    router.replace(`/watch/${id}?type=${type}&season=${currentSeason}&episode=${ep}`);
+  };
+
+  const handleSelectSeason = (s: number) => {
+    setCurrentSeason(s);
+    setCurrentEpisode(1);
+    router.replace(`/watch/${id}?type=${type}&season=${s}&episode=1`);
   };
 
   const handleNextEpisode = () => {
@@ -83,8 +111,8 @@ export default function WatchPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-24 space-y-6">
-      {/* Top Breadcrumb Navigation */}
+    <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
+      {/* Top Header */}
       <div className="flex items-center justify-between">
         <Link href={`/details/${id}?type=${type}`}>
           <GlassButton variant="secondary" className="text-xs py-1.5 px-3">
@@ -98,13 +126,13 @@ export default function WatchPage() {
         </h2>
       </div>
 
-      {/* Primary Video Player Area */}
-      {isAnime && type === "tv" ? (
+      {/* Main Video Stream */}
+      {isSeriesOrAnime ? (
         <AnimePlayer
           tmdbId={id}
           animeTitle={title}
           episode={currentEpisode}
-          totalEpisodes={animeEpisodes.length || undefined}
+          totalEpisodes={episodes.length || undefined}
           onNextEpisode={handleNextEpisode}
         />
       ) : (
@@ -121,12 +149,15 @@ export default function WatchPage() {
         />
       )}
 
-      {/* Anime Episodic Browser Grid */}
-      {isAnime && animeEpisodes.length > 0 && (
+      {/* Always Visible Episode Hub with Thumbnails & Seasons */}
+      {isSeriesOrAnime && episodes.length > 0 && (
         <AnimeEpisodeGrid
-          episodes={animeEpisodes}
+          episodes={episodes}
           currentEpisode={currentEpisode}
+          currentSeason={currentSeason}
+          seasonsCount={seasonsCount}
           onSelectEpisode={handleSelectEpisode}
+          onSelectSeason={handleSelectSeason}
         />
       )}
     </div>

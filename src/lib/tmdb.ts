@@ -16,6 +16,16 @@ export interface MediaItem {
   genre_ids?: number[];
 }
 
+export interface EpisodeItem {
+  id: number;
+  episode_number: number;
+  name: string;
+  overview: string;
+  still_path?: string;
+  air_date?: string;
+  vote_average?: number;
+}
+
 export interface Genre {
   id: number;
   name: string;
@@ -130,5 +140,9 @@ export const tmdb = {
     }
 
     return data;
+  },
+  getSeasonEpisodes: async (tvId: string, seasonNumber: number = 1): Promise<EpisodeItem[]> => {
+    const data = await fetchFromTMDB(`/tv/${tvId}/season/${seasonNumber}`);
+    return data?.episodes || [];
   },
 };
