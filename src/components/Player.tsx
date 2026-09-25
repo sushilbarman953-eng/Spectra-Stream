@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Server, RotateCw, ExternalLink, Play, Film } from "lucide-react";
+import { Server, RotateCw, ExternalLink } from "lucide-react";
 
 interface PlayerProps {
   id: string;
@@ -10,12 +10,13 @@ interface PlayerProps {
   season?: number;
   episode?: number;
   m3u8Url?: string;
+  audio?: string;
 }
 
 interface ServerSource {
   id: string;
   name: string;
-  getUrl: (id: string, type: "movie" | "tv", s: number, e: number) => string;
+  getUrl: (id: string, type: "movie" | "tv", s: number, e: number, audio: string) => string;
 }
 
 const SERVER_POOL: ServerSource[] = [
@@ -28,20 +29,20 @@ const SERVER_POOL: ServerSource[] = [
         : `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`,
   },
   {
-    id: "vidsrc_cc",
+    id: "autoembed",
+    name: "AutoEmbed (Anime/TV)",
+    getUrl: (id, type, s, e) =>
+      type === "movie"
+        ? `https://player.autoembed.cc/embed/movie/${id}`
+        : `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: "anime_vidsrc",
     name: "VidSrc CC",
     getUrl: (id, type, s, e) =>
       type === "movie"
         ? `https://vidsrc.cc/v2/embed/movie/${id}`
         : `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: "autoembed",
-    name: "AutoEmbed",
-    getUrl: (id, type, s, e) =>
-      type === "movie"
-        ? `https://player.autoembed.cc/embed/movie/${id}`
-        : `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`,
   },
   {
     id: "superembed",
@@ -51,36 +52,30 @@ const SERVER_POOL: ServerSource[] = [
         ? `https://multiembed.mov/?video_id=${id}&tmdb=1`
         : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
   },
-  {
-    id: "moviesapi",
-    name: "MoviesAPI",
-    getUrl: (id, type, s, e) =>
-      type === "movie"
-        ? `https://moviesapi.club/movie/${id}`
-        : `https://moviesapi.club/tv/${id}-${s}-${e}`,
-  },
 ];
 
-// Reliable open-source test stream
 const DEMO_HLS_URL = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
 
-export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerProps) => {
+export const Player = ({
+  id,
+  type,
+  season = 1,
+  episode = 1,
+  m3u8Url,
+  audio = "sub",
+}: PlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentServerIndex, setCurrentServerIndex] = useState(0);
   const [useHls, setUseHls] = useState(Boolean(m3u8Url));
   const [activeM3u8, setActiveM3u8] = useState<string | null>(m3u8Url || null);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   const activeServer = SERVER_POOL[currentServerIndex];
-  const streamUrl = activeServer.getUrl(id, type, season, episode);
+  const streamUrl = activeServer.getUrl(id, type, season, episode, audio);
 
-  // Switch to next server
   const rotateToNextServer = useCallback(() => {
-    setHasLoaded(false);
     setCurrentServerIndex((prev) => (prev + 1) % SERVER_POOL.length);
   }, []);
 
-  // HLS Engine for direct m3u8 streams
   useEffect(() => {
     if (!useHls || !activeM3u8 || !videoRef.current) return;
 
@@ -102,7 +97,7 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* Player Screen Frame */}
+      {/* Player Viewport */}
       <div className="relative aspect-video w-full rounded-2xl overflow-hidden glass-panel border border-white/15 bg-black shadow-2xl">
         {useHls && activeM3u8 ? (
           <video
@@ -114,14 +109,13 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
           />
         ) : (
           <iframe
-            key={`${activeServer.id}-${id}-${season}-${episode}`}
+            key={`${activeServer.id}-${id}-${season}-${episode}-${audio}`}
             src={streamUrl}
             title={activeServer.name}
             className="w-full h-full border-0"
             referrerPolicy="origin"
             allowFullScreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            onLoad={() => setHasLoaded(true)}
           />
         )}
       </div>
@@ -131,11 +125,12 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
         <div className="flex items-center gap-2 text-xs text-zinc-300 w-full md:w-auto justify-between">
           <div className="flex items-center gap-2">
             <Server className="w-4 h-4 text-zinc-400" />
-            <span className="font-medium text-white">Active Source:</span>
-            <span className="text-zinc-400">{useHls ? "Direct HLS Stream" : activeServer.name}</span>
+            <span className="font-medium text-white">Source:</span>
+            <span className="text-zinc-400">
+              {useHls ? "Direct HLS" : `${activeServer.name} (${audio.toUpperCase()})`}
+            </span>
           </div>
 
-          {/* Direct Pop-out bypass */}
           {!useHls && (
             <a
               href={streamUrl}
@@ -144,14 +139,12 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
               className="flex items-center gap-1 text-[11px] text-zinc-200 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md transition"
             >
               <ExternalLink className="w-3 h-3" />
-              Open Clean Tab
+              Clean Tab
             </a>
           )}
         </div>
 
-        {/* Server Selectors */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
-          {/* Test Stream Button */}
           <button
             onClick={() => {
               setActiveM3u8(DEMO_HLS_URL);
@@ -172,7 +165,6 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
               onClick={() => {
                 setUseHls(false);
                 setCurrentServerIndex(index);
-                setHasLoaded(false);
               }}
               className={`px-2.5 py-1.5 text-xs rounded-lg font-medium transition ${
                 !useHls && currentServerIndex === index
