@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Hls from "hls.js";
-import { Radio, Tv, Play, AlertCircle, Signal, Volume2, VolumeX } from "lucide-react";
+import { Radio, Tv, Play, AlertCircle, Signal, Volume2, VolumeX, RotateCcw } from "lucide-react";
 import { CURATED_CHANNELS, LiveChannel } from "@/lib/iptv";
 import { GlassCard } from "@/components/ui/GlassCard";
 
@@ -21,7 +21,7 @@ export default function LiveTvPage() {
       ? channels
       : channels.filter((c) => c.category === selectedCategory);
 
-  useEffect(() => {
+  const playStream = () => {
     if (!videoRef.current || !selectedChannel) return;
 
     setPlaybackError(false);
@@ -45,7 +45,7 @@ export default function LiveTvPage() {
 
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
-            console.warn("HLS Error:", data.type);
+            console.warn("HLS Stream Error:", data.type);
             setPlaybackError(true);
           }
         });
@@ -58,6 +58,11 @@ export default function LiveTvPage() {
       video.play().catch(() => {});
     }
 
+    return hls;
+  };
+
+  useEffect(() => {
+    const hls = playStream();
     return () => {
       if (hls) hls.destroy();
     };
@@ -72,6 +77,7 @@ export default function LiveTvPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 space-y-6">
+      {/* Title Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-white/10 border border-white/20">
@@ -91,7 +97,7 @@ export default function LiveTvPage() {
 
         <button
           onClick={toggleMute}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs text-white border border-white/15 hover:bg-white/10"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs text-white border border-white/15 hover:bg-white/10 transition"
         >
           {isMuted ? <VolumeX className="w-3.5 h-3.5 text-zinc-400" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
           <span>{isMuted ? "Unmute" : "Muted"}</span>
@@ -99,6 +105,7 @@ export default function LiveTvPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Main TV Player */}
         <div className="lg:col-span-2 space-y-3">
           <div className="relative aspect-video w-full rounded-2xl overflow-hidden glass-panel border border-white/15 bg-black shadow-2xl">
             <video
@@ -111,11 +118,18 @@ export default function LiveTvPage() {
             />
 
             {playbackError && (
-              <div className="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center gap-2">
-                <AlertCircle className="w-7 h-7 text-zinc-400" />
-                <p className="text-xs text-zinc-300">
-                  Stream blocked by regional CDN or offline. Pick another channel below.
+              <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center gap-3">
+                <AlertCircle className="w-8 h-8 text-zinc-400" />
+                <p className="text-xs text-zinc-300 max-w-sm">
+                  This feed temporarily stalled. Tap retry or switch channels.
                 </p>
+                <button
+                  onClick={() => playStream()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs border border-white/20"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Retry Feed
+                </button>
               </div>
             )}
           </div>
@@ -138,6 +152,7 @@ export default function LiveTvPage() {
           </div>
         </div>
 
+        {/* Channel Selection Matrix */}
         <div className="space-y-3">
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
             {categories.map((cat) => (
