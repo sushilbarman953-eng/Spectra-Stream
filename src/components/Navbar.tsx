@@ -23,18 +23,25 @@ export const Navbar = () => {
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await res.json();
-        setResults(data.results || []);
-        setIsOpen(true);
+        
+        // Check for ok status and json content type before parsing
+        const contentType = res.headers.get("content-type");
+        if (res.ok && contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          setResults(data.results || []);
+          setIsOpen(true);
+        } else {
+          setResults([]);
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Failed to parse search response:", err);
+        setResults([]);
       }
     }, 300);
 
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Close dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
@@ -79,7 +86,7 @@ export const Navbar = () => {
           ))}
         </nav>
 
-        {/* Search Bar + Floating Dropdown */}
+        {/* Search Bar */}
         <div ref={searchRef} className="relative flex items-center">
           <input
             type="text"
@@ -103,7 +110,7 @@ export const Navbar = () => {
             </button>
           )}
 
-          {/* Results Dropdown Glass Modal */}
+          {/* Results Dropdown */}
           {isOpen && results.length > 0 && (
             <div className="absolute top-12 right-0 w-72 sm:w-80 max-h-96 overflow-y-auto no-scrollbar rounded-2xl glass-panel bg-black/90 p-2 shadow-2xl flex flex-col gap-1 z-50">
               {results.slice(0, 8).map((item) => {
