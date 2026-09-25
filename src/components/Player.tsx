@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import Hls from "hls.js";
-import { Server, RotateCw, ExternalLink } from "lucide-react";
+import React, { useState } from "react";
+import { Server, ExternalLink, RotateCw } from "lucide-react";
 
 interface PlayerProps {
   id: string;
@@ -16,172 +15,108 @@ interface PlayerProps {
 interface ServerSource {
   id: string;
   name: string;
-  getUrl: (id: string, type: "movie" | "tv", s: number, e: number, audio: string) => string;
+  getUrl: (id: string, type: "movie" | "tv", s: number, e: number) => string;
 }
 
 const SERVER_POOL: ServerSource[] = [
   {
-    id: "vidsrc_pro",
-    name: "VidSrc Pro",
+    id: "vidlink",
+    name: "VidLink (Fast)",
     getUrl: (id, type, s, e) =>
       type === "movie"
-        ? `https://vidsrc.pro/embed/movie/${id}`
-        : `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`,
+        ? `https://vidlink.pro/movie/${id}`
+        : `https://vidlink.pro/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: "vidsrc_in",
+    name: "VidSrc.in",
+    getUrl: (id, type, s, e) =>
+      type === "movie"
+        ? `https://vidsrc.in/embed/movie/${id}`
+        : `https://vidsrc.in/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: "2embed",
+    name: "2Embed",
+    getUrl: (id, type, s, e) =>
+      type === "movie"
+        ? `https://www.2embed.cc/embed/${id}`
+        : `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`,
   },
   {
     id: "autoembed",
-    name: "AutoEmbed (Anime/TV)",
+    name: "AutoEmbed",
     getUrl: (id, type, s, e) =>
       type === "movie"
         ? `https://player.autoembed.cc/embed/movie/${id}`
         : `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`,
   },
-  {
-    id: "anime_vidsrc",
-    name: "VidSrc CC",
-    getUrl: (id, type, s, e) =>
-      type === "movie"
-        ? `https://vidsrc.cc/v2/embed/movie/${id}`
-        : `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: "superembed",
-    name: "SuperEmbed",
-    getUrl: (id, type, s, e) =>
-      type === "movie"
-        ? `https://multiembed.mov/?video_id=${id}&tmdb=1`
-        : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
-  },
 ];
 
-const DEMO_HLS_URL = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
-
-export const Player = ({
-  id,
-  type,
-  season = 1,
-  episode = 1,
-  m3u8Url,
-  audio = "sub",
-}: PlayerProps) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+export const Player = ({ id, type, season = 1, episode = 1 }: PlayerProps) => {
   const [currentServerIndex, setCurrentServerIndex] = useState(0);
-  const [useHls, setUseHls] = useState(Boolean(m3u8Url));
-  const [activeM3u8, setActiveM3u8] = useState<string | null>(m3u8Url || null);
 
   const activeServer = SERVER_POOL[currentServerIndex];
-  const streamUrl = activeServer.getUrl(id, type, season, episode, audio);
+  const streamUrl = activeServer.getUrl(id, type, season, episode);
 
-  const rotateToNextServer = useCallback(() => {
+  const nextServer = () => {
     setCurrentServerIndex((prev) => (prev + 1) % SERVER_POOL.length);
-  }, []);
-
-  useEffect(() => {
-    if (!useHls || !activeM3u8 || !videoRef.current) return;
-
-    let hls: Hls | null = null;
-    const video = videoRef.current;
-
-    if (Hls.isSupported()) {
-      hls = new Hls({ enableWorker: true });
-      hls.loadSource(activeM3u8);
-      hls.attachMedia(video);
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = activeM3u8;
-    }
-
-    return () => {
-      if (hls) hls.destroy();
-    };
-  }, [useHls, activeM3u8]);
+  };
 
   return (
     <div className="w-full flex flex-col gap-3">
-      {/* Player Viewport */}
+      {/* Viewport Frame */}
       <div className="relative aspect-video w-full rounded-2xl overflow-hidden glass-panel border border-white/15 bg-black shadow-2xl">
-        {useHls && activeM3u8 ? (
-          <video
-            ref={videoRef}
-            controls
-            autoPlay
-            playsInline
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <iframe
-            key={`${activeServer.id}-${id}-${season}-${episode}-${audio}`}
-            src={streamUrl}
-            title={activeServer.name}
-            className="w-full h-full border-0"
-            referrerPolicy="origin"
-            allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          />
-        )}
+        <iframe
+          key={`${activeServer.id}-${id}-${season}-${episode}`}
+          src={streamUrl}
+          title={activeServer.name}
+          className="w-full h-full border-0"
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        />
       </div>
 
-      {/* Control Console */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 p-3.5 rounded-xl glass-panel border border-white/10">
-        <div className="flex items-center gap-2 text-xs text-zinc-300 w-full md:w-auto justify-between">
-          <div className="flex items-center gap-2">
+      {/* Controller Strip */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 p-3 rounded-xl glass-panel border border-white/10">
+        <div className="flex items-center justify-between w-full md:w-auto gap-3">
+          <div className="flex items-center gap-2 text-xs">
             <Server className="w-4 h-4 text-zinc-400" />
-            <span className="font-medium text-white">Source:</span>
-            <span className="text-zinc-400">
-              {useHls ? "Direct HLS" : `${activeServer.name} (${audio.toUpperCase()})`}
-            </span>
+            <span className="font-semibold text-white">{activeServer.name}</span>
           </div>
 
-          {!useHls && (
-            <a
-              href={streamUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[11px] text-zinc-200 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md transition"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Clean Tab
-            </a>
-          )}
+          <a
+            href={streamUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[11px] text-zinc-300 hover:text-white bg-white/10 px-2.5 py-1 rounded-md"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Pop-out
+          </a>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
-          <button
-            onClick={() => {
-              setActiveM3u8(DEMO_HLS_URL);
-              setUseHls(true);
-            }}
-            className={`px-2.5 py-1.5 text-xs rounded-lg font-medium transition ${
-              useHls
-                ? "bg-white text-black shadow-glow font-bold"
-                : "bg-white/5 text-zinc-400 hover:text-white"
-            }`}
-          >
-            Direct HLS Test
-          </button>
-
+        {/* Server Buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
           {SERVER_POOL.map((server, index) => (
             <button
               key={server.id}
-              onClick={() => {
-                setUseHls(false);
-                setCurrentServerIndex(index);
-              }}
-              className={`px-2.5 py-1.5 text-xs rounded-lg font-medium transition ${
-                !useHls && currentServerIndex === index
-                  ? "bg-white text-black shadow-glow font-bold"
+              onClick={() => setCurrentServerIndex(index)}
+              className={`px-2.5 py-1 text-xs rounded-lg font-medium transition ${
+                currentServerIndex === index
+                  ? "bg-white text-black font-bold shadow-glow"
                   : "bg-white/5 text-zinc-400 hover:text-white"
               }`}
             >
-              {server.name}
+              {server.name.split(" ")[0]}
             </button>
           ))}
 
           <button
-            onClick={rotateToNextServer}
-            title="Next Server"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium bg-white/10 hover:bg-white/20 text-white border border-white/20 transition"
+            onClick={nextServer}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 ml-1"
           >
-            <RotateCw className="w-3.5 h-3.5" />
+            <RotateCw className="w-3 h-3" />
             Next
           </button>
         </div>

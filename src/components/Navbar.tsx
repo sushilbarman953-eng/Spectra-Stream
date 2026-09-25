@@ -3,11 +3,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Search, Film, Tv, PlaySquare, Compass, Radio, X, Star } from "lucide-react";
 import { IMAGE_BASE } from "@/lib/tmdb";
 
 export const Navbar = () => {
-  const [activeTab, setActiveTab] = useState("all");
+  const pathname = usePathname();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -32,8 +33,7 @@ export const Navbar = () => {
           setResults([]);
         }
       } catch (err) {
-        console.error("Failed to parse search response:", err);
-        setResults([]);
+        console.error("Search error:", err);
       }
     }, 300);
 
@@ -51,11 +51,11 @@ export const Navbar = () => {
   }, []);
 
   const navItems = [
-    { label: "Home", href: "/", icon: Compass, id: "all" },
-    { label: "Movies", href: "/#movies", icon: Film, id: "movie" },
-    { label: "Series", href: "/#series", icon: Tv, id: "tv" },
-    { label: "Anime", href: "/#anime", icon: PlaySquare, id: "anime" },
-    { label: "Live TV", href: "/tv", icon: Radio, id: "livetv" },
+    { label: "Home", href: "/", icon: Compass },
+    { label: "Movies", href: "/movies", icon: Film },
+    { label: "Series", href: "/series", icon: Tv },
+    { label: "Anime", href: "/anime", icon: PlaySquare },
+    { label: "Live TV", href: "/tv", icon: Radio },
   ];
 
   return (
@@ -67,25 +67,27 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Links */}
         <nav className="hidden md:flex items-center gap-1 glass-pill p-1 rounded-full">
-          {navItems.map((item) => (
-            <Link
-              key={item.id}
-              href={item.href}
-              onClick={() => setActiveTab(item.id)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 ${
-                activeTab === item.id
-                  ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]"
-                  : "text-zinc-400 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-4 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all duration-200 ${
+                  isActive
+                    ? "bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)] font-bold"
+                    : "text-zinc-400 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Live Search */}
+        {/* Search */}
         <div ref={searchRef} className="relative flex items-center">
           <input
             type="text"
@@ -132,7 +134,6 @@ export const Navbar = () => {
                         <div className="flex items-center justify-center h-full text-[9px] text-zinc-600">N/A</div>
                       )}
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-white truncate group-hover:text-zinc-200">
                         {title}

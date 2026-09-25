@@ -1,41 +1,39 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Compass, Film, Tv, PlaySquare, Radio } from "lucide-react";
 
 export const MobileBottomNav = () => {
-  const [activeTab, setActiveTab] = useState("all");
+  const pathname = usePathname();
 
   const navItems = [
-    { label: "Home", href: "/", icon: Compass, id: "all" },
-    { label: "Movies", href: "/#movies", icon: Film, id: "movie" },
-    { label: "TV", href: "/#series", icon: Tv, id: "tv" },
-    { label: "Anime", href: "/#anime", icon: PlaySquare, id: "anime" },
-    { label: "Live TV", href: "/tv", icon: Radio, id: "livetv" },
+    { label: "Home", href: "/", icon: Compass },
+    { label: "Movies", href: "/movies", icon: Film },
+    { label: "Series", href: "/series", icon: Tv },
+    { label: "Anime", href: "/anime", icon: PlaySquare },
+    { label: "Live TV", href: "/tv", icon: Radio },
   ];
 
   return (
     <nav className="fixed bottom-3 left-3 right-3 z-50 md:hidden flex justify-center pointer-events-auto">
-      <div className="w-full max-w-md flex items-center justify-around py-2.5 px-2 rounded-full glass-panel bg-black/80 border border-white/15 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
+      <div className="w-full max-w-md flex items-center justify-around py-2 px-1 rounded-full glass-panel bg-black/85 border border-white/15 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.8)]">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id;
+          const isActive = pathname === item.href;
 
           return (
             <Link
-              key={item.id}
+              key={item.href}
               href={item.href}
-              onClick={() => setActiveTab(item.id)}
-              className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all duration-200 ${
-                isActive
-                  ? "text-white"
-                  : "text-zinc-500 hover:text-zinc-300"
+              className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all duration-200 ${
+                isActive ? "text-white" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >
               <div
-                className={`p-1 rounded-lg transition-all ${
-                  isActive ? "bg-white/15 border border-white/20 shadow-glow" : ""
+                className={`p-1.5 rounded-lg transition-all ${
+                  isActive ? "bg-white/20 border border-white/30 shadow-glow" : ""
                 }`}
               >
                 <Icon className="w-4 h-4" />
