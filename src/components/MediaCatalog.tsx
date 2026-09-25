@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Star, SlidersHorizontal, Loader2, Sparkles, X, Check } from "lucide-react";
+import { Star, SlidersHorizontal, Loader2, Sparkles, Check } from "lucide-react";
 import { MediaItem, Genre, IMAGE_BASE } from "@/lib/tmdb";
 import { GlassCard } from "@/components/ui/GlassCard";
 
@@ -27,7 +27,6 @@ export const MediaCatalog = ({
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   const observerRef = useRef<HTMLDivElement | null>(null);
 
@@ -127,73 +126,63 @@ export const MediaCatalog = ({
     return () => observer.disconnect();
   }, [loadNextPage, hasMore, isLoadingMore, isInitialLoading]);
 
-  const activeGenreName = genres.find((g) => g.id === selectedGenre)?.name || "All Titles";
+  const activeGenreName = genres.find((g) => g.id === selectedGenre)?.name || "All";
 
   return (
     <div className="space-y-4">
-      {/* Top Header & Sort Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+      {/* Top Header & Sort Control */}
+      <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
         <div>
-          <h1 className="text-xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-lg md:text-2xl font-extrabold text-white tracking-tight flex items-center gap-1.5">
             {title}
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-zinc-300">
+            <span className="text-[10px] md:text-xs font-semibold px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-zinc-200">
               {activeGenreName}
             </span>
           </h1>
-          <p className="text-xs text-zinc-400 mt-0.5">Explore by vertical genre curation</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Mobile Filter Sheet Trigger Button */}
-          <button
-            onClick={() => setMobileDrawerOpen(true)}
-            className="md:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/20 text-xs font-semibold text-white shadow-glow"
-            style={{
-              background: "rgba(255, 255, 255, 0.08)",
-              backdropFilter: "blur(16px)",
-            }}
+        <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl glass-panel text-[11px] text-zinc-300 border border-white/10">
+          <SlidersHorizontal className="w-3 h-3 text-zinc-400" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-transparent text-white text-[11px] focus:outline-none cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Genres</span>
-          </button>
-
-          {/* Sort Selector */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs text-zinc-300 border border-white/10">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-400" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-transparent text-white text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="popularity.desc" className="bg-[#0f0f13] text-white">Popular</option>
-              <option value="vote_average.desc" className="bg-[#0f0f13] text-white">Top Rated</option>
-              <option value="primary_release_date.desc" className="bg-[#0f0f13] text-white">Latest</option>
-            </select>
-          </div>
+            <option value="popularity.desc" className="bg-[#0f0f13] text-white">Popular</option>
+            <option value="vote_average.desc" className="bg-[#0f0f13] text-white">Top Rated</option>
+            <option value="primary_release_date.desc" className="bg-[#0f0f13] text-white">Latest</option>
+          </select>
         </div>
       </div>
 
-      {/* Main Layout: Vertical Categories (Left) + Media Grid (Right) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-6 items-start">
+      {/* Main 2-Column Split: True Vertical Sidebar (Left) + Poster Grid (Right) */}
+      <div className="flex gap-3 items-start">
         
-        {/* Desktop Vertical Genre Sidebar */}
-        <aside className="hidden md:flex flex-col gap-1 sticky top-24 p-3 rounded-2xl border border-white/15 bg-[#0c0c10]/80 backdrop-blur-2xl shadow-[0_8px_30px_rgba(0,0,0,0.6)]">
-          <div className="flex items-center gap-2 px-2 pb-2 text-xs font-bold tracking-wider text-zinc-400 uppercase border-b border-white/10">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
-            Categories
+        {/* Left Sticky Vertical Category Rail */}
+        <aside
+          className="w-24 sm:w-36 md:w-48 flex-none sticky top-20 rounded-2xl border border-white/15 p-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.7)] flex flex-col gap-1 max-h-[calc(100vh-140px)] overflow-y-auto no-scrollbar"
+          style={{
+            background: "rgba(12, 12, 16, 0.75)",
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          }}
+        >
+          <div className="flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider border-b border-white/10">
+            <Sparkles className="w-3 h-3 text-white" />
+            <span className="truncate">Genres</span>
           </div>
 
-          <div className="flex flex-col gap-1 max-h-[70vh] overflow-y-auto no-scrollbar pt-2">
+          <div className="flex flex-col gap-1 pt-1">
             <button
               onClick={() => setSelectedGenre(null)}
-              className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`w-full text-left px-2 py-2 rounded-xl text-[11px] sm:text-xs transition flex items-center justify-between ${
                 selectedGenre === null
-                  ? "bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                  ? "bg-white text-black font-bold shadow-[0_0_12px_rgba(255,255,255,0.45)]"
                   : "text-zinc-300 hover:text-white hover:bg-white/10"
               }`}
             >
-              <span>All Categories</span>
-              {selectedGenre === null && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+              <span className="truncate">All</span>
+              {selectedGenre === null && <Check className="w-3 h-3 stroke-[3] flex-none ml-1" />}
             </button>
 
             {genres.map((g) => {
@@ -202,31 +191,31 @@ export const MediaCatalog = ({
                 <button
                   key={g.id}
                   onClick={() => setSelectedGenre(g.id)}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition ${
+                  className={`w-full text-left px-2 py-2 rounded-xl text-[11px] sm:text-xs transition flex items-center justify-between ${
                     isSelected
-                      ? "bg-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+                      ? "bg-white text-black font-bold shadow-[0_0_12px_rgba(255,255,255,0.45)]"
                       : "text-zinc-300 hover:text-white hover:bg-white/10"
                   }`}
                 >
-                  <span>{g.name}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  <span className="truncate">{g.name}</span>
+                  {isSelected && <Check className="w-3 h-3 stroke-[3] flex-none ml-1" />}
                 </button>
               );
             })}
           </div>
         </aside>
 
-        {/* Media Grid Section */}
-        <main className="md:col-span-3 lg:col-span-4 space-y-4">
+        {/* Right Media Grid Section */}
+        <div className="flex-1 min-w-0 space-y-4">
           {isInitialLoading && (
             <div className="flex items-center justify-center py-20 gap-2 text-zinc-400 text-xs">
-              <Loader2 className="w-5 h-5 animate-spin text-white" />
-              <span>Fetching {activeGenreName}...</span>
+              <Loader2 className="w-4 h-4 animate-spin text-white" />
+              <span>Loading titles...</span>
             </div>
           )}
 
           {!isInitialLoading && items.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
               {items.map((item) => {
                 const itemTitle = item.title || item.name || "Untitled";
                 const posterUrl = item.poster_path
@@ -250,7 +239,7 @@ export const MediaCatalog = ({
                             src={posterUrl}
                             alt={itemTitle}
                             fill
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 20vw"
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
                           />
@@ -260,17 +249,17 @@ export const MediaCatalog = ({
                           </div>
                         )}
 
-                        <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/15 text-[10px] text-zinc-200 font-medium">
+                        <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/15 text-[9px] text-zinc-200 font-medium">
                           <Star className="w-2.5 h-2.5 text-white fill-white" />
                           {item.vote_average ? item.vote_average.toFixed(1) : "N/A"}
                         </div>
                       </div>
 
-                      <div className="p-2.5 bg-black/50">
-                        <h3 className="text-xs font-semibold text-white truncate group-hover:text-zinc-200">
+                      <div className="p-2 bg-black/50">
+                        <h3 className="text-[11px] sm:text-xs font-semibold text-white truncate group-hover:text-zinc-200">
                           {itemTitle}
                         </h3>
-                        <p className="text-[10px] text-zinc-400 mt-0.5 uppercase tracking-wider">
+                        <p className="text-[9px] text-zinc-400 mt-0.5 uppercase tracking-wider">
                           {releaseYear || type}
                         </p>
                       </div>
@@ -293,66 +282,8 @@ export const MediaCatalog = ({
               <p className="text-xs text-zinc-500">End of catalog reached.</p>
             )}
           </div>
-        </main>
-      </div>
-
-      {/* Mobile Slide-Up Bottom Drawer for Categories */}
-      {mobileDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 backdrop-blur-md md:hidden animate-in fade-in duration-200">
-          <div
-            className="w-full max-h-[75vh] flex flex-col p-4 rounded-t-3xl border-t border-white/20 bg-[#0d0d12]/95 shadow-[0_-10px_40px_rgba(0,0,0,0.9)] animate-in slide-in-from-bottom-5 duration-300"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <span className="text-sm font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Select Category
-              </span>
-              <button
-                onClick={() => setMobileDrawerOpen(false)}
-                className="p-1 text-zinc-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 overflow-y-auto py-3 no-scrollbar">
-              <button
-                onClick={() => {
-                  setSelectedGenre(null);
-                  setMobileDrawerOpen(false);
-                }}
-                className={`p-2.5 rounded-xl text-xs font-semibold border text-left transition ${
-                  selectedGenre === null
-                    ? "bg-white text-black border-white shadow-glow"
-                    : "bg-white/5 text-zinc-300 border-white/10"
-                }`}
-              >
-                All Categories
-              </button>
-
-              {genres.map((g) => {
-                const isSelected = selectedGenre === g.id;
-                return (
-                  <button
-                    key={g.id}
-                    onClick={() => {
-                      setSelectedGenre(g.id);
-                      setMobileDrawerOpen(false);
-                    }}
-                    className={`p-2.5 rounded-xl text-xs font-semibold border text-left transition ${
-                      isSelected
-                        ? "bg-white text-black border-white shadow-glow"
-                        : "bg-white/5 text-zinc-300 border-white/10"
-                    }`}
-                  >
-                    {g.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
