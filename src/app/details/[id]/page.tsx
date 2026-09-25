@@ -1,25 +1,23 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Star, Calendar, Clock, Film } from "lucide-react";
+import { Play, Star, Calendar, Clock } from "lucide-react";
 import { tmdb, IMAGE_BASE } from "@/lib/tmdb";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 
 interface DetailsPageProps {
-  params: { id: string };
-  searchParams: { type?: "movie" | "tv" };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ type?: "movie" | "tv" }>;
 }
 
 export default async function DetailsPage({ params, searchParams }: DetailsPageProps) {
-  const type = searchParams.type || "movie";
-  let details: any = null;
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const type = resolvedSearchParams.type || "movie";
+  const id = resolvedParams.id;
 
-  try {
-    details = await tmdb.getDetails(type, params.id);
-  } catch (error) {
-    console.error("Failed to load details:", error);
-  }
+  const details = await tmdb.getDetails(type, id);
 
   if (!details || details.success === false) {
     return (
@@ -39,7 +37,6 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
 
   return (
     <div className="relative min-h-screen px-4 md:px-12 pt-4 pb-20">
-      {/* Background Ambient Poster Backdrop */}
       {backdrop && (
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none opacity-25">
           <Image
@@ -52,9 +49,7 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
         </div>
       )}
 
-      {/* Main Details Card */}
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-8 items-start pt-6">
-        {/* Poster Image */}
         <div className="w-48 sm:w-60 md:w-72 flex-none mx-auto md:mx-0">
           <GlassCard className="p-1.5 overflow-hidden rounded-2xl border-white/20 shadow-2xl">
             <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-900">
@@ -67,7 +62,6 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
           </GlassCard>
         </div>
 
-        {/* Content Section */}
         <div className="flex-1 space-y-5">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -89,7 +83,6 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
             </h1>
           </div>
 
-          {/* Quick Stats Pill */}
           <div className="flex items-center gap-4 text-xs text-zinc-300">
             <div className="flex items-center gap-1">
               <Star className="w-3.5 h-3.5 fill-white text-white" />
@@ -111,9 +104,8 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
 
           <p className="text-zinc-300 text-sm leading-relaxed max-w-2xl">{details.overview}</p>
 
-          {/* Action Row */}
           <div className="flex items-center gap-3 pt-2">
-            <Link href={`/watch/${params.id}?type=${type}&s=1&e=1`}>
+            <Link href={`/watch/${id}?type=${type}&s=1&e=1`}>
               <GlassButton variant="primary">
                 <Play className="w-4 h-4 fill-black" />
                 {type === "movie" ? "Play Movie" : "Start Watching S1 E1"}
@@ -121,11 +113,10 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
             </Link>
           </div>
 
-          {/* TV Shows / Anime Episode Picker */}
           {type === "tv" && details.seasons && (
             <div className="pt-6 border-t border-white/10">
               <h2 className="text-sm font-semibold tracking-wider uppercase text-zinc-400 mb-3">
-                Seasons & Overview
+                Seasons
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
                 {details.seasons
@@ -133,7 +124,7 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
                   .map((s: any) => (
                     <Link
                       key={s.id}
-                      href={`/watch/${params.id}?type=tv&s=${s.season_number}&e=1`}
+                      href={`/watch/${id}?type=tv&s=${s.season_number}&e=1`}
                     >
                       <GlassCard
                         hoverEffect
