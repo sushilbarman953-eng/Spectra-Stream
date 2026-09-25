@@ -21,10 +21,10 @@ export default async function HomePage() {
     : null;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-2 pb-8">
       {/* Hero Spotlight */}
       {featured && (
-        <section className="relative w-full h-[60vh] md:h-[75vh] flex items-end p-6 md:p-12 mb-4 overflow-hidden">
+        <section className="relative w-full h-[52vh] md:h-[65vh] flex items-end p-5 md:p-10 mb-2 overflow-hidden">
           {featuredBackdrop && (
             <div className="absolute inset-0 -z-10">
               <Image
@@ -34,32 +34,32 @@ export default async function HomePage() {
                 priority
                 className="object-cover object-center opacity-40 brightness-75 scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#08080a] via-[#08080a]/60 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#08080a] via-transparent to-transparent" />
             </div>
           )}
 
-          <div className="max-w-2xl space-y-4">
-            <span className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-wider uppercase bg-white/10 border border-white/20 backdrop-blur-md text-white">
+          <div className="max-w-xl space-y-3">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-white/10 border border-white/20 backdrop-blur-md text-white">
               Trending Spotlight
             </span>
-            <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-md">
+            <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight leading-tight drop-shadow-md">
               {featuredTitle}
             </h1>
-            <p className="text-xs md:text-sm text-zinc-300 line-clamp-3 leading-relaxed">
+            <p className="text-xs text-zinc-300 line-clamp-2 md:line-clamp-3 leading-relaxed">
               {featured.overview}
             </p>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-2.5 pt-1">
               <Link href={`/watch/${featured.id}?type=${featured.media_type || "movie"}`}>
                 <GlassButton variant="primary">
-                  <Play className="w-4 h-4 fill-black" />
+                  <Play className="w-3.5 h-3.5 fill-black" />
                   Watch Now
                 </GlassButton>
               </Link>
               <Link href={`/details/${featured.id}?type=${featured.media_type || "movie"}`}>
                 <GlassButton variant="secondary">
-                  <Info className="w-4 h-4" />
+                  <Info className="w-3.5 h-3.5" />
                   Details
                 </GlassButton>
               </Link>
@@ -68,7 +68,7 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Glass Media Rails */}
+      {/* Tightly Nested Media Rows */}
       <MediaRow id="trending" title="Trending Now" items={trending} />
       <MediaRow id="movies" title="Popular Movies" items={movies} type="movie" />
       <MediaRow id="series" title="TV Series" items={tvSeries} type="tv" />
