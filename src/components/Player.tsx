@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import Hls from "hls.js";
-import { Server, RotateCw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Server, RotateCw, ExternalLink, Play, Film } from "lucide-react";
 
 interface PlayerProps {
   id: string;
@@ -20,7 +20,15 @@ interface ServerSource {
 
 const SERVER_POOL: ServerSource[] = [
   {
-    id: "vidsrc_icu",
+    id: "vidsrc_pro",
+    name: "VidSrc Pro",
+    getUrl: (id, type, s, e) =>
+      type === "movie"
+        ? `https://vidsrc.pro/embed/movie/${id}`
+        : `https://vidsrc.pro/embed/tv/${id}/${s}/${e}`,
+  },
+  {
+    id: "vidsrc_cc",
     name: "VidSrc CC",
     getUrl: (id, type, s, e) =>
       type === "movie"
@@ -36,22 +44,6 @@ const SERVER_POOL: ServerSource[] = [
         : `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`,
   },
   {
-    id: "embedsu",
-    name: "Embed.su",
-    getUrl: (id, type, s, e) =>
-      type === "movie"
-        ? `https://embed.su/embed/movie/${id}`
-        : `https://embed.su/embed/tv/${id}/${s}/${e}`,
-  },
-  {
-    id: "smashy",
-    name: "SmashyStream",
-    getUrl: (id, type, s, e) =>
-      type === "movie"
-        ? `https://player.smashystream.com/movie/${id}`
-        : `https://player.smashystream.com/tv/${id}?s=${s}&e=${e}`,
-  },
-  {
     id: "superembed",
     name: "SuperEmbed",
     getUrl: (id, type, s, e) =>
@@ -60,80 +52,59 @@ const SERVER_POOL: ServerSource[] = [
         : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`,
   },
   {
-    id: "vidsrc_xyz",
-    name: "VidSrc XYZ",
+    id: "moviesapi",
+    name: "MoviesAPI",
     getUrl: (id, type, s, e) =>
       type === "movie"
-        ? `https://vidsrc.xyz/embed/movie/${id}`
-        : `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`,
+        ? `https://moviesapi.club/movie/${id}`
+        : `https://moviesapi.club/tv/${id}-${s}-${e}`,
   },
 ];
+
+// Reliable open-source test stream
+const DEMO_HLS_URL = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
 
 export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentServerIndex, setCurrentServerIndex] = useState(0);
-  const [isNativeHls, setIsNativeHls] = useState(Boolean(m3u8Url));
-  const [isAutoSwitchEnabled, setIsAutoSwitchEnabled] = useState(true);
-  const [countdown, setCountdown] = useState(8);
+  const [useHls, setUseHls] = useState(Boolean(m3u8Url));
+  const [activeM3u8, setActiveM3u8] = useState<string | null>(m3u8Url || null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   const activeServer = SERVER_POOL[currentServerIndex];
+  const streamUrl = activeServer.getUrl(id, type, season, episode);
 
-  // Rotate to next server in pool
+  // Switch to next server
   const rotateToNextServer = useCallback(() => {
     setHasLoaded(false);
-    setCountdown(8);
     setCurrentServerIndex((prev) => (prev + 1) % SERVER_POOL.length);
   }, []);
 
-  // Failover countdown watchdog
+  // HLS Engine for direct m3u8 streams
   useEffect(() => {
-    if (isNativeHls || !isAutoSwitchEnabled || hasLoaded) return;
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          console.warn(`Server ${activeServer.name} timed out. Failing over...`);
-          rotateToNextServer();
-          return 8;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isNativeHls, isAutoSwitchEnabled, hasLoaded, activeServer, rotateToNextServer]);
-
-  // Direct HLS player engine (.m3u8)
-  useEffect(() => {
-    if (!isNativeHls || !m3u8Url || !videoRef.current) return;
+    if (!useHls || !activeM3u8 || !videoRef.current) return;
 
     let hls: Hls | null = null;
     const video = videoRef.current;
 
     if (Hls.isSupported()) {
       hls = new Hls({ enableWorker: true });
-      hls.loadSource(m3u8Url);
+      hls.loadSource(activeM3u8);
       hls.attachMedia(video);
-      hls.on(Hls.Events.ERROR, () => {
-        console.warn("HLS stream failed. Falling back to multi-server pool.");
-        setIsNativeHls(false);
-      });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = m3u8Url;
-      video.onerror = () => setIsNativeHls(false);
+      video.src = activeM3u8;
     }
 
     return () => {
       if (hls) hls.destroy();
     };
-  }, [isNativeHls, m3u8Url]);
+  }, [useHls, activeM3u8]);
 
   return (
     <div className="w-full flex flex-col gap-3">
       {/* Player Screen Frame */}
       <div className="relative aspect-video w-full rounded-2xl overflow-hidden glass-panel border border-white/15 bg-black shadow-2xl">
-        {isNativeHls && m3u8Url ? (
+        {useHls && activeM3u8 ? (
           <video
             ref={videoRef}
             controls
@@ -143,76 +114,68 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
           />
         ) : (
           <iframe
-            key={activeServer.id}
-            src={activeServer.getUrl(id, type, season, episode)}
+            key={`${activeServer.id}-${id}-${season}-${episode}`}
+            src={streamUrl}
             title={activeServer.name}
             className="w-full h-full border-0"
+            referrerPolicy="origin"
             allowFullScreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            onLoad={() => {
-              // Mark ready once the frame loads initial payload
-              setHasLoaded(true);
-            }}
+            onLoad={() => setHasLoaded(true)}
           />
-        )}
-
-        {/* Auto-Failover Monitor Badge */}
-        {!isNativeHls && isAutoSwitchEnabled && !hasLoaded && (
-          <div className="absolute top-3 right-3 flex items-center gap-2 bg-black/80 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full text-[11px] text-zinc-300 pointer-events-none">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            Connecting to {activeServer.name} ({countdown}s)...
-          </div>
         )}
       </div>
 
-      {/* Control & Server Selection Console */}
+      {/* Control Console */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-3 p-3.5 rounded-xl glass-panel border border-white/10">
         <div className="flex items-center gap-2 text-xs text-zinc-300 w-full md:w-auto justify-between">
           <div className="flex items-center gap-2">
             <Server className="w-4 h-4 text-zinc-400" />
-            <span className="font-medium text-white">Active Server:</span>
-            <span className="text-zinc-400">{isNativeHls ? "HLS (.m3u8)" : activeServer.name}</span>
+            <span className="font-medium text-white">Active Source:</span>
+            <span className="text-zinc-400">{useHls ? "Direct HLS Stream" : activeServer.name}</span>
           </div>
 
-          {!isNativeHls && (
-            <button
-              onClick={() => setIsAutoSwitchEnabled((prev) => !prev)}
-              className="text-[10px] text-zinc-400 hover:text-white underline decoration-zinc-600 ml-3"
+          {/* Direct Pop-out bypass */}
+          {!useHls && (
+            <a
+              href={streamUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[11px] text-zinc-200 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md transition"
             >
-              Auto-Failover: {isAutoSwitchEnabled ? "ON" : "OFF"}
-            </button>
+              <ExternalLink className="w-3 h-3" />
+              Open Clean Tab
+            </a>
           )}
         </div>
 
-        {/* Manual Server Controls */}
+        {/* Server Selectors */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
-          {m3u8Url && (
-            <button
-              onClick={() => {
-                setIsNativeHls(true);
-                setHasLoaded(true);
-              }}
-              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
-                isNativeHls
-                  ? "bg-white text-black shadow-glow font-bold"
-                  : "bg-white/5 text-zinc-400 hover:text-white"
-              }`}
-            >
-              Direct HLS
-            </button>
-          )}
+          {/* Test Stream Button */}
+          <button
+            onClick={() => {
+              setActiveM3u8(DEMO_HLS_URL);
+              setUseHls(true);
+            }}
+            className={`px-2.5 py-1.5 text-xs rounded-lg font-medium transition ${
+              useHls
+                ? "bg-white text-black shadow-glow font-bold"
+                : "bg-white/5 text-zinc-400 hover:text-white"
+            }`}
+          >
+            Direct HLS Test
+          </button>
 
           {SERVER_POOL.map((server, index) => (
             <button
               key={server.id}
               onClick={() => {
-                setIsNativeHls(false);
+                setUseHls(false);
                 setCurrentServerIndex(index);
                 setHasLoaded(false);
-                setCountdown(8);
               }}
               className={`px-2.5 py-1.5 text-xs rounded-lg font-medium transition ${
-                !isNativeHls && currentServerIndex === index
+                !useHls && currentServerIndex === index
                   ? "bg-white text-black shadow-glow font-bold"
                   : "bg-white/5 text-zinc-400 hover:text-white"
               }`}
@@ -227,7 +190,7 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium bg-white/10 hover:bg-white/20 text-white border border-white/20 transition"
           >
             <RotateCw className="w-3.5 h-3.5" />
-            Skip Server
+            Next
           </button>
         </div>
       </div>
