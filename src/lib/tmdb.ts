@@ -16,6 +16,38 @@ export interface MediaItem {
   genre_ids?: number[];
 }
 
+export interface Genre {
+  id: number;
+  name: string;
+}
+
+export const MOVIE_GENRES: Genre[] = [
+  { id: 28, name: "Action" },
+  { id: 12, name: "Adventure" },
+  { id: 16, name: "Animation" },
+  { id: 35, name: "Comedy" },
+  { id: 80, name: "Crime" },
+  { id: 18, name: "Drama" },
+  { id: 14, name: "Fantasy" },
+  { id: 27, name: "Horror" },
+  { id: 9648, name: "Mystery" },
+  { id: 10749, name: "Romance" },
+  { id: 878, name: "Sci-Fi" },
+  { id: 53, name: "Thriller" },
+];
+
+export const TV_GENRES: Genre[] = [
+  { id: 10759, name: "Action & Adventure" },
+  { id: 16, name: "Animation" },
+  { id: 35, name: "Comedy" },
+  { id: 80, name: "Crime" },
+  { id: 18, name: "Drama" },
+  { id: 10751, name: "Family" },
+  { id: 9648, name: "Mystery" },
+  { id: 10765, name: "Sci-Fi & Fantasy" },
+  { id: 10768, name: "War & Politics" },
+];
+
 async function fetchFromTMDB(endpoint: string, params: Record<string, string> = {}) {
   if (!API_KEY) {
     console.warn("TMDB API key is missing. Set NEXT_PUBLIC_TMDB_API_KEY in .env.local");
@@ -66,13 +98,29 @@ export const tmdb = {
     });
     return data?.results || [];
   },
+  discoverMedia: async (
+    type: "movie" | "tv",
+    genreId?: number,
+    sortBy: string = "popularity.desc"
+  ): Promise<MediaItem[]> => {
+    const params: Record<string, string> = {
+      sort_by: sortBy,
+      include_adult: "false",
+      page: "1",
+    };
+
+    if (genreId) {
+      params.with_genres = genreId.toString();
+    }
+
+    const data = await fetchFromTMDB(`/discover/${type}`, params);
+    return data?.results || [];
+  },
   getDetails: async (type: "movie" | "tv", id: string) => {
-    // Attempt requested type first
     let data = await fetchFromTMDB(`/${type}/${id}`, {
       append_to_response: "videos,credits,similar",
     });
 
-    // If 404, fallback to checking the alternative media type
     if (!data) {
       const fallbackType = type === "movie" ? "tv" : "movie";
       data = await fetchFromTMDB(`/${fallbackType}/${id}`, {
