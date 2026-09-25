@@ -5,9 +5,10 @@ import Hls from "hls.js";
 import { Radio, Tv, Play, AlertCircle, Signal, Volume2, VolumeX, RotateCcw } from "lucide-react";
 import { CURATED_CHANNELS, LiveChannel } from "@/lib/iptv";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { CustomStreamModal } from "@/components/CustomStreamModal";
 
 export default function LiveTvPage() {
-  const [channels] = useState<LiveChannel[]>(CURATED_CHANNELS);
+  const [channels, setChannels] = useState<LiveChannel[]>(CURATED_CHANNELS);
   const [selectedChannel, setSelectedChannel] = useState<LiveChannel>(CURATED_CHANNELS[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [playbackError, setPlaybackError] = useState(false);
@@ -75,10 +76,21 @@ export default function LiveTvPage() {
     }
   };
 
+  const handleCustomUrl = (url: string, name: string) => {
+    const customChan: LiveChannel = {
+      id: `custom-${Date.now()}`,
+      name: name,
+      category: "Custom",
+      streamUrl: url,
+    };
+    setChannels((prev) => [customChan, ...prev]);
+    setSelectedChannel(customChan);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 space-y-6">
       {/* Title Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-white/10 border border-white/20">
             <Radio className="w-5 h-5 text-white animate-pulse" />
@@ -91,17 +103,21 @@ export default function LiveTvPage() {
                 Live
               </span>
             </h1>
-            <p className="text-xs text-zinc-400">Stream global broadcast feeds</p>
+            <p className="text-xs text-zinc-400">Stream broadcast & custom feeds</p>
           </div>
         </div>
 
-        <button
-          onClick={toggleMute}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs text-white border border-white/15 hover:bg-white/10 transition"
-        >
-          {isMuted ? <VolumeX className="w-3.5 h-3.5 text-zinc-400" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
-          <span>{isMuted ? "Unmute" : "Muted"}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <CustomStreamModal onPlayCustomUrl={handleCustomUrl} />
+
+          <button
+            onClick={toggleMute}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs text-white border border-white/15 hover:bg-white/10 transition"
+          >
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-zinc-400" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
+            <span>{isMuted ? "Unmute" : "Muted"}</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -121,7 +137,7 @@ export default function LiveTvPage() {
               <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center gap-3">
                 <AlertCircle className="w-8 h-8 text-zinc-400" />
                 <p className="text-xs text-zinc-300 max-w-sm">
-                  This feed temporarily stalled. Tap retry or switch channels.
+                  Stream blocked by CORS or offline. Try routing through proxy or test another stream.
                 </p>
                 <button
                   onClick={() => playStream()}
