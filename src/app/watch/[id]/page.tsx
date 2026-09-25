@@ -21,13 +21,8 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
   const episode = searchParams.e ? parseInt(searchParams.e) : 1;
   const m3u8Url = searchParams.url;
 
-  let title = "Stream";
-  try {
-    const details = await tmdb.getDetails(type, params.id);
-    title = details.title || details.name || "Stream";
-  } catch (err) {
-    console.error("Could not fetch title:", err);
-  }
+  const details = await tmdb.getDetails(type, params.id).catch(() => null);
+  const title = details?.title || details?.name || "Stream";
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 space-y-4">
@@ -44,7 +39,6 @@ export default async function WatchPage({ params, searchParams }: WatchPageProps
         </h1>
       </div>
 
-      {/* Primary Video Player Component */}
       <Player
         id={params.id}
         type={type}

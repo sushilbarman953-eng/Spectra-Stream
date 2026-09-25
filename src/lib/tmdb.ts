@@ -13,13 +13,13 @@ export interface MediaItem {
   vote_average: number;
   release_date?: string;
   first_air_date?: string;
-  genre_ids: number[];
+  genre_ids?: number[];
 }
 
 async function fetchFromTMDB(endpoint: string, params: Record<string, string> = {}) {
   if (!API_KEY) {
     console.warn("TMDB API key is missing. Set NEXT_PUBLIC_TMDB_API_KEY in .env.local");
-    return { results: [] };
+    return null;
   }
 
   const query = new URLSearchParams({
@@ -28,40 +28,58 @@ async function fetchFromTMDB(endpoint: string, params: Record<string, string> = 
     ...params,
   });
 
-  const res = await fetch(`${BASE_URL}${endpoint}?${query.toString()}`, {
-    next: { revalidate: 3600 }, // Cache TMDB response for 1 hour
-  });
+  try {
+    const res = await fetch(`${BASE_URL}${endpoint}?${query.toString()}`, {
+      next: { revalidate: 3600 },
+    });
 
-  if (!res.ok) {
-    throw new Error(`TMDB Request failed with status ${res.status}`);
+    if (!res.ok) {
+      console.warn(`TMDB ${endpoint} responded with status: ${res.status}`);
+      return null;
+    }
+
+    return await res.json();
+  } catch (error) {
+    console.error(`TMDB fetch error at ${endpoint}:`, error);
+    return null;
   }
-
-  return res.json();
 }
 
 export const tmdb = {
   getTrending: async (type: "all" | "movie" | "tv" = "all"): Promise<MediaItem[]> => {
     const data = await fetchFromTMDB(`/trending/${type}/day`);
-    return data.results || [];
+    return data?.results || [];
   },
   getPopularMovies: async (): Promise<MediaItem[]> => {
     const data = await fetchFromTMDB("/movie/popular");
-    return data.results || [];
+    return data?.results || [];
   },
   getPopularTV: async (): Promise<MediaItem[]> => {
     const data = await fetchFromTMDB("/tv/popular");
-    return data.results || [];
+    return data?.results || [];
   },
   getAnime: async (): Promise<MediaItem[]> => {
-    // TMDB genre 16 is Animation, with original language Japanese ('ja')
     const data = await fetchFromTMDB("/discover/tv", {
       with_genres: "16",
       with_original_language: "ja",
       sort_by: "popularity.desc",
     });
-    return data.results || [];
+    return data?.results || [];
   },
   getDetails: async (type: "movie" | "tv", id: string) => {
-    return fetchFromTMDB(`/${type}/${id}`, { append_to_response: "videos,credits,similar" });
+    // Attempt requested type first
+    let data = await fetchFromTMDB(`/${type}/${id}`, {
+      append_to_response: "videos,credits,similar",
+    });
+
+    // If 404, fallback to checking the alternative media type
+    if (!data) {
+      const fallbackType = type === "movie" ? "tv" : "movie";
+      data = await fetchFromTMDB(`/${fallbackType}/${id}`, {
+        append_to_response: "videos,credits,similar",
+      });
+    }
+
+    return data;
   },
 };
