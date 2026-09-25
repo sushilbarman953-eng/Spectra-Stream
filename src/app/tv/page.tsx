@@ -1,19 +1,16 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import Hls from "hls.js";
-import { Radio, Tv, Play, AlertCircle, Signal, Volume2, VolumeX, RotateCcw } from "lucide-react";
+import React, { useState } from "react";
+import { Radio, Tv, Play, Signal } from "lucide-react";
 import { CURATED_CHANNELS, LiveChannel } from "@/lib/iptv";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { CustomStreamModal } from "@/components/CustomStreamModal";
+import { GlassVideoPlayer } from "@/components/GlassVideoPlayer";
 
 export default function LiveTvPage() {
   const [channels, setChannels] = useState<LiveChannel[]>(CURATED_CHANNELS);
   const [selectedChannel, setSelectedChannel] = useState<LiveChannel>(CURATED_CHANNELS[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [playbackError, setPlaybackError] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const categories = ["All", ...Array.from(new Set(channels.map((c) => c.category)))];
 
@@ -21,60 +18,6 @@ export default function LiveTvPage() {
     selectedCategory === "All"
       ? channels
       : channels.filter((c) => c.category === selectedCategory);
-
-  const playStream = () => {
-    if (!videoRef.current || !selectedChannel) return;
-
-    setPlaybackError(false);
-    const video = videoRef.current;
-    let hls: Hls | null = null;
-    const isHlsStream = selectedChannel.streamUrl.includes(".m3u8");
-
-    if (isHlsStream) {
-      if (Hls.isSupported()) {
-        hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-        });
-
-        hls.loadSource(selectedChannel.streamUrl);
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video.play().catch(() => {});
-        });
-
-        hls.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) {
-            console.warn("HLS Stream Error:", data.type);
-            setPlaybackError(true);
-          }
-        });
-      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = selectedChannel.streamUrl;
-        video.play().catch(() => {});
-      }
-    } else {
-      video.src = selectedChannel.streamUrl;
-      video.play().catch(() => {});
-    }
-
-    return hls;
-  };
-
-  useEffect(() => {
-    const hls = playStream();
-    return () => {
-      if (hls) hls.destroy();
-    };
-  }, [selectedChannel]);
-
-  const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !videoRef.current.muted;
-      setIsMuted(videoRef.current.muted);
-    }
-  };
 
   const handleCustomUrl = (url: string, name: string) => {
     const customChan: LiveChannel = {
@@ -107,48 +50,17 @@ export default function LiveTvPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <CustomStreamModal onPlayCustomUrl={handleCustomUrl} />
-
-          <button
-            onClick={toggleMute}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-xs text-white border border-white/15 hover:bg-white/10 transition"
-          >
-            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-zinc-400" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
-            <span>{isMuted ? "Unmute" : "Muted"}</span>
-          </button>
-        </div>
+        <CustomStreamModal onPlayCustomUrl={handleCustomUrl} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Main TV Player */}
+        {/* Main TV Player Screen with Custom Glass Controls */}
         <div className="lg:col-span-2 space-y-3">
-          <div className="relative aspect-video w-full rounded-2xl overflow-hidden glass-panel border border-white/15 bg-black shadow-2xl">
-            <video
-              ref={videoRef}
-              muted={isMuted}
-              controls
-              autoPlay
-              playsInline
-              className="w-full h-full object-contain"
-            />
-
-            {playbackError && (
-              <div className="absolute inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center gap-3">
-                <AlertCircle className="w-8 h-8 text-zinc-400" />
-                <p className="text-xs text-zinc-300 max-w-sm">
-                  Stream blocked by CORS or offline. Try routing through proxy or test another stream.
-                </p>
-                <button
-                  onClick={() => playStream()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs border border-white/20"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Retry Feed
-                </button>
-              </div>
-            )}
-          </div>
+          <GlassVideoPlayer
+            key={selectedChannel.id + selectedChannel.streamUrl}
+            src={selectedChannel.streamUrl}
+            isLive={true}
+          />
 
           <div className="flex items-center justify-between p-3.5 rounded-xl glass-panel border border-white/10">
             <div className="flex items-center gap-3">
@@ -168,7 +80,7 @@ export default function LiveTvPage() {
           </div>
         </div>
 
-        {/* Channel Selection Matrix */}
+        {/* Channel Selection Rail */}
         <div className="space-y-3">
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
             {categories.map((cat) => (
