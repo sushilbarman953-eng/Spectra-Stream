@@ -5,6 +5,7 @@ import { Play, Star, Calendar, Clock } from "lucide-react";
 import { tmdb, IMAGE_BASE } from "@/lib/tmdb";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { BookmarkButton } from "@/components/BookmarkButton";
 
 interface DetailsPageProps {
   params: Promise<{ id: string }>;
@@ -104,13 +105,23 @@ export default async function DetailsPage({ params, searchParams }: DetailsPageP
 
           <p className="text-zinc-300 text-sm leading-relaxed max-w-2xl">{details.overview}</p>
 
-          <div className="flex items-center gap-3 pt-2">
+          {/* Action Row */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <Link href={`/watch/${id}?type=${type}&s=1&e=1`}>
               <GlassButton variant="primary">
                 <Play className="w-4 h-4 fill-black" />
                 {type === "movie" ? "Play Movie" : "Start Watching S1 E1"}
               </GlassButton>
             </Link>
+
+            <BookmarkButton
+              item={{
+                id,
+                type,
+                title,
+                poster: poster || "",
+              }}
+            />
           </div>
 
           {type === "tv" && details.seasons && (

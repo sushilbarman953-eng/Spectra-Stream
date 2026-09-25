@@ -5,6 +5,7 @@ import { Play, Info } from "lucide-react";
 import { tmdb, IMAGE_BASE } from "@/lib/tmdb";
 import { MediaRow } from "@/components/MediaRow";
 import { GlassButton } from "@/components/ui/GlassButton";
+import { UserMediaRails } from "@/components/UserMediaRails";
 
 export default async function HomePage() {
   const [trending, movies, tvSeries, anime] = await Promise.all([
@@ -68,7 +69,10 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Tightly Nested Media Rows */}
+      {/* Dynamic User Media History & Watchlist */}
+      <UserMediaRails />
+
+      {/* TMDB Curated Rails */}
       <MediaRow id="trending" title="Trending Now" items={trending} />
       <MediaRow id="movies" title="Popular Movies" items={movies} type="movie" />
       <MediaRow id="series" title="TV Series" items={tvSeries} type="tv" />
