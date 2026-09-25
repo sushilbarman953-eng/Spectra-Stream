@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { Server, AlertCircle } from "lucide-react";
+import { Server } from "lucide-react";
 
 interface PlayerProps {
   id: string;
@@ -14,11 +14,11 @@ interface PlayerProps {
 
 export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [selectedServer, setSelectedServer] = useState<"m3u8" | "server1" | "server2">(
-    m3u8Url ? "m3u8" : "server1"
+  const [selectedServer, setSelectedServer] = useState<"m3u8" | "vidsrc" | "autoembed" | "superembed">(
+    m3u8Url ? "m3u8" : "vidsrc"
   );
 
-  // HLS stream listener for direct .m3u8 links
+  // Direct HLS .m3u8 player handler
   useEffect(() => {
     if (selectedServer !== "m3u8" || !m3u8Url || !videoRef.current) return;
 
@@ -30,7 +30,6 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
       hls.loadSource(m3u8Url);
       hls.attachMedia(video);
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native Safari support for HLS
       video.src = m3u8Url;
     }
 
@@ -39,16 +38,27 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
     };
   }, [selectedServer, m3u8Url]);
 
-  // Video embed endpoints
-  const serverUrls = {
-    server1:
-      type === "movie"
-        ? `https://vidsrc.to/embed/movie/${id}`
-        : `https://vidsrc.to/embed/tv/${id}/${season}/${episode}`,
-    server2:
-      type === "movie"
-        ? `https://multiembed.mov/?video_id=${id}&tmdb=1`
-        : `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`,
+  // Working video providers
+  const getStreamUrl = (server: "vidsrc" | "autoembed" | "superembed") => {
+    if (type === "movie") {
+      switch (server) {
+        case "vidsrc":
+          return `https://vidsrc.xyz/embed/movie/${id}`;
+        case "autoembed":
+          return `https://player.autoembed.cc/embed/movie/${id}`;
+        case "superembed":
+          return `https://multiembed.mov/?video_id=${id}&tmdb=1`;
+      }
+    } else {
+      switch (server) {
+        case "vidsrc":
+          return `https://vidsrc.xyz/embed/tv/${id}/${season}/${episode}`;
+        case "autoembed":
+          return `https://player.autoembed.cc/embed/tv/${id}/${season}/${episode}`;
+        case "superembed":
+          return `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
+      }
+    }
   };
 
   return (
@@ -65,56 +75,67 @@ export const Player = ({ id, type, season = 1, episode = 1, m3u8Url }: PlayerPro
           />
         ) : (
           <iframe
-            src={serverUrls[selectedServer as "server1" | "server2"]}
+            src={getStreamUrl(selectedServer as "vidsrc" | "autoembed" | "superembed")}
             title="Video Player"
             className="w-full h-full border-0"
             allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           />
         )}
       </div>
 
-      {/* Floating Server Switcher Bar */}
+      {/* Server Switcher Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl glass-panel border-white/10">
         <div className="flex items-center gap-2 text-xs text-zinc-400">
           <Server className="w-4 h-4 text-zinc-300" />
-          <span>Stream Sources:</span>
+          <span>Select Stream Server:</span>
         </div>
 
         <div className="flex items-center gap-2">
           {m3u8Url && (
             <button
               onClick={() => setSelectedServer("m3u8")}
-              className={`px-3 py-1 text-xs rounded-lg font-medium transition ${
+              className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
                 selectedServer === "m3u8"
-                  ? "bg-white text-black shadow-glow"
+                  ? "bg-white text-black shadow-glow font-bold"
                   : "bg-white/5 text-zinc-400 hover:text-white"
               }`}
             >
-              Direct HLS (.m3u8)
+              Direct HLS
             </button>
           )}
 
           <button
-            onClick={() => setSelectedServer("server1")}
-            className={`px-3 py-1 text-xs rounded-lg font-medium transition ${
-              selectedServer === "server1"
-                ? "bg-white text-black shadow-glow"
+            onClick={() => setSelectedServer("vidsrc")}
+            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+              selectedServer === "vidsrc"
+                ? "bg-white text-black shadow-glow font-bold"
                 : "bg-white/5 text-zinc-400 hover:text-white"
             }`}
           >
-            Server 1 (Fast)
+            Server 1 (VidSrc)
           </button>
 
           <button
-            onClick={() => setSelectedServer("server2")}
-            className={`px-3 py-1 text-xs rounded-lg font-medium transition ${
-              selectedServer === "server2"
-                ? "bg-white text-black shadow-glow"
+            onClick={() => setSelectedServer("autoembed")}
+            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+              selectedServer === "autoembed"
+                ? "bg-white text-black shadow-glow font-bold"
                 : "bg-white/5 text-zinc-400 hover:text-white"
             }`}
           >
-            Server 2 (Backup)
+            Server 2 (AutoEmbed)
+          </button>
+
+          <button
+            onClick={() => setSelectedServer("superembed")}
+            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${
+              selectedServer === "superembed"
+                ? "bg-white text-black shadow-glow font-bold"
+                : "bg-white/5 text-zinc-400 hover:text-white"
+            }`}
+          >
+            Server 3 (Multi)
           </button>
         </div>
       </div>
