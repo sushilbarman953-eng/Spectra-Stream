@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, Film, Tv, PlaySquare, Compass, X, Star } from "lucide-react";
+import { Search, Film, Tv, PlaySquare, Compass, Radio, X, Star } from "lucide-react";
 import { IMAGE_BASE } from "@/lib/tmdb";
 
 export const Navbar = () => {
@@ -23,8 +23,6 @@ export const Navbar = () => {
     const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        
-        // Check for ok status and json content type before parsing
         const contentType = res.headers.get("content-type");
         if (res.ok && contentType && contentType.includes("application/json")) {
           const data = await res.json();
@@ -55,8 +53,9 @@ export const Navbar = () => {
   const navItems = [
     { label: "Home", href: "/", icon: Compass, id: "all" },
     { label: "Movies", href: "/#movies", icon: Film, id: "movie" },
-    { label: "TV Shows", href: "/#series", icon: Tv, id: "tv" },
+    { label: "Series", href: "/#series", icon: Tv, id: "tv" },
     { label: "Anime", href: "/#anime", icon: PlaySquare, id: "anime" },
+    { label: "Live TV", href: "/tv", icon: Radio, id: "livetv" },
   ];
 
   return (
@@ -68,7 +67,7 @@ export const Navbar = () => {
           </span>
         </Link>
 
-        {/* Desktop Nav Items */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1 glass-pill p-1 rounded-full">
           {navItems.map((item) => (
             <Link
@@ -86,7 +85,7 @@ export const Navbar = () => {
           ))}
         </nav>
 
-        {/* Search Bar */}
+        {/* Live Search */}
         <div ref={searchRef} className="relative flex items-center">
           <input
             type="text"
@@ -110,7 +109,6 @@ export const Navbar = () => {
             </button>
           )}
 
-          {/* Results Dropdown */}
           {isOpen && results.length > 0 && (
             <div className="absolute top-12 right-0 w-72 sm:w-80 max-h-96 overflow-y-auto no-scrollbar rounded-2xl glass-panel bg-black/90 p-2 shadow-2xl flex flex-col gap-1 z-50">
               {results.slice(0, 8).map((item) => {
