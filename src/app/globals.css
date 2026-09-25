@@ -3,34 +3,77 @@
 @tailwind utilities;
 
 :root {
-  --background: #050505;
-  --foreground: #ededed;
+  --background: #08080a;
+  --foreground: #f4f4f5;
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  overflow-x: hidden;
+  background-color: var(--background);
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Ambient glow nodes so glass panels have lights to refract and blur */
+body::before {
+  content: "";
+  position: fixed;
+  top: -15%;
+  left: 20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 45%;
+  right: -10%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%);
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
 }
 
 @layer utilities {
+  /* High-Contrast Frosted Glass Surface */
   .glass-panel {
-    background: rgba(255, 255, 255, 0.04);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 
+      0 8px 32px 0 rgba(0, 0, 0, 0.45),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.25) !important;
   }
 
   .glass-panel-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .glass-panel-hover:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    box-shadow: 
+      0 12px 40px 0 rgba(0, 0, 0, 0.6),
+      inset 0 1px 2px 0 rgba(255, 255, 255, 0.45),
+      0 0 20px rgba(255, 255, 255, 0.1) !important;
+    transform: translateY(-3px) scale(1.02);
+  }
+
+  /* Frosted Pill for Buttons, Badges, Search */
+  .glass-pill {
     background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 25px rgba(255, 255, 255, 0.06);
-    transform: translateY(-2px);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
   }
 
   .no-scrollbar::-webkit-scrollbar {
