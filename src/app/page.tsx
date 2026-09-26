@@ -3,17 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, Play, Film, Volume2, Star } from "lucide-react";
-import { tmdb, MediaItem, IMAGE_BASE } from "@/lib/tmdb";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassButton } from "@/components/ui/GlassButton";
+import { Sparkles, Play, Film, Volume2, Star, ChevronRight } from "lucide-react";
+import { tmdb, MediaItem, IMAGE_BASE, BACKUP_HINDI_MOVIES, BACKUP_HINDI_SERIES } from "@/lib/tmdb";
 import { soundFx } from "@/lib/soundFx";
 
 export default function HomePage() {
-  const [trending, setTrending] = useState<MediaItem[]>([]);
-  const [hindiCinema, setHindiCinema] = useState<MediaItem[]>([]);
-  const [hindiSeries, setHindiSeries] = useState<MediaItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [trending, setTrending] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
+  const [hindiCinema, setHindiCinema] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
+  const [hindiSeries, setHindiSeries] = useState<MediaItem[]>(BACKUP_HINDI_SERIES);
 
   useEffect(() => {
     let isMounted = true;
@@ -27,217 +24,177 @@ export default function HomePage() {
         ]);
 
         if (isMounted) {
-          // Normalize whether returned as array directly or as { results: [...] }
-          setTrending(Array.isArray(trendData) ? trendData : (trendData as any)?.results || []);
-          setHindiCinema(Array.isArray(cinemaData) ? cinemaData : (cinemaData as any)?.results || []);
-          setHindiSeries(Array.isArray(seriesData) ? seriesData : (seriesData as any)?.results || []);
+          if (trendData?.length) setTrending(trendData);
+          if (cinemaData?.length) setHindiCinema(cinemaData);
+          if (seriesData?.length) setHindiSeries(seriesData);
         }
       } catch (e) {
         console.error("Catalog load failed:", e);
-      } finally {
-        if (isMounted) setLoading(false);
       }
     };
 
     loadCatalogs();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
-  const heroItem = trending.length > 0 ? trending[0] : (hindiCinema[0] || null);
+  const heroItem = trending[0] || BACKUP_HINDI_MOVIES[0];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-2 pb-28 space-y-6">
-      {/* 1. HERO SHOWCASE */}
-      {heroItem ? (
-        <div className="relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl overflow-hidden border border-white/15 bg-black shadow-2xl">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-5">
+      {/* 1. COMPACT HERO SPOTLIGHT */}
+      {heroItem && (
+        <div className="relative aspect-[16/9] sm:aspect-[21/9] w-full rounded-2xl overflow-hidden border border-white/10 bg-black shadow-xl">
           {heroItem.backdrop_path || heroItem.poster_path ? (
             <Image
-              src={`${IMAGE_BASE}/w1280${heroItem.backdrop_path || heroItem.poster_path}`}
-              alt={heroItem.title || heroItem.name || "Hero Banner"}
+              src={`${IMAGE_BASE}/w780${heroItem.backdrop_path || heroItem.poster_path}`}
+              alt={heroItem.title || heroItem.name || "Hero"}
               fill
               priority
               unoptimized
-              sizes="1200px"
               className="object-cover object-top"
             />
           ) : (
             <div className="w-full h-full bg-zinc-900" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-black/35 to-transparent" />
 
-          <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 max-w-xl space-y-2 z-10">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full bg-emerald-500/90 text-black font-black text-[9px] uppercase tracking-wider">
-                Trending in India
+          <div className="absolute bottom-3 left-3 right-3 sm:bottom-5 sm:left-5 max-w-lg space-y-1.5 z-10">
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-black font-black text-[9px] uppercase tracking-wider">
+                Trending India
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-white/10 text-white font-mono text-[9px] uppercase border border-white/20">
-                Hindi Dubbed Available
+              <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-white font-mono text-[9px] border border-white/20">
+                Hindi Dub
               </span>
             </div>
-            <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">
+            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight drop-shadow truncate">
               {heroItem.title || heroItem.name}
             </h1>
-            <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed max-w-md">
-              {heroItem.overview || "Stream in ultra high-definition with low-latency Indian servers."}
-            </p>
 
             <div className="flex items-center gap-2 pt-1">
               <Link
                 href={`/watch/${heroItem.id}?type=${heroItem.media_type || (heroItem.name ? "tv" : "movie")}`}
                 onClick={() => soundFx.playCinematicSwell()}
+                className="px-3.5 py-1.5 rounded-xl bg-white text-black font-black text-xs shadow-glow hover:bg-zinc-200 active:scale-95 transition flex items-center gap-1.5"
               >
-                <GlassButton variant="primary" className="text-xs px-5 py-2 font-black flex items-center gap-1.5 shadow-glow">
-                  <Play className="w-3.5 h-3.5 fill-black text-black" />
-                  <span>Stream Now</span>
-                </GlassButton>
+                <Play className="w-3.5 h-3.5 fill-black text-black" />
+                <span>Stream</span>
               </Link>
 
               <Link
                 href={`/details/${heroItem.id}?type=${heroItem.media_type || (heroItem.name ? "tv" : "movie")}`}
                 onClick={() => soundFx.playCinematicPop()}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs backdrop-blur-xl transition"
               >
-                <GlassButton variant="secondary" className="text-xs px-4 py-2 font-bold">
-                  <span>Dossier</span>
-                </GlassButton>
+                <span>Info</span>
               </Link>
             </div>
           </div>
         </div>
-      ) : (
-        loading && (
-          <div className="aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl bg-white/[0.03] border border-white/10 animate-pulse flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-zinc-500 animate-spin" />
-          </div>
-        )
       )}
 
-      {/* 2. POPULAR HINDI CINEMA SHELF */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-black text-white uppercase tracking-wide flex items-center gap-2">
-            <Film className="w-4 h-4 text-white" />
+      {/* 2. POPULAR HINDI CINEMA (COMPACT SINGLE ROW) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+            <Film className="w-3.5 h-3.5 text-white" />
             <span>Popular Hindi Cinema</span>
           </h3>
           <span className="text-[10px] text-zinc-500 font-mono">{hindiCinema.length} Films</span>
         </div>
 
-        {hindiCinema.length === 0 && loading ? (
-          <div className="flex gap-3 overflow-hidden">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <div key={n} className="w-36 sm:w-44 aspect-[2/3] rounded-2xl bg-white/5 animate-pulse flex-none" />
-            ))}
-          </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-            {hindiCinema.map((item, idx) => {
-              const poster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
-              return (
-                <Link
-                  key={`cinema-${item.id}-${idx}`}
-                  href={`/details/${item.id}?type=movie`}
-                  onClick={() => soundFx.playCinematicPop()}
-                  className="flex-none w-36 sm:w-44 group"
-                >
-                  <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-lg">
-                    {poster ? (
-                      <Image
-                        src={poster}
-                        alt={item.title || "Movie"}
-                        fill
-                        unoptimized
-                        sizes="180px"
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-zinc-600">
-                        <Film className="w-6 h-6" />
-                      </div>
-                    )}
-                    <div className="absolute top-2 left-2 bg-emerald-400 text-black px-1.5 py-0.5 rounded text-[8px] font-black uppercase shadow-glow">
-                      Hindi
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-1">
+          {hindiCinema.map((item, idx) => {
+            const poster = item.poster_path ? `${IMAGE_BASE}/w185${item.poster_path}` : null;
+            return (
+              <Link
+                key={`home-cinema-${item.id}-${idx}`}
+                href={`/details/${item.id}?type=movie`}
+                onClick={() => soundFx.playCinematicPop()}
+                className="flex-none w-28 sm:w-32 group"
+              >
+                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md">
+                  {poster ? (
+                    <Image
+                      src={poster}
+                      alt={item.title || "Movie"}
+                      fill
+                      unoptimized
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-zinc-600">
+                      <Film className="w-5 h-5" />
                     </div>
-                    {item.vote_average ? (
-                      <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
-                        <Star className="w-2.5 h-2.5 fill-white text-white" />
-                        {item.vote_average.toFixed(1)}
-                      </div>
-                    ) : null}
+                  )}
+                  <div className="absolute top-1.5 left-1.5 bg-emerald-400 text-black px-1 py-0.5 rounded text-[7px] font-black uppercase shadow-glow">
+                    Hindi
                   </div>
-                  <h4 className="text-xs font-bold text-white truncate mt-1.5">{item.title}</h4>
-                  <p className="text-[10px] text-zinc-400">{item.release_date?.slice(0, 4) || "Cinema"}</p>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                  {item.vote_average ? (
+                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                      <Star className="w-2 h-2 fill-white text-white" />
+                      {item.vote_average.toFixed(1)}
+                    </div>
+                  ) : null}
+                </div>
+                <h4 className="text-[11px] font-bold text-white truncate mt-1">{item.title}</h4>
+                <p className="text-[9px] text-zinc-500 font-mono">{item.release_date?.slice(0, 4) || "2024"}</p>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
-      {/* 3. TOP INDIAN WEB SERIES */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-black text-white uppercase tracking-wide flex items-center gap-2">
-            <Volume2 className="w-4 h-4 text-emerald-400" />
+      {/* 3. TOP INDIAN WEB SERIES (COMPACT SINGLE ROW) */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+            <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
             <span>Top Indian Web Series</span>
           </h3>
           <span className="text-[10px] text-zinc-500 font-mono">{hindiSeries.length} Series</span>
         </div>
 
-        {hindiSeries.length === 0 && loading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {[1, 2, 3, 4, 5, 6].map((n) => (
-              <div key={n} className="aspect-[2/3] rounded-2xl bg-white/5 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {hindiSeries.slice(0, 12).map((item, idx) => {
-              const poster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
-              return (
-                <Link
-                  key={`series-${item.id}-${idx}`}
-                  href={`/details/${item.id}?type=tv`}
-                  onClick={() => soundFx.playCinematicPop()}
-                  className="group relative"
-                >
-                  <GlassCard hoverEffect className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0b0b10]">
-                    <div className="relative aspect-[2/3] w-full bg-zinc-950">
-                      {poster ? (
-                        <Image
-                          src={poster}
-                          alt={item.name || "Series"}
-                          fill
-                          unoptimized
-                          sizes="180px"
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-zinc-600">
-                          <Film className="w-6 h-6" />
-                        </div>
-                      )}
-                      <div className="absolute top-2 left-2 bg-emerald-400 text-black px-1.5 py-0.5 rounded text-[8px] font-black uppercase shadow-glow">
-                        Hindi
-                      </div>
-                      {item.vote_average ? (
-                        <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
-                          <Star className="w-2.5 h-2.5 fill-white text-white" />
-                          {item.vote_average.toFixed(1)}
-                        </div>
-                      ) : null}
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-1">
+          {hindiSeries.map((item, idx) => {
+            const poster = item.poster_path ? `${IMAGE_BASE}/w185${item.poster_path}` : null;
+            return (
+              <Link
+                key={`home-series-${item.id}-${idx}`}
+                href={`/details/${item.id}?type=tv`}
+                onClick={() => soundFx.playCinematicPop()}
+                className="flex-none w-28 sm:w-32 group"
+              >
+                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md">
+                  {poster ? (
+                    <Image
+                      src={poster}
+                      alt={item.name || "Series"}
+                      fill
+                      unoptimized
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-zinc-600">
+                      <Film className="w-5 h-5" />
                     </div>
-                    <div className="p-2.5 bg-black/60">
-                      <h4 className="text-xs font-semibold text-white truncate">{item.name}</h4>
-                      <span className="text-[9px] text-zinc-400 font-mono">SERIES</span>
+                  )}
+                  <div className="absolute top-1.5 left-1.5 bg-emerald-400 text-black px-1 py-0.5 rounded text-[7px] font-black uppercase shadow-glow">
+                    Hindi
+                  </div>
+                  {item.vote_average ? (
+                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                      <Star className="w-2 h-2 fill-white text-white" />
+                      {item.vote_average.toFixed(1)}
                     </div>
-                  </GlassCard>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                  ) : null}
+                </div>
+                <h4 className="text-[11px] font-bold text-white truncate mt-1">{item.name}</h4>
+                <p className="text-[9px] text-zinc-500 font-mono">SERIES</p>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
