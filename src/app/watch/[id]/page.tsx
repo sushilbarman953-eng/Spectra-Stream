@@ -30,7 +30,6 @@ export default function WatchPage() {
   const isSeriesOrAnime = type === "tv";
   const seasonsCount = details?.number_of_seasons || 1;
 
-  // Load Main Title Metadata
   useEffect(() => {
     let isMounted = true;
     const loadDetails = async () => {
@@ -51,7 +50,6 @@ export default function WatchPage() {
     };
   }, [id, type]);
 
-  // Load Season Episodes
   useEffect(() => {
     if (!isSeriesOrAnime || !id) return;
 
@@ -63,7 +61,6 @@ export default function WatchPage() {
           if (epList && epList.length > 0) {
             setEpisodes(epList);
           } else {
-            // Fallback: Generate array up to number_of_episodes if season API returned empty
             const total = details?.number_of_episodes || 25;
             const fallbackList: EpisodeItem[] = Array.from({ length: total }).map((_, i) => ({
               id: i + 1,
@@ -101,6 +98,10 @@ export default function WatchPage() {
     handleSelectEpisode(nextEp);
   };
 
+  const posterImage = details?.backdrop_path
+    ? `${IMAGE_BASE}/w1280${details.backdrop_path}`
+    : undefined;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh] gap-2 text-zinc-400 text-xs">
@@ -126,13 +127,15 @@ export default function WatchPage() {
         </h2>
       </div>
 
-      {/* Main Video Stream */}
+      {/* Main Video Stream locked to Glass Player */}
       {isSeriesOrAnime ? (
         <AnimePlayer
           tmdbId={id}
           animeTitle={title}
+          season={currentSeason}
           episode={currentEpisode}
           totalEpisodes={episodes.length || undefined}
+          poster={posterImage}
           onNextEpisode={handleNextEpisode}
         />
       ) : (
@@ -141,15 +144,11 @@ export default function WatchPage() {
           type={type}
           season={1}
           episode={currentEpisode}
-          poster={
-            details?.backdrop_path
-              ? `${IMAGE_BASE}/w1280${details.backdrop_path}`
-              : undefined
-          }
+          poster={posterImage}
         />
       )}
 
-      {/* Always Visible Episode Hub with Thumbnails & Seasons */}
+      {/* Episode Browser Grid */}
       {isSeriesOrAnime && episodes.length > 0 && (
         <AnimeEpisodeGrid
           episodes={episodes}
