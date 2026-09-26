@@ -11,6 +11,7 @@ import {
   PlaySquare,
   Compass,
   Radio,
+  Download,
   X,
   Star,
   Sparkles,
@@ -24,12 +25,11 @@ import { IMAGE_BASE } from "@/lib/tmdb";
 
 const QUICK_EXPLORE_GENRES = [
   { name: "Live TV", href: "/tv" },
+  { name: "Anime Hub", href: "/anime" },
   { name: "Action", href: "/movies?genre=28" },
   { name: "Sci-Fi", href: "/movies?genre=878" },
   { name: "Horror", href: "/movies?genre=27" },
-  { name: "Anime", href: "/anime" },
   { name: "Drama", href: "/series?genre=18" },
-  { name: "Comedy", href: "/movies?genre=35" },
 ];
 
 const RECENT_SEARCHES_KEY = "spectra_recent_searches";
@@ -121,7 +121,7 @@ export const Navbar = () => {
         setIsListening(true);
         setIsOpen(true);
       } catch {
-        // Voice recognition initiation
+        // Speech API initialization
       }
     }
   };
@@ -190,6 +190,7 @@ export const Navbar = () => {
     { label: "Series", href: "/series", icon: Tv },
     { label: "Anime", href: "/anime", icon: PlaySquare },
     { label: "Live TV", href: "/tv", icon: Radio },
+    { label: "Downloads", href: "/downloads", icon: Download },
   ];
 
   return (
@@ -222,7 +223,7 @@ export const Navbar = () => {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] ${
                   isActive
                     ? "bg-white text-black shadow-[0_0_16px_rgba(255,255,255,0.45)]"
                     : "text-zinc-300 hover:text-white hover:bg-white/10"

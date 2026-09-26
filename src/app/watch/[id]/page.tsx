@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Download, CheckCircle2 } from "lucide-react";
 import { tmdb, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
+import { downloadManager } from "@/lib/downloadManager";
 import { AnimePlayer } from "@/components/AnimePlayer";
 import { AnimeEpisodeGrid } from "@/components/AnimeEpisodeGrid";
 import { Player } from "@/components/Player";
@@ -25,10 +26,18 @@ export default function WatchPage() {
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
   const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDownloaded, setIsDownloaded] = useState(false);
 
   const title = details?.title || details?.name || "Loading Title...";
   const isSeriesOrAnime = type === "tv";
   const seasonsCount = details?.number_of_seasons || 1;
+
+  // Check download state
+  useEffect(() => {
+    const downloadKey = `${id}-${type}-s${currentSeason}-e${currentEpisode}`;
+    const all = downloadManager.getAll();
+    setIsDownloaded(all.some((d) => d.id === downloadKey));
+  }, [id, type, currentSeason, currentEpisode]);
 
   useEffect(() => {
     let isMounted = true;
@@ -98,6 +107,28 @@ export default function WatchPage() {
     handleSelectEpisode(nextEp);
   };
 
+  const handleDownload = () => {
+    const downloadKey = `${id}-${type}-s${currentSeason}-e${currentEpisode}`;
+    const displayTitle =
+      type === "tv"
+        ? `${title} - S${currentSeason}:E${currentEpisode}`
+        : title;
+
+    downloadManager.startDownload({
+      id: downloadKey,
+      tmdbId: id,
+      title: displayTitle,
+      type,
+      season: currentSeason,
+      episode: currentEpisode,
+      posterPath: details?.poster_path,
+      fileSizeMb: type === "tv" ? 380 : 920,
+      streamUrl: window.location.href,
+    });
+
+    setIsDownloaded(true);
+  };
+
   const posterImage = details?.backdrop_path
     ? `${IMAGE_BASE}/w1280${details.backdrop_path}`
     : undefined;
@@ -113,21 +144,44 @@ export default function WatchPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
-      {/* Top Header */}
-      <div className="flex items-center justify-between">
-        <Link href={`/details/${id}?type=${type}`}>
-          <GlassButton variant="secondary" className="text-xs py-1.5 px-3">
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Details</span>
-          </GlassButton>
-        </Link>
+      {/* Top Header with Back & One-Tap Download Trigger */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Link href={`/details/${id}?type=${type}`}>
+            <GlassButton variant="secondary" className="text-xs py-1.5 px-3">
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Details</span>
+            </GlassButton>
+          </Link>
+          <h2 className="text-xs sm:text-sm font-semibold text-zinc-300 truncate max-w-[150px] sm:max-w-md">
+            {title}
+          </h2>
+        </div>
 
-        <h2 className="text-sm font-semibold text-zinc-300 truncate max-w-[200px] sm:max-w-md">
-          {title}
-        </h2>
+        {/* Download Button */}
+        <button
+          onClick={handleDownload}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
+            isDownloaded
+              ? "bg-white/10 text-emerald-400 border-emerald-400/30"
+              : "bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-glow"
+          }`}
+        >
+          {isDownloaded ? (
+            <>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Downloaded</span>
+            </>
+          ) : (
+            <>
+              <Download className="w-3.5 h-3.5" />
+              <span>Download</span>
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Main Video Stream locked to Glass Player */}
+      {/* Main Video Stream */}
       {isSeriesOrAnime ? (
         <AnimePlayer
           tmdbId={id}
