@@ -35,10 +35,11 @@ export const AnimeEpisodeGrid = ({
 
   return (
     <div className="space-y-3 pt-2">
-      {/* Header Bar: Episodes Count, Season Switcher, Chunk Tabs & View Mode Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-white/10">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-white">
+      {/* Pinned Single-Line Header: Left (Episodes + Season) | Right (Grid/List Toggle) */}
+      <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/10 w-full">
+        {/* Left Side: Title & Season Picker */}
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-white shrink-0">
             <Sparkles className="w-4 h-4 text-white" />
             <span>Episodes</span>
             <span className="text-xs text-zinc-400 font-normal">({episodes.length})</span>
@@ -49,7 +50,7 @@ export const AnimeEpisodeGrid = ({
             <select
               value={currentSeason}
               onChange={(e) => onSelectSeason(parseInt(e.target.value, 10))}
-              className="bg-white/10 text-white text-xs font-semibold px-2.5 py-1 rounded-xl border border-white/15 focus:outline-none cursor-pointer"
+              className="bg-white/10 text-white text-xs font-semibold px-2.5 py-1 rounded-xl border border-white/15 focus:outline-none cursor-pointer shrink-0"
             >
               {Array.from({ length: seasonsCount }).map((_, idx) => (
                 <option key={idx + 1} value={idx + 1} className="bg-[#0f0f13] text-white">
@@ -60,10 +61,11 @@ export const AnimeEpisodeGrid = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2 justify-between sm:justify-end">
+        {/* Right Side: Pinned Grid / List Switcher */}
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Episode Batch Chunk Tabs (1-25, 26-50...) */}
           {chunkCount > 1 && (
-            <div className="flex gap-1 overflow-x-auto no-scrollbar">
+            <div className="hidden sm:flex gap-1 overflow-x-auto no-scrollbar mr-1">
               {Array.from({ length: chunkCount }).map((_, idx) => {
                 const start = idx * CHUNK_SIZE + 1;
                 const end = Math.min((idx + 1) * CHUNK_SIZE, episodes.length);
@@ -86,8 +88,8 @@ export const AnimeEpisodeGrid = ({
             </div>
           )}
 
-          {/* View Switcher: Small Grid vs List Mode Toggle */}
-          <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
+          {/* Toggle Button Box Pinned to the Right */}
+          <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15 shrink-0">
             <button
               onClick={() => setViewMode("small-grid")}
               className={`p-1.5 rounded-lg transition ${
@@ -114,6 +116,31 @@ export const AnimeEpisodeGrid = ({
         </div>
       </div>
 
+      {/* Mobile-only Chunk Badges */}
+      {chunkCount > 1 && (
+        <div className="flex sm:hidden gap-1.5 overflow-x-auto no-scrollbar pb-1">
+          {Array.from({ length: chunkCount }).map((_, idx) => {
+            const start = idx * CHUNK_SIZE + 1;
+            const end = Math.min((idx + 1) * CHUNK_SIZE, episodes.length);
+            const isSelected = activeTab === idx;
+
+            return (
+              <button
+                key={idx}
+                onClick={() => setActiveTab(idx)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition border ${
+                  isSelected
+                    ? "bg-white text-black border-white shadow-glow"
+                    : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
+                }`}
+              >
+                {start}-{end}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* 1. SMALL GRID MODE (Compact 2-col on mobile, 4-col on desktop) */}
       {viewMode === "small-grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
@@ -135,7 +162,6 @@ export const AnimeEpisodeGrid = ({
                       : "border-white/10 hover:border-white/25 bg-[#0a0a0f]"
                   }`}
                 >
-                  {/* Thumbnail */}
                   <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-zinc-950 border border-white/10">
                     {thumbnail ? (
                       <Image
@@ -172,7 +198,6 @@ export const AnimeEpisodeGrid = ({
                     )}
                   </div>
 
-                  {/* Title */}
                   <div className="px-0.5">
                     <h4 className="text-[11px] font-semibold text-white truncate group-hover:text-zinc-200">
                       {ep.name || `Episode ${ep.episode_number}`}
@@ -184,7 +209,7 @@ export const AnimeEpisodeGrid = ({
           })}
         </div>
       ) : (
-        /* 2. LIST MODE (Clean horizontal row format) */
+        /* 2. LIST MODE */
         <div className="space-y-2">
           {displayedEpisodes.map((ep) => {
             const isCurrent = ep.episode_number === currentEpisode;
@@ -204,7 +229,6 @@ export const AnimeEpisodeGrid = ({
                       : "border-white/10 hover:border-white/25 bg-[#0a0a0f]"
                   }`}
                 >
-                  {/* Thumbnail on Left */}
                   <div className="relative w-28 sm:w-36 aspect-video rounded-xl overflow-hidden bg-zinc-950 border border-white/10 flex-none">
                     {thumbnail ? (
                       <Image
@@ -241,7 +265,6 @@ export const AnimeEpisodeGrid = ({
                     )}
                   </div>
 
-                  {/* Metadata on Right */}
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="text-xs sm:text-sm font-bold text-white truncate group-hover:text-zinc-200">
