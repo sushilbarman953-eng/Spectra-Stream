@@ -8,7 +8,7 @@ class SoundFxEngine {
   private enabled: boolean = true;
 
   // Master volume boost multiplier (1.0 = normal, 2.5 = high punch for mobile speakers)
-  private masterVolume: number = 2.2;
+  private masterVolume: number = 3.0;
 
   private initCtx() {
     if (typeof window === "undefined") return null;
