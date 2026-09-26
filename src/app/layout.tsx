@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
+import { CategoryBar } from "@/components/CategoryBar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
@@ -39,7 +40,8 @@ export default function RootLayout({
       <body className={`${inter.className} bg-[#08080c] text-white min-h-screen antialiased select-none`}>
         <ServiceWorkerRegister />
         <Navbar />
-        <main className="pt-20">
+        <main className="pt-16">
+          <CategoryBar />
           {children}
         </main>
         <MobileBottomNav />
