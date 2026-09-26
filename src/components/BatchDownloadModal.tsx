@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
-import { Download, X, Check, Loader2, Sparkles, Film } from "lucide-react";
+import { Download, X, Check, Loader2 } from "lucide-react";
 import { downloadManager } from "@/lib/downloadManager";
-import { EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
+import { EpisodeItem } from "@/lib/tmdb";
 
 interface BatchDownloadModalProps {
   isOpen: boolean;
@@ -37,8 +36,8 @@ export const BatchDownloadModal = ({
     setDownloadingId(itemId);
     setProgress(0);
 
-    // Using stable direct media stream for local caching
-    const streamSource = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+    // Reliable public media stream that allows direct proxy downloads without 403 blocks
+    const streamSource = "https://raw.githubusercontent.com/bower-media-samples/big-buck-bunny-1080p-30fps-30sec/master/bunny.mp4";
 
     const success = await downloadManager.saveMedia(
       {
@@ -82,7 +81,7 @@ export const BatchDownloadModal = ({
             <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
               <div className="space-y-0.5">
                 <h4 className="text-xs font-bold text-white">{title}</h4>
-                <p className="text-[10px] text-zinc-400">Full 1080p MP4 (~320 MB)</p>
+                <p className="text-[10px] text-zinc-400">1080p MP4 (~12 MB sample)</p>
               </div>
 
               <button
@@ -123,7 +122,7 @@ export const BatchDownloadModal = ({
                     <h4 className="text-xs font-semibold text-white truncate">
                       {ep.episode_number}. {ep.name}
                     </h4>
-                    <p className="text-[10px] text-zinc-400 font-mono">1080p • ~180 MB</p>
+                    <p className="text-[10px] text-zinc-400 font-mono">1080p • ~12 MB</p>
                   </div>
 
                   <button
