@@ -33,6 +33,8 @@ export default function WatchPage() {
   const title = details?.title || details?.name || "Loading Title...";
   const isSeriesOrAnime = type === "tv";
   const seasonsCount = details?.number_of_seasons || 1;
+  const voteRating = details?.vote_average ? details.vote_average.toFixed(1) : "8.6";
+  const certification = details?.adult ? "18+" : "PG-13";
 
   useEffect(() => {
     let isMounted = true;
@@ -142,7 +144,7 @@ export default function WatchPage() {
         </button>
       </div>
 
-      {/* Main Video Stream locked to Glass Player */}
+      {/* Main Video Stream locked to Frosted Glass Player Canvas */}
       {isSeriesOrAnime ? (
         <AnimePlayer
           tmdbId={id}
@@ -160,6 +162,7 @@ export default function WatchPage() {
           season={1}
           episode={currentEpisode}
           poster={posterImage}
+          title={title}
         />
       )}
 
