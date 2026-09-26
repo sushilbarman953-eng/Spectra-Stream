@@ -18,7 +18,6 @@ import {
   Waves,
   Sparkle,
   Radio,
-  Sliders,
 } from "lucide-react";
 import { watchlistManager, WatchlistItem } from "@/lib/watchlistManager";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
@@ -60,8 +59,8 @@ export default function MePage() {
 
   const SOUND_EFFECTS = [
     {
-      name: "Mechanical Tick",
-      desc: "Top carousel ratchet dial",
+      name: "Haptic Dial Click",
+      desc: "Warm acoustic rotary thud",
       icon: Disc3,
       action: () => {
         soundFx.playMechanicalTick();
@@ -69,8 +68,14 @@ export default function MePage() {
       },
     },
     {
+      name: "Velvet Bubble Pop",
+      desc: "Smooth organic touch tap",
+      icon: Sparkle,
+      action: () => soundFx.playCinematicPop(),
+    },
+    {
       name: "Cinematic Whoosh",
-      desc: "Drawer & swipe transitions",
+      desc: "Sub-bass sweep on swipes",
       icon: Waves,
       action: () => {
         soundFx.playCinematicWhoosh();
@@ -78,14 +83,8 @@ export default function MePage() {
       },
     },
     {
-      name: "Glass Pop Chime",
-      desc: "Touch selections & pills",
-      icon: Sparkle,
-      action: () => soundFx.playCinematicPop(),
-    },
-    {
       name: "Cinematic Swell",
-      desc: "Play & trailer launches",
+      desc: "Trailer & Play launcher",
       icon: Radio,
       action: () => soundFx.playCinematicSwell(),
     },
@@ -120,7 +119,7 @@ export default function MePage() {
         </Link>
       </GlassCard>
 
-      {/* DEDICATED SOUND LAB / AUDIO CHECK PANEL */}
+      {/* AUDIO LAB SOUNDBOARD */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-xs font-black uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
@@ -174,7 +173,7 @@ export default function MePage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Watchlist & History Tabs */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-3">
         <button
           onClick={() => {
@@ -207,7 +206,7 @@ export default function MePage() {
         </button>
       </div>
 
-      {/* Watchlist */}
+      {/* Tab Panels */}
       {activeTab === "watchlist" && (
         <div>
           {watchlist.length === 0 ? (
@@ -277,7 +276,6 @@ export default function MePage() {
         </div>
       )}
 
-      {/* History */}
       {activeTab === "history" && (
         <div className="space-y-2">
           {history.length === 0 ? (
