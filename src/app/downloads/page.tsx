@@ -1,186 +1,162 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Download,
-  Play,
   Trash2,
+  Play,
   HardDrive,
-  CheckCircle2,
-  Loader2,
   Film,
   Sparkles,
-  ArrowDownCircle,
+  WifiOff,
+  ArrowLeft,
 } from "lucide-react";
-import { downloadManager, DownloadItem } from "@/lib/downloadManager";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassButton } from "@/components/ui/GlassButton";
+import { downloadManager, OfflineMediaItem } from "@/lib/downloadManager";
 import { IMAGE_BASE } from "@/lib/tmdb";
+import { GlassCard } from "@/components/ui/GlassCard";
 
 export default function DownloadsPage() {
-  const [downloads, setDownloads] = useState<DownloadItem[]>([]);
+  const [items, setItems] = useState<OfflineMediaItem[]>([]);
+  const [storage, setStorage] = useState<{ used: number; quota: number }>({ used: 0, quota: 0 });
 
   useEffect(() => {
-    const load = () => setDownloads(downloadManager.getAll());
+    const load = async () => {
+      setItems(downloadManager.getAll());
+      const est = await downloadManager.getStorageEstimate();
+      setStorage(est);
+    };
     load();
     window.addEventListener("spectra_downloads_updated", load);
     return () => window.removeEventListener("spectra_downloads_updated", load);
   }, []);
 
-  const totalStorageMb = downloads.reduce((acc, item) => acc + (item.fileSizeMb || 450), 0);
-  const totalStorageGb = (totalStorageMb / 1024).toFixed(2);
+  const formatSize = (bytes: number) => {
+    if (!bytes) return "0 MB";
+    const mb = bytes / (1024 * 1024);
+    if (mb > 1024) return `${(mb / 1024).toFixed(2)} GB`;
+    return `${mb.toFixed(1)} MB`;
+  };
 
-  // Group shows to display "X left to download"
-  const groupedSeries: Record<string, DownloadItem[]> = {};
-  downloads.forEach((item) => {
-    if (item.type === "tv") {
-      if (!groupedSeries[item.tmdbId]) groupedSeries[item.tmdbId] = [];
-      groupedSeries[item.tmdbId].push(item);
-    }
-  });
+  const usedPercentage =
+    storage.quota > 0 ? Math.min(100, Math.round((storage.used / storage.quota) * 100)) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 pb-28 space-y-6">
-      {/* Title & Storage Usage */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
+    <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
+      {/* Top Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-white/10">
         <div>
-          <h1 className="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
             <Download className="w-5 h-5 text-white" />
-            Downloads & Offline Hub
+            Offline Downloads
           </h1>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Manage your saved media, quality profiles, and queue
+            Instant local playback without Wi-Fi or cellular connectivity
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/5 text-xs text-zinc-300">
-          <HardDrive className="w-4 h-4 text-white" />
-          <span>
-            <strong className="text-white">{totalStorageGb} GB</strong> device usage
-          </span>
+        <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-zinc-300 text-xs font-bold">
+          <WifiOff className="w-3.5 h-3.5" />
+          <span>Offline Ready</span>
         </div>
       </div>
 
-      {/* Series Batch Counters: "X left to download" */}
-      {Object.entries(groupedSeries).map(([tmdbId, eps]) => {
-        const completedCount = eps.filter((e) => e.status === "completed").length;
-        const leftCount = eps.length - completedCount;
-        if (leftCount === 0) return null;
+      {/* Storage Visualizer Meter */}
+      <GlassCard className="p-4 rounded-3xl border border-white/15 bg-[#0e0e14]/80 space-y-3">
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <div className="flex items-center gap-2 text-white">
+            <HardDrive className="w-4 h-4 text-zinc-300" />
+            <span>Device Storage</span>
+          </div>
+          <span className="text-zinc-400 font-mono">
+            {formatSize(storage.used)} used of {formatSize(storage.quota)}
+          </span>
+        </div>
 
-        const seriesTitle = eps[0].title.split(" - ")[0];
-
-        return (
+        <div className="w-full h-2 bg-white/15 rounded-full overflow-hidden">
           <div
-            key={tmdbId}
-            className="flex items-center justify-between p-3 rounded-2xl border border-white/20 bg-white/5"
-          >
+            className="h-full bg-white shadow-glow transition-all duration-500"
+            style={{ width: `${Math.max(2, usedPercentage)}%` }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] text-zinc-400">
+          <span>{items.length} titles saved locally</span>
+          <span>{usedPercentage}% capacity</span>
+        </div>
+      </GlassCard>
+
+      {/* Media List */}
+      <div className="space-y-3">
+        {items.length === 0 ? (
+          <div className="py-20 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-500">
+              <Download className="w-6 h-6" />
+            </div>
             <div>
-              <h4 className="text-xs font-bold text-white">{seriesTitle}</h4>
-              <p className="text-[11px] text-zinc-400">
-                {completedCount} downloaded • <strong className="text-white">{leftCount} left to download</strong>
+              <h4 className="text-sm font-bold text-white">No Offline Titles Yet</h4>
+              <p className="text-xs text-zinc-400 mt-1 max-w-sm mx-auto">
+                Open any movie or anime and tap &ldquo;Download&rdquo; to save full episodes for offline viewing.
               </p>
             </div>
-
-            <button
-              onClick={() => downloadManager.resumeRemaining(tmdbId)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white text-black shadow-glow"
-            >
-              <ArrowDownCircle className="w-3.5 h-3.5" />
-              <span>Download Left ({leftCount})</span>
-            </button>
           </div>
-        );
-      })}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {items.map((item) => {
+              const poster = item.posterPath ? `${IMAGE_BASE}/w342${item.posterPath}` : null;
+              const playUrl =
+                item.type === "tv"
+                  ? `/watch/${item.tmdbId}?type=tv&season=${item.season || 1}&episode=${item.episode || 1}&offline=${item.id}`
+                  : `/watch/${item.tmdbId}?type=movie&offline=${item.id}`;
 
-      {/* All Downloaded Media Items */}
-      {downloads.length > 0 ? (
-        <div className="space-y-3">
-          {downloads.map((item) => {
-            const isDone = item.status === "completed";
-            const poster = item.posterPath ? `${IMAGE_BASE}/w185${item.posterPath}` : null;
-
-            return (
-              <GlassCard
-                key={item.id}
-                className="p-3 sm:p-4 rounded-2xl border border-white/10 bg-[#0c0c10]/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative w-14 h-20 sm:w-16 sm:h-24 rounded-xl overflow-hidden bg-zinc-950 flex-none border border-white/10">
-                    {poster ? (
-                      <Image src={poster} alt={item.title} fill className="object-cover" />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-zinc-600">
-                        <Film className="w-5 h-5" />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-white/10 text-zinc-300">
-                        {item.quality} • {item.audioLanguage}
-                      </span>
-                      {isDone ? (
-                        <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Ready Offline
-                        </span>
+              return (
+                <div key={item.id} className="group relative">
+                  <GlassCard
+                    hoverEffect
+                    className="p-3 rounded-2xl flex items-center gap-3 border border-white/10 bg-[#0c0c12]/90 hover:border-white/20 transition"
+                  >
+                    <div className="relative w-16 h-20 rounded-xl overflow-hidden bg-zinc-950 border border-white/15 flex-none">
+                      {poster ? (
+                        <Image src={poster} alt={item.title} fill className="object-cover" />
                       ) : (
-                        <span className="flex items-center gap-1 text-[10px] text-zinc-300 font-semibold">
-                          <Loader2 className="w-3 h-3 animate-spin text-white" />
-                          Downloading {item.progress}%
-                        </span>
+                        <div className="flex items-center justify-center h-full text-zinc-600 text-xs">
+                          <Film className="w-4 h-4" />
+                        </div>
                       )}
                     </div>
 
-                    <h3 className="text-sm font-bold text-white truncate">{item.title}</h3>
-                    <p className="text-[11px] text-zinc-400">{item.fileSizeMb} MB</p>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
+                      <p className="text-[10px] text-zinc-400">
+                        {item.type === "tv" ? `S${item.season} : Ep ${item.episode}` : "Feature Film"} • {formatSize(item.sizeBytes)}
+                      </p>
 
-                    {!isDone && (
-                      <div className="w-36 sm:w-48 h-1 bg-white/10 rounded-full overflow-hidden mt-1">
-                        <div
-                          className="h-full bg-white transition-all duration-300 shadow-glow"
-                          style={{ width: `${item.progress}%` }}
-                        />
+                      <div className="flex items-center gap-2 pt-1">
+                        <Link
+                          href={playUrl}
+                          className="flex items-center gap-1 px-3 py-1 rounded-xl bg-white text-black font-extrabold text-[10px] shadow-glow active:scale-95 transition"
+                        >
+                          <Play className="w-3 h-3 fill-black text-black" />
+                          <span>Play Offline</span>
+                        </Link>
+
+                        <button
+                          onClick={() => downloadManager.removeMedia(item.id)}
+                          className="p-1 rounded-lg text-zinc-500 hover:text-red-400 transition"
+                          title="Delete from device"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  </GlassCard>
                 </div>
-
-                <div className="flex items-center gap-2 self-end sm:self-center">
-                  {isDone && (
-                    <Link href={item.streamUrl}>
-                      <GlassButton variant="primary" className="text-xs py-1.5 px-3.5 shadow-glow">
-                        <Play className="w-3 h-3 fill-black" />
-                        Play
-                      </GlassButton>
-                    </Link>
-                  )}
-
-                  <button
-                    onClick={() => downloadManager.deleteDownload(item.id)}
-                    className="p-2 rounded-xl border border-white/10 text-zinc-400 hover:text-red-400 hover:bg-white/5 transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </GlassCard>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
-          <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <Download className="w-7 h-7 text-zinc-400" />
+              );
+            })}
           </div>
-          <h3 className="text-base font-bold text-white">No Downloads</h3>
-          <p className="text-xs text-zinc-400 max-w-sm">
-            Save titles with customized audio and quality to enjoy offline anytime.
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

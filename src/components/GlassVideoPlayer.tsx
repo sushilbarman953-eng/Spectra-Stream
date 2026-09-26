@@ -25,8 +25,10 @@ import {
   Scaling,
   ChevronRight,
   ChevronLeft,
+  X,
 } from "lucide-react";
 import { playbackHistory } from "@/lib/playbackHistory";
+import { downloadManager } from "@/lib/downloadManager";
 
 interface GlassVideoPlayerProps {
   src: string;
@@ -35,6 +37,7 @@ interface GlassVideoPlayerProps {
   type?: "movie" | "tv";
   season?: number;
   episode?: number;
+  offlineId?: string;
   rating?: number | string;
   certificate?: string;
   poster?: string;
@@ -53,6 +56,7 @@ export const GlassVideoPlayer = ({
   type = "movie",
   season,
   episode,
+  offlineId,
   rating = "8.6",
   certificate = "PG-13",
   poster,
@@ -87,11 +91,13 @@ export const GlassVideoPlayer = ({
   const [doubleTapFeedback, setDoubleTapFeedback] = useState<"left" | "right" | null>(null);
   const [objectFit, setObjectFit] = useState<"contain" | "cover">("contain");
 
-  // Skip states
+  // Skip & Auto-next countdown
   const [inIntro, setInIntro] = useState(false);
   const [inOutro, setInOutro] = useState(false);
+  const [autoNextCountdown, setAutoNextCountdown] = useState<number | null>(null);
+  const autoNextFired = useRef<boolean>(false);
 
-  // Settings menu state
+  // Settings
   const [showSettings, setShowSettings] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [qualityLevels, setQualityLevels] = useState<{ id: number; height: number; bitrate: number }[]>([]);
@@ -117,90 +123,78 @@ export const GlassVideoPlayer = ({
     setControlsTimeout(timeout);
   };
 
+  // Video stream initialization (Offline Blob vs Online HLS/MP4)
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !src) return;
+    if (!video) return;
 
     let isDisposed = false;
     setLoading(true);
     setHasError(false);
+    autoNextFired.current = false;
+    setAutoNextCountdown(null);
 
-    if (hlsRef.current) {
-      try {
-        hlsRef.current.destroy();
-      } catch {}
-      hlsRef.current = null;
-    }
+    const initStream = async () => {
+      // 1. Check if Offline Mode Requested
+      if (offlineId) {
+        const offlineUrl = await downloadManager.getOfflineBlobUrl(offlineId);
+        if (offlineUrl && !isDisposed) {
+          video.src = offlineUrl;
+          video.oncanplay = () => setLoading(false);
+          return;
+        }
+      }
 
-    const isHls = src.includes(".m3u8") || src.includes("live") || src.includes("hls");
+      if (!src) return;
 
-    if (isHls && Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 60,
-      });
+      if (hlsRef.current) {
+        try {
+          hlsRef.current.destroy();
+        } catch {}
+        hlsRef.current = null;
+      }
 
-      hlsRef.current = hls;
+      const isHls = src.includes(".m3u8") || src.includes("live") || src.includes("hls");
 
-      try {
+      if (isHls && Hls.isSupported()) {
+        const hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+        hlsRef.current = hls;
         hls.loadSource(src);
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
           if (isDisposed) return;
           setLoading(false);
-          if (initialTime > 0) {
-            try {
-              video.currentTime = initialTime;
-            } catch {}
-          }
-          const levels = data.levels.map((lvl, index) => ({
-            id: index,
-            height: lvl.height,
-            bitrate: lvl.bitrate,
-          }));
-          setQualityLevels(levels);
+          if (initialTime > 0) video.currentTime = initialTime;
+          setQualityLevels(
+            data.levels.map((lvl, index) => ({
+              id: index,
+              height: lvl.height,
+              bitrate: lvl.bitrate,
+            }))
+          );
         });
 
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (isDisposed) return;
           if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError();
-                break;
-              default:
-                setHasError(true);
-                setErrorMessage("Unable to connect to stream feed.");
-                setLoading(false);
-                break;
-            }
+            setHasError(true);
+            setErrorMessage("Stream error encountered.");
+            setLoading(false);
           }
         });
-      } catch {
-        setHasError(true);
-        setLoading(false);
+      } else {
+        video.src = src;
+        video.oncanplay = () => {
+          if (!isDisposed) {
+            setLoading(false);
+            if (initialTime > 0) video.currentTime = initialTime;
+          }
+        };
       }
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src;
-      const onLoadedMetadata = () => {
-        if (!isDisposed) {
-          setLoading(false);
-          if (initialTime > 0) video.currentTime = initialTime;
-        }
-      };
-      video.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
-    } else if (!isHls) {
-      video.src = src;
-      const onCanPlay = () => {
-        if (!isDisposed) setLoading(false);
-      };
-      video.addEventListener("canplay", onCanPlay, { once: true });
-    }
+    };
+
+    initStream();
 
     return () => {
       isDisposed = true;
@@ -217,7 +211,21 @@ export const GlassVideoPlayer = ({
         } catch {}
       }
     };
-  }, [src, initialTime]);
+  }, [src, offlineId, initialTime]);
+
+  // Next Episode Countdown Timer
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (autoNextCountdown !== null && autoNextCountdown > 0) {
+      timer = setTimeout(() => {
+        setAutoNextCountdown(autoNextCountdown - 1);
+      }, 1000);
+    } else if (autoNextCountdown === 0 && onNextEpisode && !autoNextFired.current) {
+      autoNextFired.current = true;
+      onNextEpisode();
+    }
+    return () => clearTimeout(timer);
+  }, [autoNextCountdown, onNextEpisode]);
 
   const handleTimeUpdate = () => {
     const video = videoRef.current;
@@ -228,9 +236,17 @@ export const GlassVideoPlayer = ({
     setCurrentTime(curr);
     setDuration(dur);
 
+    // Intro trigger
     setInIntro(curr >= introStart && curr <= introEnd);
-    const computedOutro = outroStart || (dur > 120 ? dur - 90 : 0);
-    setInOutro(computedOutro > 0 && curr >= computedOutro && curr < dur - 5);
+
+    // Outro trigger & Next Episode Countdown
+    const computedOutro = outroStart || (dur > 120 ? dur - 80 : 0);
+    const inOutroZone = computedOutro > 0 && curr >= computedOutro && curr < dur - 5;
+    setInOutro(inOutroZone);
+
+    if (inOutroZone && onNextEpisode && autoNextCountdown === null && !autoNextFired.current) {
+      setAutoNextCountdown(10);
+    }
 
     if (video.buffered.length > 0 && dur > 0) {
       setBuffered((video.buffered.end(video.buffered.length - 1) / dur) * 100);
@@ -256,7 +272,6 @@ export const GlassVideoPlayer = ({
   const togglePlay = () => {
     const video = videoRef.current;
     if (!video || hasError) return;
-
     if (video.paused) {
       video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     } else {
@@ -301,7 +316,7 @@ export const GlassVideoPlayer = ({
     triggerUserActivity();
   };
 
-  // TOUCH GESTURE HANDLING: HORIZONTAL SEEKING & VERTICAL HUD
+  // TOUCH SCRUB & GESTURE SYSTEM
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     triggerUserActivity();
     if (e.touches.length !== 1) return;
@@ -348,19 +363,14 @@ export const GlassVideoPlayer = ({
       }
     }
 
-    // 1. HORIZONTAL SEEK GESTURE
     if (touchStartRef.current.mode === "horizontal") {
       if (!duration || duration <= 0) return;
       const seekSecondsDelta = Math.round(deltaX * 0.35);
       const target = Math.max(0, Math.min(duration, touchStartRef.current.initialVideoTime + seekSecondsDelta));
-      setSeekHud({
-        targetTime: target,
-        delta: seekSecondsDelta,
-      });
+      setSeekHud({ targetTime: target, delta: seekSecondsDelta });
       return;
     }
 
-    // 2. VERTICAL ADJUSTMENT GESTURE
     if (touchStartRef.current.mode === "vertical") {
       const step = (deltaY / 200) * 100;
       if (touchStartRef.current.isLeft) {
@@ -381,7 +391,6 @@ export const GlassVideoPlayer = ({
           return updated;
         });
       }
-
       if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current);
       hudTimeoutRef.current = setTimeout(() => setHudIndicator(null), 1000);
     }
@@ -393,20 +402,6 @@ export const GlassVideoPlayer = ({
       setSeekHud(null);
     }
     touchStartRef.current = null;
-  };
-
-  const changeSpeed = (speed: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = speed;
-      setPlaybackSpeed(speed);
-    }
-  };
-
-  const changeQuality = (levelIndex: number) => {
-    if (hlsRef.current) {
-      hlsRef.current.currentLevel = levelIndex;
-      setCurrentQuality(levelIndex);
-    }
   };
 
   const formatTime = (seconds: number) => {
@@ -450,7 +445,43 @@ export const GlassVideoPlayer = ({
         className="w-full h-full cursor-pointer transition-all duration-150"
       />
 
-      {/* FROSTED GLASS HORIZONTAL SEEK HUD (CENTER SCREEN) */}
+      {/* AUTO-PLAY NEXT EPISODE COUNTDOWN OVERLAY */}
+      {autoNextCountdown !== null && onNextEpisode && (
+        <div className="absolute top-4 right-4 z-40 animate-in fade-in zoom-in-95 duration-200">
+          <div
+            className="flex items-center gap-3 p-3 rounded-2xl border border-white/25 shadow-2xl"
+            style={{
+              background: "rgba(10, 10, 16, 0.85)",
+              backdropFilter: "blur(24px) saturate(180%)",
+            }}
+          >
+            <div className="relative w-8 h-8 rounded-full border-2 border-white/20 flex items-center justify-center font-black text-xs text-white">
+              <span>{autoNextCountdown}</span>
+            </div>
+            <div>
+              <p className="text-[10px] text-zinc-400 font-semibold">Up Next</p>
+              <h4 className="text-xs font-bold text-white">Next Episode</h4>
+            </div>
+            <div className="flex items-center gap-1.5 pl-2">
+              <button
+                onClick={onNextEpisode}
+                className="px-2.5 py-1 rounded-xl bg-white text-black font-extrabold text-[10px] shadow-glow"
+              >
+                Play Now
+              </button>
+              <button
+                onClick={() => setAutoNextCountdown(null)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white"
+                title="Cancel"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HORIZONTAL SCRUB SEEK HUD */}
       {seekHud && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
           <div
@@ -458,10 +489,8 @@ export const GlassVideoPlayer = ({
             style={{
               background: "rgba(12, 12, 20, 0.72)",
               backdropFilter: "blur(32px) saturate(200%)",
-              WebkitBackdropFilter: "blur(32px) saturate(200%)",
             }}
           >
-            {/* Status Delta with Directional Arrow */}
             <div className="flex items-center gap-1.5">
               {seekHud.delta >= 0 ? (
                 <ChevronRight className="w-5 h-5 text-emerald-400 animate-pulse stroke-[3]" />
@@ -470,50 +499,39 @@ export const GlassVideoPlayer = ({
               )}
               <span
                 className={`text-lg font-black tracking-wider ${
-                  seekHud.delta >= 0 ? "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" : "text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                  seekHud.delta >= 0 ? "text-emerald-400" : "text-amber-400"
                 }`}
               >
                 {seekHud.delta >= 0 ? `+${seekHud.delta}s` : `${seekHud.delta}s`}
               </span>
             </div>
-
-            {/* Target Timestamp */}
             <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-white">
-              <span className="text-white drop-shadow-sm">{formatTime(seekHud.targetTime)}</span>
+              <span>{formatTime(seekHud.targetTime)}</span>
               <span className="text-zinc-500">/</span>
               <span className="text-zinc-400">{formatTime(duration)}</span>
-            </div>
-
-            {/* Glass Timeline Scrub Bar */}
-            <div className="w-44 h-1.5 bg-white/15 rounded-full overflow-hidden mt-0.5 p-[1px] border border-white/10">
-              <div
-                className="h-full bg-white shadow-[0_0_12px_#ffffff] rounded-full transition-all"
-                style={{ width: `${(seekHud.targetTime / (duration || 1)) * 100}%` }}
-              />
             </div>
           </div>
         </div>
       )}
 
-      {/* FROSTED GLASS VERTICAL HUD (BRIGHTNESS / VOLUME) */}
+      {/* VERTICAL HUD (BRIGHTNESS / VOLUME) */}
       {hudIndicator && !seekHud && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
           <div
-            className="flex flex-col items-center gap-2 px-5 py-3.5 rounded-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_2px_rgba(255,255,255,0.4)]"
+            className="flex flex-col items-center gap-2 px-5 py-3.5 rounded-3xl border border-white/25 shadow-2xl"
             style={{
               background: "rgba(12, 12, 20, 0.72)",
               backdropFilter: "blur(32px) saturate(200%)",
-              WebkitBackdropFilter: "blur(32px) saturate(200%)",
             }}
           >
             {hudIndicator.type === "brightness" ? (
-              <Sun className="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+              <Sun className="w-6 h-6 text-white" />
             ) : (
-              <Volume2 className="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
+              <Volume2 className="w-6 h-6 text-white" />
             )}
             <div className="w-28 h-1.5 bg-white/15 rounded-full overflow-hidden border border-white/10">
               <div
-                className="h-full bg-white shadow-[0_0_10px_#ffffff] transition-all"
+                className="h-full bg-white shadow-glow transition-all"
                 style={{
                   width: `${
                     hudIndicator.type === "brightness"
@@ -523,56 +541,28 @@ export const GlassVideoPlayer = ({
                 }}
               />
             </div>
-            <span className="text-[10px] font-bold text-white font-mono drop-shadow-sm">
-              {hudIndicator.type === "brightness" ? `${Math.round(hudIndicator.value)}%` : `${hudIndicator.value}%`}
-            </span>
           </div>
         </div>
       )}
 
-      {/* DOUBLE TAP RIPPLE REWIND / FORWARD FEEDBACK */}
+      {/* DOUBLE TAP FEEDBACK */}
       {doubleTapFeedback === "left" && (
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-2xl border border-white/30 text-white font-black text-xs shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-out fade-out duration-500 pointer-events-none z-30">
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-2xl border border-white/30 text-white font-black text-xs shadow-glow pointer-events-none z-30">
           <RotateCcw className="w-4 h-4 animate-spin" />
           <span>-10s</span>
         </div>
       )}
-
       {doubleTapFeedback === "right" && (
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-2xl border border-white/30 text-white font-black text-xs shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-out fade-out duration-500 pointer-events-none z-30">
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-2xl border border-white/30 text-white font-black text-xs shadow-glow pointer-events-none z-30">
           <span>+10s</span>
           <RotateCw className="w-4 h-4 animate-spin" />
         </div>
       )}
 
-      {/* Loading Spinner */}
+      {/* Loading Overlay */}
       {loading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none z-10">
           <Loader2 className="w-10 h-10 animate-spin text-white" />
-        </div>
-      )}
-
-      {/* Error Fallback */}
-      {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#09090e]/95 p-6 text-center space-y-3 z-30">
-          <div className="p-3 rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
-            <AlertCircle className="w-8 h-8" />
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-white">Playback Error</h4>
-            <p className="text-xs text-zinc-400 max-w-sm mt-1">{errorMessage}</p>
-          </div>
-          <button
-            onClick={() => {
-              setHasError(false);
-              setLoading(true);
-              if (hlsRef.current) hlsRef.current.loadSource(src);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-black font-bold text-xs shadow-glow active:scale-95 transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Retry</span>
-          </button>
         </div>
       )}
 
@@ -584,7 +574,7 @@ export const GlassVideoPlayer = ({
             !isPlaying || showControls ? "opacity-100 scale-100" : "opacity-0 scale-90 pointer-events-none"
           }`}
         >
-          <div className="p-4 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-xl border border-white/30 text-white shadow-[0_0_30px_rgba(255,255,255,0.4)] active:scale-90 transition-transform">
+          <div className="p-4 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-xl border border-white/30 text-white shadow-glow active:scale-90 transition-transform">
             {isPlaying ? (
               <Pause className="w-8 h-8 fill-white text-white" />
             ) : (
@@ -594,16 +584,16 @@ export const GlassVideoPlayer = ({
         </div>
       )}
 
-      {/* Frosted Glass Overlay */}
+      {/* Frosted Controls Overlay */}
       {!hasError && (
         <div
           className={`absolute inset-0 flex flex-col justify-between p-3.5 sm:p-5 bg-gradient-to-t from-black/90 via-transparent to-black/80 transition-opacity duration-300 pointer-events-none z-20 ${
             showControls && !seekHud ? "opacity-100" : "opacity-0"
           }`}
         >
-          {/* Top Info */}
+          {/* Top Title & Badges */}
           <div className="flex flex-col gap-1.5 pointer-events-auto">
-            <h2 className="text-xs sm:text-base font-extrabold text-white tracking-wide truncate drop-shadow-md">
+            <h2 className="text-xs sm:text-base font-extrabold text-white tracking-wide truncate">
               {title}
             </h2>
             <div className="flex items-center gap-2">
@@ -618,9 +608,9 @@ export const GlassVideoPlayer = ({
             </div>
           </div>
 
-          {/* Bottom Bar & Controls */}
+          {/* Bottom Controls */}
           <div className="space-y-2 pointer-events-auto">
-            {/* Skip Actions */}
+            {/* Skip Buttons */}
             <div className="flex items-center justify-end gap-2 pb-0.5">
               {inIntro && (
                 <button
@@ -631,7 +621,6 @@ export const GlassVideoPlayer = ({
                   <span>Skip Intro</span>
                 </button>
               )}
-
               {inOutro && (
                 <button
                   onClick={() => seek(duration - 5)}
@@ -641,7 +630,6 @@ export const GlassVideoPlayer = ({
                   <span>Skip Outro</span>
                 </button>
               )}
-
               {onNextEpisode && (
                 <button
                   onClick={onNextEpisode}
@@ -653,12 +641,9 @@ export const GlassVideoPlayer = ({
               )}
             </div>
 
-            {/* Timeline */}
+            {/* Timeline Bar */}
             <div className="relative w-full h-1.5 sm:h-2 bg-white/20 hover:h-2.5 rounded-full overflow-hidden cursor-pointer transition-all">
-              <div
-                className="absolute left-0 top-0 bottom-0 bg-white/30"
-                style={{ width: `${buffered}%` }}
-              />
+              <div className="absolute left-0 top-0 bottom-0 bg-white/30" style={{ width: `${buffered}%` }} />
               <div
                 className="absolute left-0 top-0 bottom-0 bg-white shadow-glow"
                 style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
@@ -673,21 +658,18 @@ export const GlassVideoPlayer = ({
               />
             </div>
 
-            {/* Control Strip */}
+            {/* Bottom Actions */}
             <div className="flex items-center justify-between text-xs text-white pt-1">
               <div className="flex items-center gap-2.5 sm:gap-4">
                 <button onClick={togglePlay} className="p-1 hover:text-zinc-300 active:scale-90 transition">
                   {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white" />}
                 </button>
-
-                <button onClick={() => seek(currentTime - 10)} className="p-1 hover:text-zinc-300 active:scale-90 transition" title="Rewind 10s">
+                <button onClick={() => seek(currentTime - 10)} className="p-1 hover:text-zinc-300">
                   <RotateCcw className="w-4 h-4" />
                 </button>
-
-                <button onClick={() => seek(currentTime + 10)} className="p-1 hover:text-zinc-300 active:scale-90 transition" title="Forward 10s">
+                <button onClick={() => seek(currentTime + 10)} className="p-1 hover:text-zinc-300">
                   <RotateCw className="w-4 h-4" />
                 </button>
-
                 <span className="text-[10px] sm:text-xs text-zinc-300 font-mono font-medium">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </span>
@@ -697,89 +679,17 @@ export const GlassVideoPlayer = ({
                 <button
                   onClick={() => setObjectFit(objectFit === "contain" ? "cover" : "contain")}
                   className={`p-1 transition ${objectFit === "cover" ? "text-white" : "text-zinc-400 hover:text-white"}`}
-                  title={objectFit === "cover" ? "Aspect: Fill Screen" : "Aspect: Fit"}
+                  title="Aspect: Fill/Fit"
                 >
                   <Scaling className="w-4 h-4" />
                 </button>
-
-                <button onClick={toggleMute} className="p-1 hover:text-zinc-300 active:scale-90 transition">
+                <button onClick={toggleMute} className="p-1 hover:text-zinc-300">
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
-
-                <button onClick={togglePiP} className="p-1 hover:text-zinc-300 active:scale-90 transition" title="Picture in Picture">
+                <button onClick={togglePiP} className="p-1 hover:text-zinc-300">
                   <PictureInPicture2 className="w-4 h-4" />
                 </button>
-
-                {/* Settings Toggle */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className={`p-1 hover:text-zinc-300 active:scale-90 transition ${
-                      showSettings ? "text-white rotate-45" : "text-zinc-300"
-                    }`}
-                    title="Playback Settings"
-                  >
-                    <Settings className="w-4 h-4 transition-transform" />
-                  </button>
-
-                  {showSettings && (
-                    <div className="absolute bottom-9 right-0 w-44 rounded-2xl p-2.5 bg-[#0a0a0f]/95 backdrop-blur-2xl border border-white/20 shadow-2xl space-y-2.5 z-40 text-left">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">
-                          Speed
-                        </span>
-                        <div className="grid grid-cols-3 gap-1 mt-1">
-                          {[0.75, 1, 1.25, 1.5, 2].map((spd) => (
-                            <button
-                              key={spd}
-                              onClick={() => changeSpeed(spd)}
-                              className={`py-0.5 text-[10px] rounded font-semibold border transition ${
-                                playbackSpeed === spd
-                                  ? "bg-white text-black border-white"
-                                  : "bg-white/5 text-zinc-300 border-white/10 hover:text-white"
-                              }`}
-                            >
-                              {spd === 1 ? "Normal" : `${spd}x`}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {qualityLevels.length > 0 && (
-                        <div className="pt-1.5 border-t border-white/10">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">
-                            Quality
-                          </span>
-                          <div className="space-y-1 mt-1 max-h-24 overflow-y-auto no-scrollbar">
-                            <button
-                              onClick={() => changeQuality(-1)}
-                              className={`w-full flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold ${
-                                currentQuality === -1 ? "bg-white/20 text-white font-bold" : "text-zinc-400 hover:text-white"
-                              }`}
-                            >
-                              <span>Auto</span>
-                              {currentQuality === -1 && <Check className="w-3 h-3 text-white" />}
-                            </button>
-                            {qualityLevels.map((lvl) => (
-                              <button
-                                key={lvl.id}
-                                onClick={() => changeQuality(lvl.id)}
-                                className={`w-full flex items-center justify-between px-2 py-1 rounded text-[10px] font-semibold ${
-                                  currentQuality === lvl.id ? "bg-white/20 text-white font-bold" : "text-zinc-400 hover:text-white"
-                                }`}
-                              >
-                                <span>{lvl.height}p</span>
-                                {currentQuality === lvl.id && <Check className="w-3 h-3 text-white" />}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <button onClick={toggleFullscreen} className="p-1 hover:text-zinc-300 active:scale-90 transition">
+                <button onClick={toggleFullscreen} className="p-1 hover:text-zinc-300">
                   {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
                 </button>
               </div>
