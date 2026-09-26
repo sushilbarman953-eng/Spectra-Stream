@@ -17,7 +17,7 @@ const METADATA_KEY = "spectra_offline_meta";
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") return reject("No window");
+    if (typeof window === "undefined") return reject("No window context");
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -48,18 +48,23 @@ export const downloadManager = {
 
   saveMedia: async (
     item: Omit<OfflineMediaItem, "savedAt" | "sizeBytes">,
-    streamUrl: string,
+    rawStreamUrl: string,
     onProgress?: (progress: number) => void
   ): Promise<boolean> => {
     try {
-      // 1. Fetch raw media stream
-      const res = await fetch(streamUrl);
-      if (!res.ok) throw new Error("Stream fetch failed");
+      // Route via proxy to bypass client-side CORS issues
+      const proxyUrl = `/api/download/proxy?url=${encodeURIComponent(rawStreamUrl)}`;
+      
+      const res = await fetch(proxyUrl);
+      if (!res.ok) {
+        throw new Error(`Proxy media fetch failed with status: ${res.status}`);
+      }
 
       const contentLength = res.headers.get("content-length");
       const total = contentLength ? parseInt(contentLength, 10) : 0;
 
       let blob: Blob;
+
       if (res.body && total > 0) {
         const reader = res.body.getReader();
         let received = 0;
@@ -71,16 +76,19 @@ export const downloadManager = {
           if (value) {
             chunks.push(value);
             received += value.length;
-            if (onProgress) onProgress(Math.round((received / total) * 100));
+            if (onProgress) {
+              onProgress(Math.min(99, Math.round((received / total) * 100)));
+            }
           }
         }
         blob = new Blob(chunks, { type: "video/mp4" });
       } else {
         blob = await res.blob();
-        if (onProgress) onProgress(100);
       }
 
-      // 2. Persist in IndexedDB
+      if (onProgress) onProgress(100);
+
+      // Persist in IndexedDB
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, "readwrite");
@@ -90,7 +98,7 @@ export const downloadManager = {
         tx.onerror = () => reject(tx.error);
       });
 
-      // 3. Persist metadata
+      // Persist metadata
       const metaItem: OfflineMediaItem = {
         ...item,
         sizeBytes: blob.size,
