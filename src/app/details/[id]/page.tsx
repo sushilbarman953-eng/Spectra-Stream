@@ -101,7 +101,6 @@ export default function DetailsPage() {
   const poster = details.poster_path ? `${IMAGE_BASE}/w500${details.poster_path}` : null;
   const year = (details.release_date || details.first_air_date || "").slice(0, 4);
 
-  // Cast, Directors, Producers
   const rawCast = (details.credits?.cast || []).filter((c: any) => c.profile_path || c.name);
   const cast = rawCast.slice(0, 24).map((c: any) => ({
     ...c,
@@ -131,37 +130,38 @@ export default function DetailsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 pb-28 space-y-5">
       
-      {/* 1. CINEMATIC HERO SECTION (Brightened with Frosted Glass Effect) */}
-      <div className="relative rounded-3xl overflow-hidden border border-white/20 bg-[#0c0c12] shadow-2xl">
-        {/* Brightened Backdrop Banner */}
-        <div className="relative w-full h-44 sm:h-56 bg-zinc-950 overflow-hidden">
+      {/* 1. CINEMATIC HERO SECTION: CRYSTAL CLEAR TOP, FROSTED GLASS BOTTOM */}
+      <div className="relative rounded-3xl overflow-hidden border border-white/20 bg-[#09090d] shadow-2xl">
+        
+        {/* Top Backdrop Banner: Clear, No Heavy Blur, High Contrast */}
+        <div className="relative w-full h-48 sm:h-64 bg-zinc-950">
           {backdrop && (
             <Image
               src={backdrop}
               alt={title}
               fill
               priority
-              className="object-cover object-top opacity-70 filter brightness-105 contrast-105"
+              className="object-cover object-top opacity-90 contrast-105"
             />
           )}
-          {/* Frosted Glass blur sheen over the banner */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backdropFilter: "blur(2px) saturate(140%)",
-              WebkitBackdropFilter: "blur(2px) saturate(140%)",
-              background: "linear-gradient(to top, rgba(12, 12, 18, 0.95) 0%, rgba(12, 12, 18, 0.35) 60%, rgba(0, 0, 0, 0.15) 100%)",
-            }}
-          />
+          {/* Subtle gradient purely to transition smoothly into the glass base */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#09090d]/80 via-transparent to-transparent pointer-events-none" />
         </div>
 
-        {/* Content Container */}
-        <div className="relative px-4 sm:px-6 pb-5 -mt-20 sm:-mt-24 z-10 space-y-4">
-          
-          {/* TOP ROW: Left Poster & Right Title with Tags */}
+        {/* Bottom Section: Pure Frosted Glass Panel Container */}
+        <div
+          className="relative px-4 sm:px-6 py-5 -mt-10 sm:-mt-14 z-10 space-y-4 border-t border-white/20 rounded-b-3xl"
+          style={{
+            background: "rgba(12, 12, 18, 0.78)",
+            backdropFilter: "blur(24px) saturate(180%)",
+            WebkitBackdropFilter: "blur(24px) saturate(180%)",
+            boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 40px rgba(0, 0, 0, 0.9)",
+          }}
+        >
+          {/* Top Row: Left Poster & Right Title with Tags */}
           <div className="flex items-end gap-3.5 sm:gap-5">
             {/* Left: Poster */}
-            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/25 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.9)] flex-none">
+            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/30 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.95)] flex-none">
               {poster ? (
                 <Image src={poster} alt={title} fill priority className="object-cover" />
               ) : (
@@ -180,13 +180,13 @@ export default function DetailsPage() {
             {/* Right: Title & Tags */}
             <div className="flex-1 min-w-0 space-y-1.5 pb-1">
               <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-semibold">
-                <span className="px-2 py-0.5 rounded-md bg-white/10 text-white uppercase text-[9px] font-bold">
+                <span className="px-2 py-0.5 rounded-md bg-white/10 text-white uppercase text-[9px] font-bold border border-white/15">
                   {type === "tv" ? "Series" : "Movie"}
                 </span>
                 {year && <span>• {year}</span>}
               </div>
 
-              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-tight line-clamp-2">
+              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-tight line-clamp-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
                 {title}
               </h1>
 
@@ -204,7 +204,7 @@ export default function DetailsPage() {
             </div>
           </div>
 
-          {/* BENEATH ROW: Full-Width Actions (Play + [+] on top, Download directly underneath) */}
+          {/* Action Buttons: Full-width Play + [+] on top, Download directly underneath */}
           <div className="space-y-2 pt-1 w-full">
             <div className="flex items-center gap-2 w-full">
               {/* Play Button */}
@@ -232,7 +232,7 @@ export default function DetailsPage() {
               </button>
             </div>
 
-            {/* Download Button (Spans full width beneath Play & Add) */}
+            {/* Download Button */}
             <button
               onClick={() => setDownloadModalOpen(true)}
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-white/10 text-zinc-200 border border-white/15 hover:bg-white/20 hover:text-white transition"
@@ -262,7 +262,6 @@ export default function DetailsPage() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            {/* Category Pills */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
               {(["cast", "director", "producer"] as const).map((tab) => (
                 <button
@@ -279,7 +278,6 @@ export default function DetailsPage() {
               ))}
             </div>
 
-            {/* View Switcher */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
               <button
                 onClick={() => setPeopleView("grid")}
