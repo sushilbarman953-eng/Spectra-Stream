@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Server, RefreshCw, ExternalLink, ShieldCheck } from "lucide-react";
+import { Sparkles, Server, RefreshCw, ExternalLink, ShieldCheck } from "lucide-react";
+import { GlassVideoPlayer } from "@/components/GlassVideoPlayer";
 
 interface AnimePlayerProps {
   tmdbId: string;
@@ -10,19 +11,30 @@ interface AnimePlayerProps {
   episode?: number;
   totalEpisodes?: number;
   poster?: string;
+  backdrop?: string;
   onNextEpisode?: () => void;
 }
 
 export const AnimePlayer = ({
   tmdbId,
+  animeTitle,
   season = 1,
   episode = 1,
+  poster,
+  backdrop,
+  onNextEpisode,
 }: AnimePlayerProps) => {
-  const [activeServer, setActiveServer] = useState<string>("vidsrc-icu");
+  const [activeServer, setActiveServer] = useState<string>("frosted-glass");
   const [subOrDub, setSubOrDub] = useState<"sub" | "dub">("sub");
   const [key, setKey] = useState<number>(0);
 
   const SERVERS = [
+    {
+      id: "frosted-glass",
+      name: "Frosted Glass",
+      badge: "Native UI",
+      isCustom: true,
+    },
     {
       id: "vidsrc-icu",
       name: "VidSrc ICU",
@@ -56,32 +68,39 @@ export const AnimePlayer = ({
       getUrl: () =>
         `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${episode}`,
     },
-    {
-      id: "vidsrc-net",
-      name: "VidSrc Net",
-      badge: "Legacy",
-      getUrl: () =>
-        `https://vidsrc.net/embed/tv/${tmdbId}/${season}/${episode}`,
-    },
   ];
 
   const current = SERVERS.find((s) => s.id === activeServer) || SERVERS[0];
-  const streamUrl = current.getUrl();
+  const streamUrl = current.getUrl ? current.getUrl() : "";
 
   return (
     <div className="space-y-3">
-      {/* 1. Video Player Viewport */}
-      <div className="relative aspect-video w-full rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl">
-        <iframe
-          key={`${activeServer}-${tmdbId}-${season}-${episode}-${subOrDub}-${key}`}
-          src={streamUrl}
-          title="Spectra Anime Stream Engine"
-          allowFullScreen
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          referrerPolicy="origin"
-          className="w-full h-full border-0"
+      {/* 1. Active Viewport: Frosted Glass Player vs External Mirror */}
+      {activeServer === "frosted-glass" ? (
+        <GlassVideoPlayer
+          src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+          title={`${animeTitle} • S${season} Ep ${episode}`}
+          tmdbId={tmdbId}
+          type="tv"
+          season={season}
+          episode={episode}
+          poster={poster}
+          backdrop={backdrop}
+          onNextEpisode={onNextEpisode}
         />
-      </div>
+      ) : (
+        <div className="relative aspect-video w-full rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl">
+          <iframe
+            key={`${activeServer}-${tmdbId}-${season}-${episode}-${subOrDub}-${key}`}
+            src={streamUrl}
+            title="Spectra Anime Stream Engine"
+            allowFullScreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="origin"
+            className="w-full h-full border-0"
+          />
+        </div>
+      )}
 
       {/* 2. Server & Audio Selector */}
       <div className="p-3 rounded-2xl border border-white/10 bg-[#0e0e14]/80 backdrop-blur-xl space-y-2">
@@ -119,16 +138,18 @@ export const AnimePlayer = ({
               <RefreshCw className="w-3 h-3" />
               <span>Reload</span>
             </button>
-            <a
-              href={streamUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition px-2 py-0.5 rounded-lg bg-white/5 border border-white/10"
-              title="Popout"
-            >
-              <ExternalLink className="w-3 h-3" />
-              <span>Popout</span>
-            </a>
+            {streamUrl && (
+              <a
+                href={streamUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition px-2 py-0.5 rounded-lg bg-white/5 border border-white/10"
+                title="Popout"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>Popout</span>
+              </a>
+            )}
           </div>
         </div>
 
@@ -150,7 +171,7 @@ export const AnimePlayer = ({
                     : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <Server className="w-3 h-3" />
+                {server.isCustom && <Sparkles className="w-3 h-3" />}
                 <span>{server.name}</span>
                 <span
                   className={`text-[9px] px-1 py-0.2 rounded ${
@@ -166,7 +187,11 @@ export const AnimePlayer = ({
 
         <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 pt-0.5">
           <ShieldCheck className="w-3 h-3 text-emerald-400" />
-          <span>VidSrc ICU & VidLink provide primary failover with full episode navigation.</span>
+          <span>
+            {activeServer === "frosted-glass"
+              ? "Spectra Frosted Glass UI active with auto-resume tracking."
+              : "External mirror stream active."}
+          </span>
         </div>
       </div>
     </div>
