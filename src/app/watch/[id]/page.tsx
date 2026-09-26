@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
@@ -8,16 +8,19 @@ import {
   ArrowLeft,
   Download,
   Play,
+  Pause,
   RotateCcw,
+  RotateCw,
   Volume2,
+  VolumeX,
   Maximize2,
+  Minimize2,
   LayoutGrid,
   List,
   Sparkles,
   ChevronDown,
 } from "lucide-react";
-import { tmdb, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
-import { STREAM_SERVERS } from "@/lib/streamingSources";
+import { tmdb, EpisodeItem } from "@/lib/tmdb";
 import { playbackHistory } from "@/lib/playbackHistory";
 import { downloadManager } from "@/lib/downloadManager";
 import { soundFx } from "@/lib/soundFx";
@@ -32,16 +35,23 @@ export default function WatchPage() {
   const season = parseInt(searchParams.get("season") || "1", 10);
   const episode = parseInt(searchParams.get("episode") || "1", 10);
 
-  // Streaming & Server HUD state
+  // Frosted Glass is the default server
   const [activeServerKey, setActiveServerKey] = useState<string>("Frosted Glass");
   const [subDubMode, setSubDubMode] = useState<"SUB" | "DUB">("SUB");
   const [details, setDetails] = useState<any>(null);
   const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
   const [selectedSeason, setSelectedSeason] = useState<number>(season);
   const [episodeViewMode, setEpisodeViewMode] = useState<"grid" | "list">("grid");
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
 
-  // Server definitions matching Screenshot 3
+  // Custom player HUD state
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [currentTime, setCurrentTime] = useState<number>(120);
+  const [duration, setDuration] = useState<number>(3600);
+  const [isHudVisible, setIsHudVisible] = useState<boolean>(true);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
   const SERVER_LIST = [
     { key: "Frosted Glass", name: "Frosted Glass", url: (t: string, i: string, s: number, e: number) => t === "movie" ? `https://vidsrc.to/embed/movie/${i}` : `https://vidsrc.to/embed/tv/${i}/${s}/${e}` },
     { key: "VidLink", name: "VidLink", url: (t: string, i: string, s: number, e: number) => t === "movie" ? `https://multiembed.mov/?video_id=${i}&tmdb=1` : `https://multiembed.mov/?video_id=${i}&tmdb=1&s=${s}&e=${e}` },
@@ -72,7 +82,6 @@ export default function WatchPage() {
 
     fetchInfo();
 
-    // Track playback history
     playbackHistory.save({
       id: `${id}_${type}_${selectedSeason}_${episode}`,
       tmdbId: id,
@@ -89,23 +98,28 @@ export default function WatchPage() {
     return () => { isMounted = false; };
   }, [id, type, selectedSeason, episode]);
 
-  const handleDownload = () => {
-    soundFx.playCinematicPop();
-    if (!details) return;
-    downloadManager.add({
-      id: String(details.id),
-      title: details.title || details.name,
-      type: type,
-      posterPath: details.poster_path,
-      sizeBytes: 1024 * 1024 * 480,
-    });
+  const formatTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const remSecs = Math.floor(secs % 60);
+    return `${mins.toString().padStart(2, "0")}:${remSecs.toString().padStart(2, "0")}`;
   };
 
-  const title = details?.title || details?.name || "Player";
+  const toggleFullscreen = () => {
+    if (!playerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      playerContainerRef.current.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  const title = details?.title || details?.name || "The Lost World";
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-4">
-      {/* Top Bar with Details & Download (Screenshot 3) */}
+      {/* 1. TOP BAR */}
       <div className="flex items-center justify-between">
         <Link
           href={`/details/${id}?type=${type}`}
@@ -121,7 +135,16 @@ export default function WatchPage() {
         </span>
 
         <button
-          onClick={handleDownload}
+          onClick={() => {
+            soundFx.playCinematicPop();
+            downloadManager.add({
+              id: String(id),
+              title,
+              type,
+              posterPath: details?.poster_path,
+              sizeBytes: 1024 * 1024 * 480,
+            });
+          }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white backdrop-blur-xl transition"
         >
           <Download className="w-3.5 h-3.5" />
@@ -129,19 +152,90 @@ export default function WatchPage() {
         </button>
       </div>
 
-      {/* Main Video Frame & Embed (Screenshot 3) */}
-      <div className="relative aspect-[16/9] w-full rounded-3xl overflow-hidden bg-black border border-white/15 shadow-2xl">
+      {/* 2. FROSTED GLASS MEDIA PLAYER FRAME */}
+      <div
+        ref={playerContainerRef}
+        onMouseEnter={() => setIsHudVisible(true)}
+        className="relative aspect-[16/9] w-full rounded-3xl overflow-hidden bg-black border border-white/15 shadow-2xl group select-none"
+      >
         <iframe
           src={streamUrl}
           className="w-full h-full border-0"
           allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           allowFullScreen
         />
+
+        {/* Ambient Frosted Overlay HUD */}
+        {activeServerKey === "Frosted Glass" && (
+          <div
+            className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${
+              isHudVisible ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            {/* Center Glowing Play Button */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
+              <button
+                onClick={() => {
+                  soundFx.playCinematicPop();
+                  setIsPlaying(!isPlaying);
+                }}
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 backdrop-blur-2xl flex items-center justify-center text-white shadow-glow transition transform active:scale-95"
+              >
+                {isPlaying ? (
+                  <Pause className="w-6 h-6 fill-white text-white" />
+                ) : (
+                  <Play className="w-6 h-6 fill-white text-white ml-0.5" />
+                )}
+              </button>
+            </div>
+
+            {/* Bottom Frosted Controller HUD */}
+            <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 p-2.5 sm:p-3 rounded-2xl bg-black/60 backdrop-blur-2xl border border-white/15 space-y-2 pointer-events-auto shadow-2xl">
+              {/* Scrub Timeline */}
+              <div className="relative w-full h-1.5 bg-white/20 rounded-full cursor-pointer overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full relative"
+                  style={{ width: `${(currentTime / duration) * 100}%` }}
+                />
+              </div>
+
+              {/* Controls Row */}
+              <div className="flex items-center justify-between text-white text-xs">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-emerald-400 transition">
+                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                  </button>
+
+                  <button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} className="hover:text-emerald-400 transition">
+                    <RotateCcw className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))} className="hover:text-emerald-400 transition">
+                    <RotateCw className="w-3.5 h-3.5" />
+                  </button>
+
+                  <span className="text-[10px] font-mono text-zinc-300">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setIsMuted(!isMuted)} className="hover:text-emerald-400 transition">
+                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  </button>
+
+                  <button onClick={toggleFullscreen} className="hover:text-emerald-400 transition">
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Server & SUB/DUB HUD Controls (Screenshot 3) */}
+      {/* 3. SERVER SWITCHER & SUB/DUB HUD */}
       <div className="p-3 rounded-2xl bg-[#0c0c14]/85 border border-white/15 space-y-2.5 shadow-xl">
-        {/* Sub/Dub Pill & Episode Status Counter */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1 p-0.5 rounded-xl bg-white/10 border border-white/15">
             <button
@@ -150,9 +244,7 @@ export default function WatchPage() {
                 setSubDubMode("SUB");
               }}
               className={`px-3 py-1 rounded-lg text-xs font-black transition ${
-                subDubMode === "SUB"
-                  ? "bg-white text-black shadow-glow"
-                  : "text-zinc-400 hover:text-white"
+                subDubMode === "SUB" ? "bg-white text-black shadow-glow" : "text-zinc-400 hover:text-white"
               }`}
             >
               SUB
@@ -163,9 +255,7 @@ export default function WatchPage() {
                 setSubDubMode("DUB");
               }}
               className={`px-3 py-1 rounded-lg text-xs font-black transition ${
-                subDubMode === "DUB"
-                  ? "bg-white text-black shadow-glow"
-                  : "text-zinc-400 hover:text-white"
+                subDubMode === "DUB" ? "bg-white text-black shadow-glow" : "text-zinc-400 hover:text-white"
               }`}
             >
               DUB
@@ -179,7 +269,7 @@ export default function WatchPage() {
           )}
         </div>
 
-        {/* Horizontal Server Switcher Pill Buttons (Screenshot 3) */}
+        {/* Server Switcher Pill Buttons */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1">
           {SERVER_LIST.map((srv) => {
             const isSelected = activeServerKey === srv.key;
@@ -203,7 +293,7 @@ export default function WatchPage() {
         </div>
       </div>
 
-      {/* Episodes Navigation Shelf (Screenshot 3) */}
+      {/* 4. EPISODES SHELF WITH GRID / LIST TOGGLE */}
       {type === "tv" && (
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between">
@@ -216,7 +306,6 @@ export default function WatchPage() {
               </div>
             </div>
 
-            {/* Layout Toggle: Grid vs List */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/10">
               <button
                 onClick={() => setEpisodeViewMode("grid")}
@@ -237,7 +326,6 @@ export default function WatchPage() {
             </div>
           </div>
 
-          {/* Episode Cards (Screenshot 3) */}
           <div
             className={
               episodeViewMode === "grid"
@@ -246,9 +334,7 @@ export default function WatchPage() {
             }
           >
             {episodes.map((ep) => {
-              const stillUrl = ep.still_path ? `${IMAGE_BASE}/w300${ep.still_path}` : null;
               const isCurrent = ep.episode_number === episode;
-
               return (
                 <Link
                   key={`ep-${ep.id}`}
@@ -259,9 +345,9 @@ export default function WatchPage() {
                   }`}
                 >
                   <div className="relative aspect-video w-full bg-zinc-950">
-                    {stillUrl ? (
+                    {ep.still_path ? (
                       <Image
-                        src={stillUrl}
+                        src={ep.still_path}
                         alt={ep.name}
                         fill
                         unoptimized
