@@ -26,115 +26,97 @@ export interface EpisodeItem {
   vote_average: number;
 }
 
-export const tmdb = {
-  // 1. Trending (Universal & Legacy Support)
-  getTrending: async (type: "all" | "movie" | "tv" = "all", timeWindow: "day" | "week" = "day") => {
-    const res = await fetch(
-      `${BASE_URL}/trending/${type}/${timeWindow}?api_key=${TMDB_API_KEY}&region=IN`,
-      { next: { revalidate: 3600 } }
-    );
+const safeFetch = async (url: string) => {
+  try {
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) return { results: [] };
     const data = await res.json();
+    return data;
+  } catch (e) {
+    console.error("TMDB Fetch error:", e);
+    return { results: [] };
+  }
+};
+
+export const tmdb = {
+  // Trending across India
+  getTrendingIndia: async (page = 1) => {
+    const data = await safeFetch(`${BASE_URL}/trending/all/day?api_key=${TMDB_API_KEY}&region=IN&page=${page}`);
     return data.results || [];
   },
 
-  // 2. Discover Media by Genre
+  // Popular Hindi Movies (Bollywood)
+  getHindiCinema: async (page = 1) => {
+    const data = await safeFetch(
+      `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_original_language=hi&region=IN&sort_by=popularity.desc&page=${page}`
+    );
+    // If empty, fallback to popular movies
+    if (!data.results || data.results.length === 0) {
+      const fallback = await safeFetch(`${BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&page=${page}`);
+      return fallback.results || [];
+    }
+    return data.results || [];
+  },
+
+  // Indian Hindi Web Series
+  getHindiSeries: async (page = 1) => {
+    const data = await safeFetch(
+      `${BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_original_language=hi&sort_by=popularity.desc&page=${page}`
+    );
+    if (!data.results || data.results.length === 0) {
+      const fallback = await safeFetch(`${BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=${page}`);
+      return fallback.results || [];
+    }
+    return data.results || [];
+  },
+
+  // Generic Trending & Discover (required by other views)
+  getTrending: async (type: "all" | "movie" | "tv" = "all", timeWindow: "day" | "week" = "day") => {
+    const data = await safeFetch(`${BASE_URL}/trending/${type}/${timeWindow}?api_key=${TMDB_API_KEY}&region=IN`);
+    return data.results || [];
+  },
+
   discoverMedia: async (type: "movie" | "tv", genreId?: number, page = 1) => {
     const genreParam = genreId ? `&with_genres=${genreId}` : "";
-    const res = await fetch(
-      `${BASE_URL}/discover/${type}?api_key=${TMDB_API_KEY}&sort_by=popularity.desc&include_adult=false&page=${page}&region=IN${genreParam}`,
-      { next: { revalidate: 3600 } }
+    const data = await safeFetch(
+      `${BASE_URL}/discover/${type}?api_key=${TMDB_API_KEY}&sort_by=popularity.desc&include_adult=false&page=${page}&region=IN${genreParam}`
     );
-    const data = await res.json();
     return data.results || [];
   },
 
-  // 3. Indian & Hindi Region Specials
-  getTrendingIndia: async (page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/trending/all/day?api_key=${TMDB_API_KEY}&region=IN&page=${page}`,
-      { next: { revalidate: 3600 } }
-    );
-    return res.json();
-  },
-
-  getHindiCinema: async (page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/discover/movie?api_key=${TMDB_API_KEY}&with_original_language=hi&region=IN&sort_by=popularity.desc&page=${page}`,
-      { next: { revalidate: 3600 } }
-    );
-    return res.json();
-  },
-
-  getHindiSeries: async (page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/discover/tv?api_key=${TMDB_API_KEY}&with_original_language=hi&sort_by=popularity.desc&page=${page}`,
-      { next: { revalidate: 3600 } }
-    );
-    return res.json();
-  },
-
-  // 4. Popular & Top Rated Catalogs (Both getPopularSeries & getPopularTV supported)
   getPopularMovies: async (page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&region=IN&page=${page}`,
-      { next: { revalidate: 3600 } }
-    );
-    const data = await res.json();
+    const data = await safeFetch(`${BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&region=IN&page=${page}`);
     return data.results || [];
   },
 
   getPopularSeries: async (page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=${page}`,
-      { next: { revalidate: 3600 } }
-    );
-    const data = await res.json();
+    const data = await safeFetch(`${BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=${page}`);
     return data.results || [];
   },
 
-  // Alias for legacy pages calling getPopularTV
   getPopularTV: async (page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=${page}`,
-      { next: { revalidate: 3600 } }
-    );
-    const data = await res.json();
+    const data = await safeFetch(`${BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=${page}`);
     return data.results || [];
   },
 
   getTopRated: async (type: "movie" | "tv" = "movie", page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/${type}/top_rated?api_key=${TMDB_API_KEY}&page=${page}&region=IN`,
-      { next: { revalidate: 3600 } }
-    );
-    const data = await res.json();
+    const data = await safeFetch(`${BASE_URL}/${type}/top_rated?api_key=${TMDB_API_KEY}&page=${page}&region=IN`);
     return data.results || [];
   },
 
-  // 5. Details & Seasons
   getDetails: async (type: "movie" | "tv", id: string | number) => {
-    const res = await fetch(
-      `${BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}&append_to_response=videos,credits,recommendations`,
-      { next: { revalidate: 3600 } }
-    );
-    return res.json();
+    return safeFetch(`${BASE_URL}/${type}/${id}?api_key=${TMDB_API_KEY}&append_to_response=videos,credits,recommendations`);
   },
 
   getSeasonEpisodes: async (tvId: string | number, seasonNumber: number): Promise<EpisodeItem[]> => {
-    const res = await fetch(
-      `${BASE_URL}/tv/${tvId}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`,
-      { next: { revalidate: 3600 } }
-    );
-    const data = await res.json();
+    const data = await safeFetch(`${BASE_URL}/tv/${tvId}/season/${seasonNumber}?api_key=${TMDB_API_KEY}`);
     return data.episodes || [];
   },
 
-  // 6. Multi-Search
   search: async (query: string, page = 1) => {
-    const res = await fetch(
-      `${BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}&include_adult=false`,
-      { next: { revalidate: 1800 } }
+    const data = await safeFetch(
+      `${BASE_URL}/search/multi?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}&page=${page}&include_adult=false`
     );
-    return res.json();
+    return data;
   }
 };
