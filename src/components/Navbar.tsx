@@ -63,7 +63,7 @@ export const Navbar = () => {
     };
   });
 
-  // CONTINUOUS MECHANICAL ACCUMULATOR DRAG (Every 12px = 1 Mechanical Click)
+  // MECHANICAL ACCUMULATOR (Every 12px produces a physical tooth click)
   const STEP_PIXELS = 12;
 
   const handleDragStart = (clientX: number) => {
@@ -80,20 +80,18 @@ export const Navbar = () => {
 
     accumulatedDistance.current += deltaX;
 
-    // Check if we crossed the step threshold in either direction
     if (Math.abs(accumulatedDistance.current) >= STEP_PIXELS) {
       const steps = Math.trunc(accumulatedDistance.current / STEP_PIXELS);
       accumulatedDistance.current -= steps * STEP_PIXELS;
 
-      // Invert sign: dragging left (< 0) advances right (> 0)
       const shift = -steps;
 
       setPreviewIndex((prev) => {
         const next = (prev + shift) % N;
         const normalized = next < 0 ? next + N : next;
         
-        // Fire punchy mechanical tick
-        soundFx.playTick();
+        // FIRING MECHANICAL GEAR TICK
+        soundFx.playMechanicalTick();
         if (navigator.vibrate) navigator.vibrate(6);
 
         return normalized;
@@ -109,7 +107,7 @@ export const Navbar = () => {
 
     const targetCategory = CATEGORIES[previewIndex];
     if (targetCategory && targetCategory.href !== pathname) {
-      soundFx.playGlassTap();
+      soundFx.playCinematicWhoosh();
       router.push(targetCategory.href);
     }
   };
@@ -151,16 +149,17 @@ export const Navbar = () => {
 
   const handleSearchAction = (e: React.MouseEvent) => {
     e.stopPropagation();
-    soundFx.playGlassTap();
 
     if (clickTimer.current) {
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
       setSmallGlassOpen(false);
+      soundFx.playCinematicWhoosh();
       openSearch();
     } else {
       clickTimer.current = setTimeout(() => {
         clickTimer.current = null;
+        soundFx.playCinematicPop();
         setSmallGlassOpen((prev) => {
           const next = !prev;
           if (next) setTimeout(() => inputRef.current?.focus(), 120);
@@ -182,18 +181,18 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between gap-1 sm:gap-2 h-10">
           
-          {/* 1. Left: Brand */}
+          {/* Left: Brand */}
           <div className="flex-none">
             <Link
               href="/"
-              onClick={() => soundFx.playGlassTap()}
+              onClick={() => soundFx.playCinematicPop()}
               className="font-black text-base sm:text-lg tracking-wider text-white uppercase group"
             >
               <span>SPECTRA</span>
             </Link>
           </div>
 
-          {/* 2. Middle: Ultra-Sensitive Rotary Dial with Continuous Mechanical Ticks */}
+          {/* Middle: Continuous Mechanical Wheel */}
           <div
             className="flex-1 max-w-[240px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing touch-none select-none"
             onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
@@ -247,7 +246,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* 3. Right: Search */}
+          {/* Right: Search Capsule */}
           <div className="flex-none relative" ref={containerRef}>
             <div
               onClick={handleSearchAction}
@@ -264,6 +263,7 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
+            {/* Mini Popover */}
             {smallGlassOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
@@ -294,6 +294,7 @@ export const Navbar = () => {
                     <button
                       onClick={() => {
                         setSmallGlassOpen(false);
+                        soundFx.playCinematicWhoosh();
                         openSearch();
                       }}
                       className="p-1 rounded text-zinc-400 hover:text-white"
@@ -318,7 +319,7 @@ export const Navbar = () => {
                       <div
                         key={`${item.media_type}-${item.id}`}
                         onClick={() => {
-                          soundFx.playGlassTap();
+                          soundFx.playCinematicPop();
                           setSmallGlassOpen(false);
                           router.push(`/details/${item.id}?type=${item.media_type}`);
                         }}

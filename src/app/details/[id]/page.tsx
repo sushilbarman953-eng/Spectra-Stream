@@ -18,12 +18,12 @@ import {
   Tv,
   ArrowLeft,
   X,
-  Volume2,
 } from "lucide-react";
 import { tmdb, IMAGE_BASE, EpisodeItem } from "@/lib/tmdb";
 import { watchlistManager } from "@/lib/watchlistManager";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { GlassButton } from "@/components/ui/GlassButton";
+import { soundFx } from "@/lib/soundFx";
 
 export default function DetailsPage() {
   const params = useParams();
@@ -81,6 +81,7 @@ export default function DetailsPage() {
 
   const handleToggleWatchlist = () => {
     if (!details) return;
+    soundFx.playCinematicPop();
     const itemTitle = details.title || details.name || "Untitled";
     const added = watchlistManager.toggle({
       id: details.id,
@@ -122,10 +123,12 @@ export default function DetailsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-3 pb-28 space-y-6">
-      {/* Top Breadcrumb Nav */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => router.back()}
+          onClick={() => {
+            soundFx.playCinematicWhoosh();
+            router.back();
+          }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-semibold text-zinc-300 hover:text-white transition"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -135,19 +138,19 @@ export default function DetailsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
+              soundFx.playCinematicPop();
               if (navigator.share) {
                 navigator.share({ title, url: window.location.href }).catch(() => {});
               }
             }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-zinc-300 hover:text-white transition"
-            title="Share Title"
           >
             <Share2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Hero Banner Header */}
+      {/* Hero Banner */}
       <div className="relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl overflow-hidden border border-white/15 shadow-2xl bg-black">
         {backdropUrl && (
           <Image
@@ -160,9 +163,7 @@ export default function DetailsPage() {
           />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-black/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#08080c]/90 via-transparent to-transparent hidden md:block" />
 
-        {/* Floating Action Strip on Banner */}
         <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 flex flex-wrap items-end justify-between gap-3 z-10">
           <div className="space-y-1.5 max-w-xl">
             <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow-md">
@@ -189,7 +190,10 @@ export default function DetailsPage() {
           <div className="flex items-center gap-2">
             {trailerVideo && (
               <button
-                onClick={() => setShowTrailer(true)}
+                onClick={() => {
+                  soundFx.playCinematicSwell();
+                  setShowTrailer(true);
+                }}
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition backdrop-blur-xl"
               >
                 <Film className="w-3.5 h-3.5" />
@@ -209,7 +213,10 @@ export default function DetailsPage() {
               <span>{inList ? "In List" : "Add to List"}</span>
             </button>
 
-            <Link href={`/watch/${id}?type=${type}`}>
+            <Link
+              href={`/watch/${id}?type=${type}`}
+              onClick={() => soundFx.playCinematicSwell()}
+            >
               <GlassButton variant="primary" className="text-xs px-5 py-2 font-bold flex items-center gap-1.5 shadow-glow">
                 <Play className="w-3.5 h-3.5 fill-black text-black" />
                 <span>Play</span>
@@ -224,7 +231,10 @@ export default function DetailsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-2xl p-4">
           <div className="relative aspect-video w-full max-w-3xl rounded-3xl overflow-hidden border border-white/20 bg-black shadow-2xl">
             <button
-              onClick={() => setShowTrailer(false)}
+              onClick={() => {
+                soundFx.playCinematicWhoosh();
+                setShowTrailer(false);
+              }}
               className="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/15"
             >
               <X className="w-4 h-4" />
@@ -240,23 +250,6 @@ export default function DetailsPage() {
         </div>
       )}
 
-      {/* Overview & Genres */}
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-1.5">
-          {details.genres?.map((g: any) => (
-            <span
-              key={g.id}
-              className="px-2.5 py-1 rounded-full text-[10px] font-semibold text-zinc-300 bg-white/5 border border-white/10"
-            >
-              {g.name}
-            </span>
-          ))}
-        </div>
-        <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-3xl">
-          {details.overview || "No overview available for this title."}
-        </p>
-      </div>
-
       {/* TV Series Season & Episode Selector */}
       {type === "tv" && details.number_of_seasons && (
         <div className="space-y-3 pt-2">
@@ -266,12 +259,14 @@ export default function DetailsPage() {
               <span>Episodes</span>
             </h3>
 
-            {/* Season dropdown pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
               {Array.from({ length: details.number_of_seasons }).map((_, i) => (
                 <button
                   key={i + 1}
-                  onClick={() => setSelectedSeason(i + 1)}
+                  onClick={() => {
+                    soundFx.playMechanicalTick();
+                    setSelectedSeason(i + 1);
+                  }}
                   className={`px-3 py-1 rounded-xl text-xs font-bold transition border ${
                     selectedSeason === i + 1
                       ? "bg-white text-black border-white shadow-glow"
@@ -285,63 +280,23 @@ export default function DetailsPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {episodes.map((ep) => {
-              const epThumb = ep.still_path ? `${IMAGE_BASE}/w300${ep.still_path}` : null;
-
-              return (
-                <Link
-                  key={ep.id}
-                  href={`/watch/${id}?type=tv&season=${selectedSeason}&episode=${ep.episode_number}`}
-                  className="flex items-center gap-3 p-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 transition group"
-                >
-                  <div className="relative w-24 h-16 rounded-xl overflow-hidden bg-zinc-950 flex-none border border-white/10">
-                    {epThumb ? (
-                      <Image src={epThumb} alt={ep.name} fill className="object-cover group-hover:scale-105 transition" />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-[9px] text-zinc-600">No Image</div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                      <Play className="w-4 h-4 fill-white text-white" />
-                    </div>
+            {episodes.map((ep) => (
+              <Link
+                key={ep.id}
+                href={`/watch/${id}?type=tv&season=${selectedSeason}&episode=${ep.episode_number}`}
+                onClick={() => soundFx.playCinematicSwell()}
+                className="flex items-center gap-3 p-2 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-white/20 transition group"
+              >
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex items-center justify-between text-xs font-bold text-white">
+                    <span className="truncate">{ep.episode_number}. {ep.name}</span>
                   </div>
-
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-white">
-                      <span className="truncate">{ep.episode_number}. {ep.name}</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed">
-                      {ep.overview || "Watch this episode on Spectra."}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Cast & Crew Bubble Shelf */}
-      {castList.length > 0 && (
-        <div className="space-y-3 pt-3 border-t border-white/10">
-          <h3 className="text-sm font-bold text-white">Top Cast</h3>
-          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
-            {castList.map((actor: any) => {
-              const photo = actor.profile_path ? `${IMAGE_BASE}/w185${actor.profile_path}` : null;
-
-              return (
-                <div key={actor.id} className="flex-none flex flex-col items-center w-16 text-center space-y-1">
-                  <div className="relative w-14 h-14 rounded-full overflow-hidden bg-zinc-900 border border-white/20">
-                    {photo ? (
-                      <Image src={photo} alt={actor.name} fill className="object-cover" />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-[9px] text-zinc-600">N/A</div>
-                    )}
-                  </div>
-                  <span className="text-[10px] font-bold text-white truncate w-full">{actor.name}</span>
-                  <span className="text-[8px] text-zinc-400 truncate w-full">{actor.character}</span>
+                  <p className="text-[10px] text-zinc-400 line-clamp-2 leading-relaxed">
+                    {ep.overview || "Watch this episode on Spectra."}
+                  </p>
                 </div>
-              );
-            })}
+              </Link>
+            ))}
           </div>
         </div>
       )}
