@@ -3,17 +3,18 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Flame, Star, Sparkles, Volume2, Search, Play, Filter } from "lucide-react";
-import { animeService, AnimeItem } from "@/lib/animeService";
+import { Flame, Star, Sparkles, Volume2 } from "lucide-react";
+import { animeService, AnimeItem, HINDI_DUBBED_ANIME_CATALOG } from "@/lib/animeService";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { soundFx } from "@/lib/soundFx";
 
 export default function AnimePage() {
-  const [topAiring, setTopAiring] = useState<AnimeItem[]>([]);
-  const [popular, setPopular] = useState<AnimeItem[]>([]);
-  const [filterMode, setFilterMode] = useState<"all" | "hindi">("hindi");
-  const [loading, setLoading] = useState(true);
+  const [topAiring, setTopAiring] = useState<AnimeItem[]>(HINDI_DUBBED_ANIME_CATALOG.slice(0, 6));
+  const [popular, setPopular] = useState<AnimeItem[]>(HINDI_DUBBED_ANIME_CATALOG);
+  const [filterMode, setFilterMode] = useState<"hindi" | "all">("hindi");
+  const [loading, setLoading] = useState(false);
 
+  // Deduplicate anime lists by mal_id
   const dedupeAnime = (list: AnimeItem[]): AnimeItem[] => {
     const seen = new Set<number>();
     return list.filter((item) => {
@@ -24,25 +25,38 @@ export default function AnimePage() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAnime = async () => {
       try {
         const [airingData, popData] = await Promise.all([
           animeService.getTopAiring(),
           animeService.getHindiDubbedPopular(),
         ]);
-        setTopAiring(dedupeAnime(airingData));
-        setPopular(dedupeAnime(popData));
+
+        if (isMounted) {
+          const finalAiring = airingData && airingData.length > 0 ? airingData : HINDI_DUBBED_ANIME_CATALOG;
+          const finalPopular = popData && popData.length > 0 ? popData : HINDI_DUBBED_ANIME_CATALOG;
+
+          setTopAiring(dedupeAnime(finalAiring));
+          setPopular(dedupeAnime(finalPopular));
+        }
       } catch (e) {
         console.error("Anime fetch error:", e);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+
     fetchAnime();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const displayList = filterMode === "hindi"
-    ? popular.filter((a) => a.hasHindiDub)
+    ? popular.filter((a) => a.hasHindiDub !== false)
     : popular;
 
   return (
@@ -63,6 +77,7 @@ export default function AnimePage() {
             </p>
           </div>
 
+          {/* Filter Pills */}
           <div className="flex items-center gap-1.5 self-start sm:self-center p-1 rounded-2xl bg-white/5 border border-white/10">
             <button
               onClick={() => {
@@ -140,20 +155,21 @@ export default function AnimePage() {
         </div>
       </div>
 
-      {/* Main Grid */}
+      {/* Main Grid: POPULAR IN HINDI */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-black text-white tracking-wide uppercase flex items-center gap-2">
             <Volume2 className="w-4 h-4 text-emerald-400" />
             <span>{filterMode === "hindi" ? "Popular in Hindi" : "All Trending Anime"}</span>
           </h3>
-          <span className="text-[10px] text-zinc-500 font-mono">{displayList.length} Titles</span>
+          <span className="text-[10px] text-zinc-400 font-mono font-bold">{displayList.length} Titles</span>
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-zinc-400 text-xs flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 animate-spin text-white" />
-            <span>Loading anime catalog...</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div key={n} className="aspect-[2/3] rounded-2xl bg-white/5 animate-pulse" />
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -179,7 +195,7 @@ export default function AnimePage() {
                     />
                     <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
                       <Star className="w-2.5 h-2.5 fill-white text-white" />
-                      {item.score?.toFixed(1) || "7.8"}
+                      {item.score?.toFixed(1) || "8.2"}
                     </div>
                     {item.hasHindiDub && (
                       <div className="absolute top-2 left-2 bg-emerald-400 text-black px-1.5 py-0.5 rounded text-[8px] font-black uppercase shadow-glow">
