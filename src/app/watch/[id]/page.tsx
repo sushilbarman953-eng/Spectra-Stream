@@ -106,7 +106,7 @@ export default function WatchPage() {
     ? `${IMAGE_BASE}/w1280${details.backdrop_path}`
     : undefined;
 
-  const relatedItems: MediaItem[] = details?.similar?.results?.slice(0, 10) || [];
+  const relatedItems: MediaItem[] = details?.similar?.results?.slice(0, 20) || [];
 
   if (loading) {
     return (
@@ -175,35 +175,46 @@ export default function WatchPage() {
         />
       )}
 
-      {/* Explore More Related Media below player */}
+      {/* 2-Row Related Media Shelf */}
       {relatedItems.length > 0 && (
-        <div className="space-y-3 pt-4 border-t border-white/10">
-          <div className="flex items-center gap-2">
+        <div className="space-y-2.5 pt-3 border-t border-white/10">
+          <div className="flex items-center gap-2 px-1">
             <Sparkles className="w-4 h-4 text-white" />
-            <h3 className="text-sm sm:text-base font-bold text-white">Related Titles</h3>
+            <h3 className="text-sm font-bold text-white">Related Titles</h3>
           </div>
 
-          <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[105px] sm:auto-cols-[130px] gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
             {relatedItems.map((item) => {
               const itemTitle = item.title || item.name || "Untitled";
               const itemPoster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
 
               return (
-                <Link key={item.id} href={`/details/${item.id}?type=${type}`} className="flex-none w-32 sm:w-36 group">
-                  <GlassCard hoverEffect className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0c0c10]">
+                <Link key={item.id} href={`/details/${item.id}?type=${type}`} className="group">
+                  <GlassCard
+                    hoverEffect
+                    className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0c0c10]"
+                  >
                     <div className="relative aspect-[2/3] w-full bg-zinc-950">
                       {itemPoster ? (
-                        <Image src={itemPoster} alt={itemTitle} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                        <Image
+                          src={itemPoster}
+                          alt={itemTitle}
+                          fill
+                          sizes="130px"
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-zinc-600 text-xs">No Poster</div>
+                        <div className="flex items-center justify-center h-full text-zinc-600 text-[10px]">
+                          No Poster
+                        </div>
                       )}
-                      <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 px-1.5 py-0.5 rounded text-[9px] text-zinc-200">
-                        <Star className="w-2.5 h-2.5 fill-white text-white" />
+                      <div className="absolute top-1 right-1 flex items-center gap-0.5 bg-black/80 px-1 py-0.5 rounded text-[8px] text-zinc-200">
+                        <Star className="w-2 h-2 fill-white text-white" />
                         {item.vote_average ? item.vote_average.toFixed(1) : "N/A"}
                       </div>
                     </div>
-                    <div className="p-2 bg-black/60">
-                      <h4 className="text-xs font-semibold text-white truncate">{itemTitle}</h4>
+                    <div className="p-1.5 bg-black/60">
+                      <h4 className="text-[10px] sm:text-[11px] font-semibold text-white truncate">{itemTitle}</h4>
                     </div>
                   </GlassCard>
                 </Link>
