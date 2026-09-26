@@ -1,17 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import {
-  Sparkles,
   Lock,
   Mail,
   User,
   ArrowRight,
-  ShieldCheck,
   Eye,
   EyeOff,
   Film,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "@/lib/authContext";
 import { soundFx } from "@/lib/soundFx";
@@ -27,7 +25,7 @@ export default function AuthPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
 
@@ -43,15 +41,21 @@ export default function AuthPage() {
     setSubmitting(true);
     soundFx.playCinematicPop();
 
-    setTimeout(() => {
-      loginWithEmail(email, mode === "register" ? name : undefined);
+    const res = await loginWithEmail(
+      email,
+      password,
+      mode === "register" ? name : undefined,
+      mode === "register"
+    );
+
+    if (res?.error) {
+      setErrorMsg(res.error);
       setSubmitting(false);
-    }, 400);
+    }
   };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden bg-[#08080c]">
-      {/* Ambient background glows */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/[0.03] rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 left-10 w-72 h-72 bg-white/[0.02] rounded-full blur-2xl pointer-events-none" />
 
@@ -75,7 +79,7 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {/* Tab Switcher: Login vs Register */}
+        {/* Tab Switcher */}
         <div className="grid grid-cols-2 p-1 rounded-2xl bg-white/5 border border-white/10">
           <button
             type="button"
@@ -111,7 +115,6 @@ export default function AuthPage() {
 
         {/* Social Authentication */}
         <div className="space-y-2">
-          {/* Google Button */}
           <button
             type="button"
             onClick={() => {
@@ -141,7 +144,6 @@ export default function AuthPage() {
             <span>Continue with Google</span>
           </button>
 
-          {/* Facebook Button */}
           <button
             type="button"
             onClick={() => {
@@ -157,7 +159,6 @@ export default function AuthPage() {
           </button>
         </div>
 
-        {/* Divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-[1px] bg-white/10" />
           <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
@@ -166,7 +167,7 @@ export default function AuthPage() {
           <div className="flex-1 h-[1px] bg-white/10" />
         </div>
 
-        {/* Form */}
+        {/* Credentials Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
           {errorMsg && (
             <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center">
@@ -179,7 +180,7 @@ export default function AuthPage() {
               <User className="w-4 h-4 text-zinc-500 absolute left-3.5 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Full Name / Display Handle"
+                placeholder="Full Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full py-2.5 pl-10 pr-4 rounded-2xl bg-white/[0.04] border border-white/15 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition"
@@ -202,7 +203,7 @@ export default function AuthPage() {
             <Lock className="w-4 h-4 text-zinc-500 absolute left-3.5 pointer-events-none" />
             <input
               type={showPassword ? "text" : "password"}
-              placeholder="Password (min 6 chars)"
+              placeholder="Password (min 6 characters)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full py-2.5 pl-10 pr-10 rounded-2xl bg-white/[0.04] border border-white/15 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition"
@@ -221,12 +222,17 @@ export default function AuthPage() {
             disabled={submitting}
             className="w-full py-2.5 rounded-2xl bg-white text-black font-black text-xs shadow-glow hover:bg-zinc-200 active:scale-95 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
           >
-            <span>{mode === "login" ? "Enter Spectra" : "Complete Registration"}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            {submitting ? (
+              <Loader2 className="w-4 h-4 animate-spin text-black" />
+            ) : (
+              <>
+                <span>{mode === "login" ? "Enter Spectra" : "Create Account"}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
           </button>
         </form>
 
-        {/* Guest Skip Option */}
         <div className="text-center pt-2 border-t border-white/10">
           <button
             type="button"

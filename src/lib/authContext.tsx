@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { supabase } from "./supabaseClient";
+import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 
 export interface SpectraUser {
   id: string;
@@ -15,10 +17,10 @@ export interface SpectraUser {
 interface AuthContextType {
   user: SpectraUser | null;
   loading: boolean;
-  loginWithEmail: (email: string, name?: string) => void;
-  loginWithSocial: (provider: "google" | "facebook") => void;
+  loginWithEmail: (email: string, password: string, name?: string, isSignUp?: boolean) => Promise<{ error?: string }>;
+  loginWithSocial: (provider: "google" | "facebook") => Promise<void>;
   continueAsGuest: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (updated: Partial<SpectraUser>) => void;
 }
 
@@ -30,84 +32,127 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
+  const formatUser = (sbUser: SupabaseAuthUser): SpectraUser => {
+    const meta = sbUser.user_metadata || {};
+    const provider = (sbUser.app_metadata?.provider as any) || "email";
+    return {
+      id: sbUser.id,
+      name: meta.full_name || meta.name || sbUser.email?.split("@")[0] || "Spectra Member",
+      email: sbUser.email || "",
+      avatarId: meta.avatarId || "ghost",
+      provider: provider === "google" || provider === "facebook" ? provider : "email",
+      joinedAt: new Date(sbUser.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+    };
+  };
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("spectra_auth_user");
-      if (stored) {
-        setUser(JSON.parse(stored));
+    const initAuth = async () => {
+      // 1. Check guest mode session
+      const isGuest = localStorage.getItem("spectra_guest_session");
+      if (isGuest === "true") {
+        setUser({
+          id: "guest_session",
+          name: "Guest Explorer",
+          email: "guest@spectra.local",
+          avatarId: "ghost",
+          provider: "guest",
+          joinedAt: "Today",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 2. Check Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUser(formatUser(session.user));
       } else {
-        // If unauthenticated and not already on auth page, redirect to auth
-        if (pathname !== "/auth") {
+        if (pathname !== "/auth" && pathname !== "/share") {
           router.replace("/auth");
         }
       }
-    } catch (e) {
-      console.error("Auth init error:", e);
-    } finally {
       setLoading(false);
-    }
+    };
+
+    initAuth();
+
+    // Listen for auth state changes (OAuth redirects, login, logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        localStorage.removeItem("spectra_guest_session");
+        setUser(formatUser(session.user));
+      } else if (!localStorage.getItem("spectra_guest_session")) {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [pathname, router]);
 
-  const saveUser = (u: SpectraUser) => {
-    setUser(u);
-    localStorage.setItem("spectra_auth_user", JSON.stringify(u));
-    localStorage.setItem("spectra_user_name", u.name);
-    window.dispatchEvent(new Event("spectra_auth_updated"));
+  const loginWithEmail = async (email: string, password: string, name?: string, isSignUp: boolean = false) => {
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name || email.split("@")[0] },
+          },
+        });
+        if (error) return { error: error.message };
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) return { error: error.message };
+      }
+
+      router.push("/me");
+      return {};
+    } catch (err: any) {
+      return { error: err?.message || "Authentication failed" };
+    }
   };
 
-  const loginWithEmail = (email: string, name?: string) => {
-    const displayName = name?.trim() || email.split("@")[0] || "Spectra Member";
-    const newUser: SpectraUser = {
-      id: "usr_" + Math.random().toString(36).substring(2, 9),
-      name: displayName,
-      email,
-      avatarId: "ghost",
-      provider: "email",
-      joinedAt: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-    };
-    saveUser(newUser);
-    router.push("/me");
-  };
-
-  const loginWithSocial = (provider: "google" | "facebook") => {
-    const isGoogle = provider === "google";
-    const newUser: SpectraUser = {
-      id: `${provider}_` + Math.random().toString(36).substring(2, 9),
-      name: isGoogle ? "Spectra Explorer" : "Spectra Cinephile",
-      email: isGoogle ? "user@gmail.com" : "user@facebook.com",
-      avatarId: isGoogle ? "cyber" : "cinema",
+  const loginWithSocial = async (provider: "google" | "facebook") => {
+    await supabase.auth.signInWithOAuth({
       provider,
-      joinedAt: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-    };
-    saveUser(newUser);
-    router.push("/me");
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
   };
 
   const continueAsGuest = () => {
-    const guestUser: SpectraUser = {
-      id: "guest_" + Math.random().toString(36).substring(2, 9),
+    localStorage.setItem("spectra_guest_session", "true");
+    setUser({
+      id: "guest_session",
       name: "Guest Explorer",
       email: "guest@spectra.local",
       avatarId: "ghost",
       provider: "guest",
-      joinedAt: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-    };
-    saveUser(guestUser);
+      joinedAt: "Today",
+    });
     router.push("/");
   };
 
-  const logout = () => {
+  const logout = async () => {
+    localStorage.removeItem("spectra_guest_session");
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem("spectra_auth_user");
-    localStorage.removeItem("spectra_user_name");
-    window.dispatchEvent(new Event("spectra_auth_updated"));
     router.push("/auth");
   };
 
-  const updateUser = (updated: Partial<SpectraUser>) => {
+  const updateUser = async (updated: Partial<SpectraUser>) => {
     if (!user) return;
-    const next = { ...user, ...updated };
-    saveUser(next);
+    setUser((prev) => (prev ? { ...prev, ...updated } : null));
+
+    if (user.provider !== "guest") {
+      await supabase.auth.updateUser({
+        data: {
+          full_name: updated.name || user.name,
+          avatarId: updated.avatarId || user.avatarId,
+        },
+      });
+    }
   };
 
   return (
