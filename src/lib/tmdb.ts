@@ -88,15 +88,32 @@ export const tmdb = {
     return tmdb.getTVShows("top_rated", page);
   },
 
-  discoverMedia: async (type: "movie" | "tv", genreId?: string | number, page = 1): Promise<MediaItem[]> => {
-    const params: Record<string, string> = { page: String(page), sort_by: "popularity.desc" };
+  // Anime helper method
+  getAnime: async (page = 1): Promise<MediaItem[]> => {
+    const data = await fetchTMDB("/discover/tv", {
+      page: String(page),
+      with_genres: "16",
+      with_original_language: "ja",
+      sort_by: "popularity.desc",
+    });
+    return (data?.results || []).map((item: any) => ({ ...item, media_type: "tv" }));
+  },
+
+  discoverMedia: async (
+    type: "movie" | "tv",
+    genreId?: string | number,
+    sortBy: string = "popularity.desc",
+    page = 1
+  ): Promise<MediaItem[]> => {
+    const params: Record<string, string> = { page: String(page), sort_by: sortBy };
     if (genreId) params.with_genres = String(genreId);
+    if (genreId === 16) params.with_original_language = "ja";
     const data = await fetchTMDB(`/discover/${type}`, params);
     return (data?.results || []).map((item: any) => ({ ...item, media_type: type }));
   },
 
   discover: async (type: "movie" | "tv", genreId?: string | number, page = 1): Promise<MediaItem[]> => {
-    return tmdb.discoverMedia(type, genreId, page);
+    return tmdb.discoverMedia(type, genreId, "popularity.desc", page);
   },
 
   getDetails: async (type: "movie" | "tv", id: string | number) => {
