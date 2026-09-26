@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Sparkles, Server, RefreshCw, ExternalLink, ShieldCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Server, RefreshCw, ShieldCheck } from "lucide-react";
 import { GlassVideoPlayer } from "@/components/GlassVideoPlayer";
 
 interface AnimePlayerProps {
@@ -24,85 +24,57 @@ export const AnimePlayer = ({
   backdrop,
   onNextEpisode,
 }: AnimePlayerProps) => {
-  const [activeServer, setActiveServer] = useState<string>("frosted-glass");
+  const [activeServer, setActiveServer] = useState<string>("vidlink");
   const [subOrDub, setSubOrDub] = useState<"sub" | "dub">("sub");
-  const [key, setKey] = useState<number>(0);
+  const [streamSrc, setStreamSrc] = useState<string>("");
 
   const SERVERS = [
-    {
-      id: "frosted-glass",
-      name: "Frosted Glass",
-      badge: "Native UI",
-      isCustom: true,
-    },
-    {
-      id: "vidsrc-icu",
-      name: "VidSrc ICU",
-      badge: "Fast",
-      getUrl: () => `https://vidsrc.icu/embed/tv/${tmdbId}/${season}/${episode}`,
-    },
-    {
-      id: "vidlink",
-      name: "VidLink",
-      badge: "Multi-Audio",
-      getUrl: () =>
-        `https://vidlink.pro/tv/${tmdbId}/${season}/${episode}?primaryColor=ffffff&secondaryColor=101015`,
-    },
-    {
-      id: "vidsrc-cc",
-      name: "VidSrc CC",
-      badge: "HD",
-      getUrl: () => `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${season}/${episode}`,
-    },
-    {
-      id: "multiembed",
-      name: "MultiEmbed",
-      badge: "Auto-Mirror",
-      getUrl: () =>
-        `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}`,
-    },
-    {
-      id: "autoembed",
-      name: "AutoEmbed",
-      badge: "Clean",
-      getUrl: () =>
-        `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${episode}`,
-    },
+    { id: "vidlink", name: "VidLink", badge: "Multi-Audio" },
+    { id: "vidsrc", name: "VidSrc", badge: "HD" },
+    { id: "2embed", name: "2Embed", badge: "Fast" },
+    { id: "autoembed", name: "AutoEmbed", badge: "Direct" },
   ];
 
-  const current = SERVERS.find((s) => s.id === activeServer) || SERVERS[0];
-  const streamUrl = current.getUrl ? current.getUrl() : "";
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolveStream = async () => {
+      try {
+        const res = await fetch(
+          `/api/stream?id=${tmdbId}&type=tv&season=${season}&episode=${episode}&server=${activeServer}&audio=${subOrDub}`
+        );
+        const data = await res.json();
+        if (isMounted && data.streamUrl) {
+          setStreamSrc(data.streamUrl);
+        }
+      } catch (err) {
+        console.error("Anime stream resolution error:", err);
+      }
+    };
+
+    resolveStream();
+    return () => {
+      isMounted = false;
+    };
+  }, [tmdbId, season, episode, activeServer, subOrDub]);
 
   return (
     <div className="space-y-3">
-      {/* 1. Active Viewport: Frosted Glass Player vs External Mirror */}
-      {activeServer === "frosted-glass" ? (
-        <GlassVideoPlayer
-          src="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
-          title={`${animeTitle} • S${season} Ep ${episode}`}
-          tmdbId={tmdbId}
-          type="tv"
-          season={season}
-          episode={episode}
-          poster={poster}
-          backdrop={backdrop}
-          onNextEpisode={onNextEpisode}
-        />
-      ) : (
-        <div className="relative aspect-video w-full rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl">
-          <iframe
-            key={`${activeServer}-${tmdbId}-${season}-${episode}-${subOrDub}-${key}`}
-            src={streamUrl}
-            title="Spectra Anime Stream Engine"
-            allowFullScreen
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="origin"
-            className="w-full h-full border-0"
-          />
-        </div>
-      )}
+      {/* 1. Universal Spectra Frosted Glass Player Shell */}
+      <GlassVideoPlayer
+        key={`${activeServer}-${subOrDub}-${tmdbId}-${season}-${episode}`}
+        src={streamSrc}
+        title={`${animeTitle} • S${season} Ep ${episode} (${subOrDub.toUpperCase()})`}
+        tmdbId={tmdbId}
+        type="tv"
+        season={season}
+        episode={episode}
+        poster={poster}
+        backdrop={backdrop}
+        onNextEpisode={onNextEpisode}
+      />
 
-      {/* 2. Server & Audio Selector */}
+      {/* 2. Server & SUB/DUB Bar */}
       <div className="p-3 rounded-2xl border border-white/10 bg-[#0e0e14]/80 backdrop-blur-xl space-y-2">
         <div className="flex items-center justify-between text-xs">
           {/* Sub / Dub Mode */}
@@ -129,28 +101,14 @@ export const AnimePlayer = ({
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setKey((k) => k + 1)}
-              className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition px-2 py-0.5 rounded-lg bg-white/5 border border-white/10"
-              title="Reload Frame"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Reload</span>
-            </button>
-            {streamUrl && (
-              <a
-                href={streamUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition px-2 py-0.5 rounded-lg bg-white/5 border border-white/10"
-                title="Popout"
-              >
-                <ExternalLink className="w-3 h-3" />
-                <span>Popout</span>
-              </a>
-            )}
-          </div>
+          <button
+            onClick={() => setStreamSrc((prev) => `${prev}?t=${Date.now()}`)}
+            className="flex items-center gap-1 text-[11px] text-zinc-400 hover:text-white transition px-2 py-0.5 rounded-lg bg-white/5 border border-white/10"
+            title="Reload Stream"
+          >
+            <RefreshCw className="w-3 h-3" />
+            <span>Reload Stream</span>
+          </button>
         </div>
 
         {/* Server Buttons */}
@@ -161,17 +119,14 @@ export const AnimePlayer = ({
             return (
               <button
                 key={server.id}
-                onClick={() => {
-                  setActiveServer(server.id);
-                  setKey((k) => k + 1);
-                }}
+                onClick={() => setActiveServer(server.id)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition border ${
                   isSelected
                     ? "bg-white text-black border-white shadow-glow font-bold"
                     : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                {server.isCustom && <Sparkles className="w-3 h-3" />}
+                <Server className="w-3 h-3" />
                 <span>{server.name}</span>
                 <span
                   className={`text-[9px] px-1 py-0.2 rounded ${
@@ -187,11 +142,7 @@ export const AnimePlayer = ({
 
         <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 pt-0.5">
           <ShieldCheck className="w-3 h-3 text-emerald-400" />
-          <span>
-            {activeServer === "frosted-glass"
-              ? "Spectra Frosted Glass UI active with auto-resume tracking."
-              : "External mirror stream active."}
-          </span>
+          <span>Frosted Glass Engine active. Servers feed raw streams directly.</span>
         </div>
       </div>
     </div>
