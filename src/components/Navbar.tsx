@@ -30,18 +30,28 @@ export const Navbar = () => {
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const activePillRef = useRef<HTMLAnchorElement | null>(null);
 
-  // Exclude category sub-bar on utility/hub pages: downloads, me, AND explore
   const isUtilityPage = pathname === "/downloads" || pathname === "/me" || pathname === "/explore";
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 25);
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Auto-scroll active pill into view when tab changes via swipe
+  useEffect(() => {
+    if (activePillRef.current) {
+      activePillRef.current.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -102,14 +112,8 @@ export const Navbar = () => {
     if (pathname === "/downloads") return "DOWNLOADS";
     if (pathname === "/me") return "PROFILE";
     if (pathname === "/explore") return "EXPLORE";
-    return (
-      CATEGORIES.find((cat) => cat.href === pathname)?.label.toUpperCase() || "HOME"
-    );
+    return CATEGORIES.find((cat) => cat.href === pathname)?.label.toUpperCase() || "HOME";
   };
-
-  const currentCategory =
-    CATEGORIES.find((cat) => cat.href === pathname) || CATEGORIES[0];
-  const Icon = currentCategory.icon;
 
   return (
     <header
@@ -121,7 +125,7 @@ export const Navbar = () => {
     >
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         <div className="grid grid-cols-3 items-center h-10">
-          {/* 1. Left: Brand */}
+          {/* Left: Brand */}
           <div className="flex items-center gap-1.5 justify-start">
             <Link
               href="/"
@@ -132,7 +136,7 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* 2. Center: Status Pill */}
+          {/* Center: Status Indicator */}
           <div className="flex justify-center">
             {(isScrolled || isUtilityPage) && (
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/25 backdrop-blur-xl shadow-[0_0_16px_rgba(255,255,255,0.15)] animate-in fade-in duration-300">
@@ -144,7 +148,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* 3. Right: Search Trigger */}
+          {/* Right: Search */}
           <div className="flex justify-end relative" ref={containerRef}>
             <div
               onClick={handleSearchAction}
@@ -153,7 +157,6 @@ export const Navbar = () => {
                   ? "bg-white text-black border-white shadow-glow"
                   : "bg-white/[0.07] hover:bg-white/[0.12] border-white/15 text-zinc-300"
               }`}
-              title="Tap 1x: Mini Search | Tap 2x: Fullscreen Search"
             >
               <Search className={`w-3.5 h-3.5 ${smallGlassOpen ? "text-black" : "text-zinc-400"}`} />
               <span className={`text-[10px] sm:text-xs font-medium ${smallGlassOpen ? "text-black font-bold" : "text-zinc-400"}`}>
@@ -244,7 +247,7 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Categories ONLY on browse/catalog pages */}
+        {/* Sub-bar Category Pills */}
         {!isScrolled && !isUtilityPage && (
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 animate-in fade-in slide-in-from-top-2 duration-300">
             {CATEGORIES.map((cat) => {
@@ -255,9 +258,10 @@ export const Navbar = () => {
                 <Link
                   key={cat.href}
                   href={cat.href}
-                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide whitespace-nowrap transition-all duration-200 border ${
+                  ref={isActive ? activePillRef : null}
+                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide whitespace-nowrap transition-all duration-300 border ${
                     isActive
-                      ? "bg-white text-black border-white shadow-[0_0_18px_rgba(255,255,255,0.45)]"
+                      ? "bg-white text-black border-white shadow-[0_0_18px_rgba(255,255,255,0.45)] scale-105"
                       : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/15 hover:text-white"
                   }`}
                 >

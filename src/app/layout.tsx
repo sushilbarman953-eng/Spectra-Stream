@@ -6,6 +6,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { SearchProvider } from "@/context/SearchContext";
 import { SearchModal } from "@/components/SearchModal";
+import { CategorySwipeProvider } from "@/components/CategorySwipeProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -38,15 +39,17 @@ export default function RootLayout({
       <head>
         <link rel="apple-touch-icon" href="/icons/icon.svg" />
       </head>
-      <body className={`${inter.className} bg-[#08080c] text-white min-h-screen antialiased select-none`}>
+      <body className={`${inter.className} bg-[#08080c] text-white min-h-screen antialiased select-none overflow-x-hidden`}>
         <ServiceWorkerRegister />
         <SearchProvider>
-          <Navbar />
-          <main className="pt-20">
-            {children}
-          </main>
-          <SearchModal />
-          <MobileBottomNav />
+          <CategorySwipeProvider>
+            <Navbar />
+            <main className="pt-20">
+              {children}
+            </main>
+            <SearchModal />
+            <MobileBottomNav />
+          </CategorySwipeProvider>
         </SearchProvider>
       </body>
     </html>
