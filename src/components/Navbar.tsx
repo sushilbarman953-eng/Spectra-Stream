@@ -29,7 +29,6 @@ export const Navbar = () => {
 
   // Wheel Drag State
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0); // in category index steps
   const [previewIndex, setPreviewIndex] = useState(0);
 
   const dragStartX = useRef<number | null>(null);
@@ -44,10 +43,8 @@ export const Navbar = () => {
   const baseIndex = activeIdx === -1 ? 0 : activeIdx;
   const N = CATEGORIES.length;
 
-  // Active index displayed (either live preview during drag or committed route index)
   const currentIndex = isDragging ? previewIndex : baseIndex;
 
-  // Sync preview index when route changes
   useEffect(() => {
     if (!isDragging) {
       setPreviewIndex(baseIndex);
@@ -55,7 +52,6 @@ export const Navbar = () => {
     }
   }, [baseIndex, isDragging]);
 
-  // Construct 5 visible slots centered around current selection
   const loopOffsets = [-2, -1, 0, 1, 2];
   const visibleCategories = loopOffsets.map((offset) => {
     const rawIndex = (currentIndex + offset) % N;
@@ -68,12 +64,11 @@ export const Navbar = () => {
     };
   });
 
-  // DRAG WHEEL HANDLERS (Touch & Mouse)
+  // HIGH-SENSITIVITY DRAG HANDLERS (18px threshold per step)
   const handleDragStart = (clientX: number) => {
     if (isUtilityPage) return;
     setIsDragging(true);
     dragStartX.current = clientX;
-    setDragOffset(0);
     lastTickIndex.current = baseIndex;
   };
 
@@ -81,14 +76,14 @@ export const Navbar = () => {
     if (!isDragging || dragStartX.current === null) return;
     const deltaX = clientX - dragStartX.current;
 
-    // ~45px swipe equates to one category step shift
-    const stepDelta = -Math.round(deltaX / 45);
+    // Ultra-responsive sensitivity: 18px equals 1 category step shift
+    const stepDelta = -Math.round(deltaX / 18);
     const newIdx = (baseIndex + stepDelta) % N;
     const normalized = newIdx < 0 ? newIdx + N : newIdx;
 
     if (normalized !== lastTickIndex.current) {
       soundFx.playTick();
-      if (navigator.vibrate) navigator.vibrate(8);
+      if (navigator.vibrate) navigator.vibrate(6);
       lastTickIndex.current = normalized;
     }
 
@@ -100,7 +95,6 @@ export const Navbar = () => {
     setIsDragging(false);
     dragStartX.current = null;
 
-    // Commit only when finger lifts
     const targetCategory = CATEGORIES[previewIndex];
     if (targetCategory && targetCategory.href !== pathname) {
       soundFx.playGlassTap();
@@ -108,7 +102,6 @@ export const Navbar = () => {
     }
   };
 
-  // Close search popover on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -119,7 +112,6 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Quick live query
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -189,9 +181,9 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* 2. Middle: Rotary Lens Wheel (Draggable with zero-load audio tick feedback) */}
+          {/* 2. Middle: High-Sensitivity Rotary Wheel */}
           <div
-            className="flex-1 max-w-[230px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing"
+            className="flex-1 max-w-[240px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing touch-pan-x"
             onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
             onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
             onTouchEnd={handleDragEnd}
@@ -211,11 +203,9 @@ export const Navbar = () => {
               </div>
             ) : (
               <div className="relative flex items-center justify-center">
-                {/* Edge fade masks */}
                 <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#08080c] to-transparent z-20 pointer-events-none" />
                 <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#08080c] to-transparent z-20 pointer-events-none" />
 
-                {/* Rotary Pill Strip */}
                 <div className="flex items-center justify-center gap-1.5 sm:gap-2 overflow-visible py-0.5">
                   {visibleCategories.map((item, index) => {
                     const CatIcon = item.icon;
@@ -230,7 +220,7 @@ export const Navbar = () => {
                             router.push(item.href);
                           }
                         }}
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-[11px] sm:text-xs whitespace-nowrap transition-all duration-200 select-none ${
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-[11px] sm:text-xs whitespace-nowrap transition-all duration-150 select-none ${
                           isCenter
                             ? "bg-white text-black border border-white shadow-[0_0_24px_rgba(255,255,255,0.8),inset_0_1px_1px_#ffffff] scale-100 z-10 font-black cursor-default"
                             : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.08] hover:border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.03)] scale-90 opacity-60 hover:opacity-90"
@@ -267,7 +257,7 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* Mini Search Popover */}
+            {/* Mini Popover */}
             {smallGlassOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
