@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sparkles, Play, Star, Film } from "lucide-react";
+import { Play, Star, Film, Flame, Shield, Compass, Ghost, Laugh, Crosshair } from "lucide-react";
 import { tmdb, MediaItem, IMAGE_BASE, BACKUP_HINDI_MOVIES } from "@/lib/tmdb";
 import { soundFx } from "@/lib/soundFx";
 
@@ -11,20 +11,29 @@ export default function MoviesPage() {
   const [trending, setTrending] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
   const [action, setAction] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
   const [scifi, setScifi] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
+  const [horror, setHorror] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
+  const [comedy, setComedy] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
+  const [crime, setCrime] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
 
   useEffect(() => {
     let isMounted = true;
     const loadMovies = async () => {
       try {
-        const [trendData, actionData, scifiData] = await Promise.all([
+        const [trendData, actData, sciData, horData, comData, criData] = await Promise.all([
           tmdb.getTrending("movie"),
           tmdb.discoverMedia("movie", 28),
           tmdb.discoverMedia("movie", 878),
+          tmdb.discoverMedia("movie", 27),
+          tmdb.discoverMedia("movie", 35),
+          tmdb.discoverMedia("movie", 80),
         ]);
         if (isMounted) {
           if (trendData?.length) setTrending(trendData);
-          if (actionData?.length) setAction(actionData);
-          if (scifiData?.length) setScifi(scifiData);
+          if (actData?.length) setAction(actData);
+          if (sciData?.length) setScifi(sciData);
+          if (horData?.length) setHorror(horData);
+          if (comData?.length) setComedy(comData);
+          if (criData?.length) setCrime(criData);
         }
       } catch (e) {
         console.error("Movies catalog error:", e);
@@ -36,106 +45,77 @@ export default function MoviesPage() {
 
   const heroItem = trending[0] || BACKUP_HINDI_MOVIES[0];
 
-  const renderShelf = (title: string, items: MediaItem[]) => (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between px-1">
-        <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-          <Film className="w-3.5 h-3.5 text-white" />
-          <span>{title}</span>
-        </h3>
-        <span className="text-[10px] text-zinc-500 font-mono">{items.length} Films</span>
-      </div>
+  const renderShelf = (title: string, icon: any, items: MediaItem[]) => {
+    const Icon = icon;
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+            <Icon className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{title}</span>
+          </h3>
+          <span className="text-[10px] text-zinc-500 font-mono">{items.length} Films</span>
+        </div>
 
-      <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-1">
-        {items.map((item, idx) => {
-          const poster = item.poster_path ? `${IMAGE_BASE}/w185${item.poster_path}` : null;
-          return (
-            <Link
-              key={`movies-${item.id}-${idx}`}
-              href={`/details/${item.id}?type=movie`}
-              onClick={() => soundFx.playCinematicPop()}
-              className="flex-none w-28 sm:w-32 group"
-            >
-              <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md">
-                {poster ? (
-                  <Image
-                    src={poster}
-                    alt={item.title || "Movie"}
-                    fill
-                    unoptimized
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-zinc-600">
-                    <Film className="w-5 h-5" />
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-1">
+          {items.map((item, idx) => {
+            const poster = item.poster_path ? `${IMAGE_BASE}/w185${item.poster_path}` : null;
+            return (
+              <Link
+                key={`movie-shelf-${item.id}-${idx}`}
+                href={`/details/${item.id}?type=movie`}
+                onClick={() => soundFx.playCinematicPop()}
+                className="flex-none w-28 sm:w-32 group"
+              >
+                <div className="relative aspect-[2/3] w-full rounded-xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md">
+                  {poster ? (
+                    <Image src={poster} alt={item.title || "Movie"} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-zinc-600"><Film className="w-5 h-5" /></div>
+                  )}
+                  <div className="absolute top-1.5 left-1.5 bg-emerald-400 text-black px-1 py-0.5 rounded text-[7px] font-black uppercase shadow-glow">
+                    Hindi
                   </div>
-                )}
-                <div className="absolute top-1.5 left-1.5 bg-emerald-400 text-black px-1 py-0.5 rounded text-[7px] font-black uppercase shadow-glow">
-                  Hindi
+                  {item.vote_average ? (
+                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                      <Star className="w-2 h-2 fill-white text-white" />
+                      {item.vote_average.toFixed(1)}
+                    </div>
+                  ) : null}
                 </div>
-                {item.vote_average ? (
-                  <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
-                    <Star className="w-2 h-2 fill-white text-white" />
-                    {item.vote_average.toFixed(1)}
-                  </div>
-                ) : null}
-              </div>
-              <h4 className="text-[11px] font-bold text-white truncate mt-1">{item.title}</h4>
-              <p className="text-[9px] text-zinc-500 font-mono">{item.release_date?.slice(0, 4) || "2024"}</p>
-            </Link>
-          );
-        })}
+                <h4 className="text-[11px] font-bold text-white truncate mt-1">{item.title}</h4>
+                <p className="text-[9px] text-zinc-500 font-mono">{item.release_date?.slice(0, 4) || "2024"}</p>
+              </Link>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-5">
-      {/* MOVIES TOP SPOTLIGHT CAROUSEL */}
+      {/* 1. MOVIES SPOTLIGHT CAROUSEL */}
       {heroItem && (
         <div className="relative aspect-[16/9] sm:aspect-[21/9] w-full rounded-2xl overflow-hidden border border-white/10 bg-black shadow-xl">
           {heroItem.backdrop_path || heroItem.poster_path ? (
-            <Image
-              src={`${IMAGE_BASE}/w780${heroItem.backdrop_path || heroItem.poster_path}`}
-              alt={heroItem.title || "Movie"}
-              fill
-              priority
-              unoptimized
-              className="object-cover object-top"
-            />
+            <Image src={`${IMAGE_BASE}/w780${heroItem.backdrop_path || heroItem.poster_path}`} alt={heroItem.title || "Movie"} fill priority unoptimized className="object-cover object-top" />
           ) : (
             <div className="w-full h-full bg-zinc-900" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-black/35 to-transparent" />
-
           <div className="absolute bottom-3 left-3 right-3 sm:bottom-5 sm:left-5 max-w-lg space-y-1.5 z-10">
             <div className="flex items-center gap-1.5">
-              <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-black font-black text-[9px] uppercase tracking-wider">
-                Blockbuster Film
-              </span>
-              <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-white font-mono text-[9px] border border-white/20">
-                Hindi Audio
-              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-400 text-black font-black text-[9px] uppercase tracking-wider">Cinema Spotlight</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-white/10 text-white font-mono text-[9px] border border-white/20">Hindi Dub</span>
             </div>
-            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight drop-shadow truncate">
-              {heroItem.title}
-            </h1>
-
+            <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight drop-shadow truncate">{heroItem.title}</h1>
             <div className="flex items-center gap-2 pt-1">
-              <Link
-                href={`/watch/${heroItem.id}?type=movie`}
-                onClick={() => soundFx.playCinematicSwell()}
-                className="px-3.5 py-1.5 rounded-xl bg-white text-black font-black text-xs shadow-glow hover:bg-zinc-200 active:scale-95 transition flex items-center gap-1.5"
-              >
+              <Link href={`/watch/${heroItem.id}?type=movie`} onClick={() => soundFx.playCinematicSwell()} className="px-3.5 py-1.5 rounded-xl bg-white text-black font-black text-xs shadow-glow hover:bg-zinc-200 active:scale-95 transition flex items-center gap-1.5">
                 <Play className="w-3.5 h-3.5 fill-black text-black" />
                 <span>Stream</span>
               </Link>
-
-              <Link
-                href={`/details/${heroItem.id}?type=movie`}
-                onClick={() => soundFx.playCinematicPop()}
-                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs backdrop-blur-xl transition"
-              >
+              <Link href={`/details/${heroItem.id}?type=movie`} onClick={() => soundFx.playCinematicPop()} className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs backdrop-blur-xl transition">
                 <span>Info</span>
               </Link>
             </div>
@@ -143,9 +123,23 @@ export default function MoviesPage() {
         </div>
       )}
 
-      {renderShelf("Trending Movies", trending)}
-      {renderShelf("Action & Adventure", action)}
-      {renderShelf("Sci-Fi & Fantasy", scifi)}
+      {/* 2. TRENDING */}
+      {renderShelf("Trending Movies", Flame, trending)}
+
+      {/* 3. ACTION & COMBAT */}
+      {renderShelf("Action & High Octane", Shield, action)}
+
+      {/* 4. SCI-FI & FUTURE */}
+      {renderShelf("Sci-Fi & Outer Realms", Compass, scifi)}
+
+      {/* 5. HORROR & CHILLS */}
+      {renderShelf("Horror & Dark Paranormal", Ghost, horror)}
+
+      {/* 6. COMEDY & LAUGHS */}
+      {renderShelf("Comedy & Feel-Good", Laugh, comedy)}
+
+      {/* 7. CRIME & THRILLERS */}
+      {renderShelf("Crime Mystery & Heists", Crosshair, crime)}
     </div>
   );
 }
