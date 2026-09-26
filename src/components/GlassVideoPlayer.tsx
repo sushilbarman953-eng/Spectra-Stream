@@ -23,6 +23,8 @@ import {
   Check,
   Sun,
   Scaling,
+  ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 import { playbackHistory } from "@/lib/playbackHistory";
 
@@ -316,7 +318,6 @@ export const GlassVideoPlayer = ({
       mode: "undecided",
     };
 
-    // Double tap check
     const now = Date.now();
     if (now - lastTapRef.current.time < 300) {
       if (isLeft) {
@@ -339,7 +340,6 @@ export const GlassVideoPlayer = ({
     const deltaX = touch.clientX - touchStartRef.current.x;
     const deltaY = touchStartRef.current.y - touch.clientY;
 
-    // Detect gesture orientation lock (horizontal seek vs vertical adjustment)
     if (touchStartRef.current.mode === "undecided") {
       if (Math.abs(deltaX) > 12) {
         touchStartRef.current.mode = "horizontal";
@@ -348,10 +348,9 @@ export const GlassVideoPlayer = ({
       }
     }
 
-    // 1. HORIZONTAL SEEK GESTURE (Left <-> Right)
+    // 1. HORIZONTAL SEEK GESTURE
     if (touchStartRef.current.mode === "horizontal") {
       if (!duration || duration <= 0) return;
-      // 1 pixel delta equals 0.35 seconds scrub
       const seekSecondsDelta = Math.round(deltaX * 0.35);
       const target = Math.max(0, Math.min(duration, touchStartRef.current.initialVideoTime + seekSecondsDelta));
       setSeekHud({
@@ -361,7 +360,7 @@ export const GlassVideoPlayer = ({
       return;
     }
 
-    // 2. VERTICAL ADJUSTMENT GESTURE (Brightness Left / Volume Right)
+    // 2. VERTICAL ADJUSTMENT GESTURE
     if (touchStartRef.current.mode === "vertical") {
       const step = (deltaY / 200) * 100;
       if (touchStartRef.current.isLeft) {
@@ -389,7 +388,6 @@ export const GlassVideoPlayer = ({
   };
 
   const handleTouchEnd = () => {
-    // If a horizontal seek was active, commit the target timestamp
     if (touchStartRef.current?.mode === "horizontal" && seekHud) {
       seek(seekHud.targetTime);
       setSeekHud(null);
@@ -452,22 +450,44 @@ export const GlassVideoPlayer = ({
         className="w-full h-full cursor-pointer transition-all duration-150"
       />
 
-      {/* HORIZONTAL SCRUB SEEK HUD (Center Screen) */}
+      {/* FROSTED GLASS HORIZONTAL SEEK HUD (CENTER SCREEN) */}
       {seekHud && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-          <div className="flex flex-col items-center gap-2 p-4 rounded-3xl bg-black/90 backdrop-blur-2xl border border-white/30 shadow-[0_0_40px_rgba(255,255,255,0.2)]">
-            <span className={`text-base font-black tracking-wide ${seekHud.delta >= 0 ? "text-emerald-400" : "text-amber-400"}`}>
-              {seekHud.delta >= 0 ? `+${seekHud.delta}s` : `${seekHud.delta}s`}
-            </span>
+          <div
+            className="flex flex-col items-center gap-2.5 px-6 py-4 rounded-3xl border border-white/25 shadow-[0_24px_50px_rgba(0,0,0,0.85),inset_0_1px_2px_rgba(255,255,255,0.4)]"
+            style={{
+              background: "rgba(12, 12, 20, 0.72)",
+              backdropFilter: "blur(32px) saturate(200%)",
+              WebkitBackdropFilter: "blur(32px) saturate(200%)",
+            }}
+          >
+            {/* Status Delta with Directional Arrow */}
+            <div className="flex items-center gap-1.5">
+              {seekHud.delta >= 0 ? (
+                <ChevronRight className="w-5 h-5 text-emerald-400 animate-pulse stroke-[3]" />
+              ) : (
+                <ChevronLeft className="w-5 h-5 text-amber-400 animate-pulse stroke-[3]" />
+              )}
+              <span
+                className={`text-lg font-black tracking-wider ${
+                  seekHud.delta >= 0 ? "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" : "text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.5)]"
+                }`}
+              >
+                {seekHud.delta >= 0 ? `+${seekHud.delta}s` : `${seekHud.delta}s`}
+              </span>
+            </div>
+
+            {/* Target Timestamp */}
             <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-white">
-              <span>{formatTime(seekHud.targetTime)}</span>
+              <span className="text-white drop-shadow-sm">{formatTime(seekHud.targetTime)}</span>
               <span className="text-zinc-500">/</span>
               <span className="text-zinc-400">{formatTime(duration)}</span>
             </div>
-            {/* Target mini progress bar */}
-            <div className="w-36 h-1.5 bg-white/20 rounded-full overflow-hidden mt-1">
+
+            {/* Glass Timeline Scrub Bar */}
+            <div className="w-44 h-1.5 bg-white/15 rounded-full overflow-hidden mt-0.5 p-[1px] border border-white/10">
               <div
-                className="h-full bg-white shadow-glow"
+                className="h-full bg-white shadow-[0_0_12px_#ffffff] rounded-full transition-all"
                 style={{ width: `${(seekHud.targetTime / (duration || 1)) * 100}%` }}
               />
             </div>
@@ -475,18 +495,25 @@ export const GlassVideoPlayer = ({
         </div>
       )}
 
-      {/* SWIPE HUD INDICATOR (BRIGHTNESS / VOLUME) */}
+      {/* FROSTED GLASS VERTICAL HUD (BRIGHTNESS / VOLUME) */}
       {hudIndicator && !seekHud && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-          <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-black/85 backdrop-blur-2xl border border-white/25 shadow-2xl">
+          <div
+            className="flex flex-col items-center gap-2 px-5 py-3.5 rounded-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_2px_rgba(255,255,255,0.4)]"
+            style={{
+              background: "rgba(12, 12, 20, 0.72)",
+              backdropFilter: "blur(32px) saturate(200%)",
+              WebkitBackdropFilter: "blur(32px) saturate(200%)",
+            }}
+          >
             {hudIndicator.type === "brightness" ? (
-              <Sun className="w-6 h-6 text-white animate-spin-slow" />
+              <Sun className="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
             ) : (
-              <Volume2 className="w-6 h-6 text-white" />
+              <Volume2 className="w-6 h-6 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
             )}
-            <div className="w-24 h-1.5 bg-white/20 rounded-full overflow-hidden">
+            <div className="w-28 h-1.5 bg-white/15 rounded-full overflow-hidden border border-white/10">
               <div
-                className="h-full bg-white shadow-glow transition-all"
+                className="h-full bg-white shadow-[0_0_10px_#ffffff] transition-all"
                 style={{
                   width: `${
                     hudIndicator.type === "brightness"
@@ -496,7 +523,7 @@ export const GlassVideoPlayer = ({
                 }}
               />
             </div>
-            <span className="text-[10px] font-bold text-white font-mono">
+            <span className="text-[10px] font-bold text-white font-mono drop-shadow-sm">
               {hudIndicator.type === "brightness" ? `${Math.round(hudIndicator.value)}%` : `${hudIndicator.value}%`}
             </span>
           </div>
@@ -505,14 +532,14 @@ export const GlassVideoPlayer = ({
 
       {/* DOUBLE TAP RIPPLE REWIND / FORWARD FEEDBACK */}
       {doubleTapFeedback === "left" && (
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 text-white font-black text-xs shadow-glow animate-out fade-out duration-500 pointer-events-none z-30">
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-2xl border border-white/30 text-white font-black text-xs shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-out fade-out duration-500 pointer-events-none z-30">
           <RotateCcw className="w-4 h-4 animate-spin" />
           <span>-10s</span>
         </div>
       )}
 
       {doubleTapFeedback === "right" && (
-        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 text-white font-black text-xs shadow-glow animate-out fade-out duration-500 pointer-events-none z-30">
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-2xl border border-white/30 text-white font-black text-xs shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-out fade-out duration-500 pointer-events-none z-30">
           <span>+10s</span>
           <RotateCw className="w-4 h-4 animate-spin" />
         </div>
