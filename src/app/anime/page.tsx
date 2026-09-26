@@ -14,6 +14,16 @@ export default function AnimePage() {
   const [filterMode, setFilterMode] = useState<"all" | "hindi">("hindi");
   const [loading, setLoading] = useState(true);
 
+  // Helper: Deduplicate anime lists by mal_id
+  const dedupeAnime = (list: AnimeItem[]): AnimeItem[] => {
+    const seen = new Set<number>();
+    return list.filter((item) => {
+      if (!item.mal_id || seen.has(item.mal_id)) return false;
+      seen.add(item.mal_id);
+      return true;
+    });
+  };
+
   useEffect(() => {
     const fetchAnime = async () => {
       try {
@@ -21,8 +31,8 @@ export default function AnimePage() {
           animeService.getTopAiring(),
           animeService.getHindiDubbedPopular(),
         ]);
-        setTopAiring(airingData);
-        setPopular(popData);
+        setTopAiring(dedupeAnime(airingData));
+        setPopular(dedupeAnime(popData));
       } catch (e) {
         console.error("Anime fetch error:", e);
       } finally {
@@ -97,17 +107,17 @@ export default function AnimePage() {
         </div>
 
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-          {topAiring.map((item) => (
+          {topAiring.map((item, idx) => (
             <Link
-              key={item.mal_id}
+              key={`airing-${item.mal_id}-${idx}`}
               href={`/details/${item.mal_id}?type=tv&source=anime`}
               onClick={() => soundFx.playCinematicPop()}
               className="flex-none w-36 sm:w-44 group"
             >
               <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-lg">
                 <Image
-                  src={item.images.jpg.large_image_url || item.images.jpg.image_url}
-                  alt={item.title}
+                  src={item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || ""}
+                  alt={item.title || "Anime"}
                   fill
                   sizes="180px"
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -148,9 +158,9 @@ export default function AnimePage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-            {displayList.map((item) => (
+            {displayList.map((item, idx) => (
               <Link
-                key={item.mal_id}
+                key={`anime-grid-${item.mal_id}-${idx}`}
                 href={`/details/${item.mal_id}?type=tv&source=anime`}
                 onClick={() => soundFx.playCinematicPop()}
                 className="group relative"
@@ -161,8 +171,8 @@ export default function AnimePage() {
                 >
                   <div className="relative aspect-[2/3] w-full bg-zinc-950">
                     <Image
-                      src={item.images.jpg.large_image_url || item.images.jpg.image_url}
-                      alt={item.title}
+                      src={item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || ""}
+                      alt={item.title || "Anime"}
                       fill
                       sizes="180px"
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
