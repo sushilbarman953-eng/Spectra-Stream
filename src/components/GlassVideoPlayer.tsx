@@ -81,6 +81,7 @@ export const GlassVideoPlayer = ({
   const [brightness, setBrightness] = useState<number>(100);
   const [volumeLevel, setVolumeLevel] = useState<number>(100);
   const [hudIndicator, setHudIndicator] = useState<{ type: "brightness" | "volume"; value: number } | null>(null);
+  const [seekHud, setSeekHud] = useState<{ targetTime: number; delta: number } | null>(null);
   const [doubleTapFeedback, setDoubleTapFeedback] = useState<"left" | "right" | null>(null);
   const [objectFit, setObjectFit] = useState<"contain" | "cover">("contain");
 
@@ -96,14 +97,20 @@ export const GlassVideoPlayer = ({
 
   const lastSavedTime = useRef<number>(0);
   const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
-  const touchStartRef = useRef<{ x: number; y: number; isLeft: boolean } | null>(null);
+  const touchStartRef = useRef<{
+    x: number;
+    y: number;
+    isLeft: boolean;
+    initialVideoTime: number;
+    mode: "undecided" | "horizontal" | "vertical";
+  } | null>(null);
   const hudTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const triggerUserActivity = () => {
     setShowControls(true);
     if (controlsTimeout) clearTimeout(controlsTimeout);
     const timeout = setTimeout(() => {
-      if (isPlaying && !showSettings) setShowControls(false);
+      if (isPlaying && !showSettings && !seekHud) setShowControls(false);
     }, 3500);
     setControlsTimeout(timeout);
   };
@@ -292,7 +299,7 @@ export const GlassVideoPlayer = ({
     triggerUserActivity();
   };
 
-  // TOUCH GESTURE HANDLING
+  // TOUCH GESTURE HANDLING: HORIZONTAL SEEKING & VERTICAL HUD
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     triggerUserActivity();
     if (e.touches.length !== 1) return;
@@ -301,7 +308,13 @@ export const GlassVideoPlayer = ({
     const x = touch.clientX - rect.left;
     const isLeft = x < rect.width / 2;
 
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY, isLeft };
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      isLeft,
+      initialVideoTime: videoRef.current ? videoRef.current.currentTime : 0,
+      mode: "undecided",
+    };
 
     // Double tap check
     const now = Date.now();
@@ -323,21 +336,43 @@ export const GlassVideoPlayer = ({
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (!touchStartRef.current || e.touches.length !== 1) return;
     const touch = e.touches[0];
+    const deltaX = touch.clientX - touchStartRef.current.x;
     const deltaY = touchStartRef.current.y - touch.clientY;
 
-    if (Math.abs(deltaY) > 8) {
+    // Detect gesture orientation lock (horizontal seek vs vertical adjustment)
+    if (touchStartRef.current.mode === "undecided") {
+      if (Math.abs(deltaX) > 12) {
+        touchStartRef.current.mode = "horizontal";
+      } else if (Math.abs(deltaY) > 12) {
+        touchStartRef.current.mode = "vertical";
+      }
+    }
+
+    // 1. HORIZONTAL SEEK GESTURE (Left <-> Right)
+    if (touchStartRef.current.mode === "horizontal") {
+      if (!duration || duration <= 0) return;
+      // 1 pixel delta equals 0.35 seconds scrub
+      const seekSecondsDelta = Math.round(deltaX * 0.35);
+      const target = Math.max(0, Math.min(duration, touchStartRef.current.initialVideoTime + seekSecondsDelta));
+      setSeekHud({
+        targetTime: target,
+        delta: seekSecondsDelta,
+      });
+      return;
+    }
+
+    // 2. VERTICAL ADJUSTMENT GESTURE (Brightness Left / Volume Right)
+    if (touchStartRef.current.mode === "vertical") {
       const step = (deltaY / 200) * 100;
       if (touchStartRef.current.isLeft) {
-        // Brightness adjust
         setBrightness((prev) => {
-          const updated = Math.min(160, Math.max(30, Math.round(prev + step * 0.1)));
+          const updated = Math.min(160, Math.max(30, Math.round(prev + step * 0.08)));
           setHudIndicator({ type: "brightness", value: updated });
           return updated;
         });
       } else {
-        // Volume adjust
         setVolumeLevel((prev) => {
-          const updated = Math.min(100, Math.max(0, Math.round(prev + step * 0.1)));
+          const updated = Math.min(100, Math.max(0, Math.round(prev + step * 0.08)));
           if (videoRef.current) {
             videoRef.current.volume = updated / 100;
             videoRef.current.muted = updated === 0;
@@ -354,6 +389,11 @@ export const GlassVideoPlayer = ({
   };
 
   const handleTouchEnd = () => {
+    // If a horizontal seek was active, commit the target timestamp
+    if (touchStartRef.current?.mode === "horizontal" && seekHud) {
+      seek(seekHud.targetTime);
+      setSeekHud(null);
+    }
     touchStartRef.current = null;
   };
 
@@ -412,8 +452,31 @@ export const GlassVideoPlayer = ({
         className="w-full h-full cursor-pointer transition-all duration-150"
       />
 
+      {/* HORIZONTAL SCRUB SEEK HUD (Center Screen) */}
+      {seekHud && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex flex-col items-center gap-2 p-4 rounded-3xl bg-black/90 backdrop-blur-2xl border border-white/30 shadow-[0_0_40px_rgba(255,255,255,0.2)]">
+            <span className={`text-base font-black tracking-wide ${seekHud.delta >= 0 ? "text-emerald-400" : "text-amber-400"}`}>
+              {seekHud.delta >= 0 ? `+${seekHud.delta}s` : `${seekHud.delta}s`}
+            </span>
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-white">
+              <span>{formatTime(seekHud.targetTime)}</span>
+              <span className="text-zinc-500">/</span>
+              <span className="text-zinc-400">{formatTime(duration)}</span>
+            </div>
+            {/* Target mini progress bar */}
+            <div className="w-36 h-1.5 bg-white/20 rounded-full overflow-hidden mt-1">
+              <div
+                className="h-full bg-white shadow-glow"
+                style={{ width: `${(seekHud.targetTime / (duration || 1)) * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SWIPE HUD INDICATOR (BRIGHTNESS / VOLUME) */}
-      {hudIndicator && (
+      {hudIndicator && !seekHud && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
           <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-black/85 backdrop-blur-2xl border border-white/25 shadow-2xl">
             {hudIndicator.type === "brightness" ? (
@@ -487,7 +550,7 @@ export const GlassVideoPlayer = ({
       )}
 
       {/* Center Play Button */}
-      {!loading && !hasError && (
+      {!loading && !hasError && !seekHud && (
         <div
           onClick={togglePlay}
           className={`absolute inset-0 flex items-center justify-center pointer-events-auto cursor-pointer transition-all duration-300 ${
@@ -508,7 +571,7 @@ export const GlassVideoPlayer = ({
       {!hasError && (
         <div
           className={`absolute inset-0 flex flex-col justify-between p-3.5 sm:p-5 bg-gradient-to-t from-black/90 via-transparent to-black/80 transition-opacity duration-300 pointer-events-none z-20 ${
-            showControls ? "opacity-100" : "opacity-0"
+            showControls && !seekHud ? "opacity-100" : "opacity-0"
           }`}
         >
           {/* Top Info */}
@@ -604,7 +667,6 @@ export const GlassVideoPlayer = ({
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3.5 relative">
-                {/* Fit / Crop Aspect Ratio Toggle */}
                 <button
                   onClick={() => setObjectFit(objectFit === "contain" ? "cover" : "contain")}
                   className={`p-1 transition ${objectFit === "cover" ? "text-white" : "text-zinc-400 hover:text-white"}`}
