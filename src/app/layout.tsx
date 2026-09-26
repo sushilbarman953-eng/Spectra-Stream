@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
-import { CategoryBar } from "@/components/CategoryBar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { SearchProvider } from "@/context/SearchContext";
@@ -43,8 +42,7 @@ export default function RootLayout({
         <ServiceWorkerRegister />
         <SearchProvider>
           <Navbar />
-          <main className="pt-16">
-            <CategoryBar />
+          <main className="pt-24">
             {children}
           </main>
           <SearchModal />

@@ -1,277 +1,227 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   User,
   Bookmark,
   History,
-  Heart,
-  MessageSquare,
-  Share2,
-  Coffee,
-  Settings,
-  LogOut,
-  LogIn,
-  ChevronRight,
-  ShieldCheck,
+  Download,
   Trash2,
+  Play,
+  Film,
+  Star,
   Sparkles,
 } from "lucide-react";
+import { watchlistManager, WatchlistItem } from "@/lib/watchlistManager";
+import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
+import { IMAGE_BASE } from "@/lib/tmdb";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { GlassButton } from "@/components/ui/GlassButton";
 
 export default function MePage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [historyCount, setHistoryCount] = useState(0);
-  const [listCount, setListCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<"watchlist" | "history">("watchlist");
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
+  const [history, setHistory] = useState<WatchProgressItem[]>([]);
 
   useEffect(() => {
-    try {
-      const history = localStorage.getItem("spectra_watch_progress");
-      if (history) {
-        setHistoryCount(Object.keys(JSON.parse(history)).length);
-      }
-      const watchlist = localStorage.getItem("spectra_watchlist");
-      if (watchlist) {
-        setListCount(JSON.parse(watchlist).length);
-      }
-    } catch {
-      // Storage access
-    }
+    const loadData = () => {
+      setWatchlist(watchlistManager.getAll());
+      setHistory(playbackHistory.getAll());
+    };
+    loadData();
+
+    window.addEventListener("spectra_watchlist_updated", loadData);
+    window.addEventListener("spectra_playback_updated", loadData);
+
+    return () => {
+      window.removeEventListener("spectra_watchlist_updated", loadData);
+      window.removeEventListener("spectra_playback_updated", loadData);
+    };
   }, []);
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Spectra Cinema",
-          text: "Check out Spectra for free movies, anime, and live TV in monochrome glass!",
-          url: window.location.origin,
-        });
-      } catch {
-        // User cancel
-      }
-    } else {
-      navigator.clipboard.writeText(window.location.origin);
-      alert("Spectra link copied to clipboard!");
-    }
-  };
-
-  const clearAppData = () => {
-    if (confirm("Clear local watch history and cache?")) {
-      localStorage.removeItem("spectra_watch_progress");
-      localStorage.removeItem("spectra_recent_searches");
-      setHistoryCount(0);
-      alert("Cache cleared successfully!");
-    }
-  };
-
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 pb-28 space-y-6">
-      {/* 1. Profile Header Card */}
-      <GlassCard className="p-5 rounded-3xl border border-white/20 bg-[#0c0c10]/80 shadow-[0_12px_40px_rgba(0,0,0,0.7)] flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shadow-glow">
-            <User className="w-8 h-8 text-white" />
-          </div>
-          <div className="text-center sm:text-left">
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <h2 className="text-lg font-bold text-white tracking-wide">
-                {isLoggedIn ? "Spectra Member" : "Guest Explorer"}
-              </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/10 border border-white/15 text-zinc-300">
-                {isLoggedIn ? "PRO" : "FREE"}
-              </span>
+    <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
+      {/* Profile Card */}
+      <GlassCard className="p-4 sm:p-6 rounded-3xl border border-white/15 bg-[#0e0e14]/70 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-white to-zinc-400 p-0.5 shadow-glow">
+            <div className="w-full h-full rounded-full bg-[#08080c] flex items-center justify-center text-white">
+              <User className="w-6 h-6" />
             </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              {isLoggedIn ? "Sync active across all devices" : "Local storage profile"}
-            </p>
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-extrabold text-white flex items-center gap-2">
+              Spectra Member
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </h2>
+            <p className="text-xs text-zinc-400">Offline & Sync Enabled</p>
           </div>
         </div>
 
-        <button
-          onClick={() => setIsLoggedIn(!isLoggedIn)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition border ${
-            isLoggedIn
-              ? "bg-white/10 text-white border-white/20 hover:bg-white/15"
-              : "bg-white text-black border-white shadow-glow"
-          }`}
+        <Link
+          href="/downloads"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition"
         >
-          {isLoggedIn ? (
-            <>
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </>
-          ) : (
-            <>
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Log In</span>
-            </>
-          )}
-        </button>
+          <Download className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Offline Hub</span>
+        </Link>
       </GlassCard>
 
-      {/* 2. Library & Activity Hub */}
-      <div className="space-y-2">
-        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-white" />
-          My Library
-        </span>
+      {/* Tabs: Watchlist vs History */}
+      <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+        <button
+          onClick={() => setActiveTab("watchlist")}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition border ${
+            activeTab === "watchlist"
+              ? "bg-white text-black border-white shadow-glow"
+              : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
+          }`}
+        >
+          <Bookmark className="w-3.5 h-3.5" />
+          <span>My List ({watchlist.length})</span>
+        </button>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          {/* My List */}
-          <Link href="/watchlist" className="group">
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <Bookmark className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">My List</h4>
-                  <p className="text-[10px] text-zinc-400">{listCount} Saved</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:translate-x-0.5 transition-transform" />
-            </GlassCard>
-          </Link>
-
-          {/* Watch History */}
-          <Link href="/" className="group">
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <History className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">History</h4>
-                  <p className="text-[10px] text-zinc-400">{historyCount} Resumes</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:translate-x-0.5 transition-transform" />
-            </GlassCard>
-          </Link>
-
-          {/* Liked Titles */}
-          <div className="cursor-pointer group">
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <Heart className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Liked</h4>
-                  <p className="text-[10px] text-zinc-400">Favorites</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500 group-hover:translate-x-0.5 transition-transform" />
-            </GlassCard>
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition border ${
+            activeTab === "history"
+              ? "bg-white text-black border-white shadow-glow"
+              : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
+          }`}
+        >
+          <History className="w-3.5 h-3.5" />
+          <span>Watch History ({history.length})</span>
+        </button>
       </div>
 
-      {/* 3. Community & Support Actions */}
-      <div className="space-y-2">
-        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">
-          Community & Social
-        </span>
+      {/* 1. WATCHLIST CONTENT */}
+      {activeTab === "watchlist" && (
+        <div>
+          {watchlist.length === 0 ? (
+            <div className="py-20 text-center space-y-2">
+              <Bookmark className="w-8 h-8 text-zinc-600 mx-auto" />
+              <h4 className="text-sm font-bold text-white">Your list is currently empty</h4>
+              <p className="text-xs text-zinc-400">
+                Tap &ldquo;+ Add to List&rdquo; on any movie or series to save it here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {watchlist.map((item) => {
+                const poster = item.posterPath ? `${IMAGE_BASE}/w342${item.posterPath}` : null;
 
-        <div className="flex flex-col gap-2">
-          {/* Comments */}
-          <div className="cursor-pointer">
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <MessageSquare className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">My Comments & Reviews</h4>
-                  <p className="text-[10px] text-zinc-400">Manage your episode commentary</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500" />
-            </GlassCard>
-          </div>
+                return (
+                  <div key={item.id} className="group relative">
+                    <Link href={`/details/${item.id}?type=${item.type}`}>
+                      <GlassCard
+                        hoverEffect
+                        className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0b0b10]"
+                      >
+                        <div className="relative aspect-[2/3] w-full bg-zinc-950">
+                          {poster ? (
+                            <Image
+                              src={poster}
+                              alt={item.title}
+                              fill
+                              sizes="180px"
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-zinc-600 text-xs">
+                              <Film className="w-6 h-6" />
+                            </div>
+                          )}
 
-          {/* Share */}
-          <div onClick={handleShare} className="cursor-pointer">
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <Share2 className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Share Spectra</h4>
-                  <p className="text-[10px] text-zinc-400">Invite friends to watch together</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500" />
-            </GlassCard>
-          </div>
+                          {item.voteAverage && (
+                            <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
+                              <Star className="w-2.5 h-2.5 fill-white text-white" />
+                              {item.voteAverage.toFixed(1)}
+                            </div>
+                          )}
+                        </div>
 
-          {/* Donate */}
-          <a
-            href="https://buymeacoffee.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block"
-          >
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <Coffee className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Donate & Support Project</h4>
-                  <p className="text-[10px] text-zinc-400">Keep Spectra 100% free and open-source</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500" />
-            </GlassCard>
-          </a>
+                        <div className="p-2.5 bg-black/60 flex items-center justify-between gap-1">
+                          <h4 className="text-xs font-semibold text-white truncate">{item.title}</h4>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              watchlistManager.remove(item.id);
+                            }}
+                            className="p-1 text-zinc-500 hover:text-red-400 transition"
+                            title="Remove from list"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </GlassCard>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* 4. Settings & Storage Control */}
-      <div className="space-y-2">
-        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest px-1">
-          Settings & Local Data
-        </span>
+      {/* 2. HISTORY CONTENT */}
+      {activeTab === "history" && (
+        <div>
+          {history.length === 0 ? (
+            <div className="py-20 text-center space-y-2">
+              <History className="w-8 h-8 text-zinc-600 mx-auto" />
+              <h4 className="text-sm font-bold text-white">No playback history recorded</h4>
+              <p className="text-xs text-zinc-400">Stream a title to start tracking progress.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {history.map((item) => {
+                const streamUrl =
+                  item.type === "tv"
+                    ? `/watch/${item.tmdbId}?type=tv&season=${item.season || 1}&episode=${item.episode || 1}&t=${Math.floor(
+                        item.currentTime
+                      )}`
+                    : `/watch/${item.tmdbId}?type=movie&t=${Math.floor(item.currentTime)}`;
 
-        <div className="flex flex-col gap-2">
-          {/* Settings */}
-          <div className="cursor-pointer">
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-white/5 border border-white/10">
-                  <Settings className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-white">App Preferences</h4>
-                  <p className="text-[10px] text-zinc-400">Autoplay, default audio, stream server defaults</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500" />
-            </GlassCard>
-          </div>
+                return (
+                  <Link key={item.id} href={streamUrl} className="block group">
+                    <GlassCard
+                      hoverEffect
+                      className="p-2.5 rounded-2xl flex items-center justify-between gap-3 border border-white/10 bg-[#0e0e14]/70"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-none text-white">
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
+                          <p className="text-[10px] text-zinc-400">
+                            {item.type === "tv" && `S${item.season}:E${item.episode} • `}
+                            Progress: {item.progressPercent}%
+                          </p>
+                        </div>
+                      </div>
 
-          {/* Clear Cache */}
-          <div onClick={clearAppData} className="cursor-pointer">
-            <GlassCard hoverEffect className="p-3.5 rounded-2xl border border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
-                  <Trash2 className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-semibold text-red-400">Clear Storage Cache</h4>
-                  <p className="text-[10px] text-zinc-400">Erase search queries and local watch logs</p>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-zinc-500" />
-            </GlassCard>
-          </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          playbackHistory.removeItem(item.id);
+                        }}
+                        className="p-1 text-zinc-500 hover:text-red-400 transition"
+                        title="Delete entry"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </GlassCard>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
