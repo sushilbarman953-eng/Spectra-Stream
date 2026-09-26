@@ -40,6 +40,8 @@ import {
   Skull,
   Eye,
   Tv,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import { watchlistManager, WatchlistItem } from "@/lib/watchlistManager";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
@@ -47,8 +49,8 @@ import { downloadManager } from "@/lib/downloadManager";
 import { IMAGE_BASE } from "@/lib/tmdb";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { soundFx } from "@/lib/soundFx";
+import { useAuth } from "@/lib/authContext";
 
-// 8 Curated monochrome aesthetic avatars
 const AVATARS = [
   { id: "ghost", label: "Spectre", icon: User },
   { id: "cyber", label: "Cyber Ronin", icon: Bot },
@@ -61,6 +63,8 @@ const AVATARS = [
 ];
 
 export default function MePage() {
+  const { user, logout, updateUser } = useAuth();
+
   const [activeTab, setActiveTab] = useState<"watchlist" | "history">("watchlist");
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchProgressItem[]>([]);
@@ -68,7 +72,6 @@ export default function MePage() {
 
   // Profile customization
   const [avatarId, setAvatarId] = useState<string>("ghost");
-  const [userName, setUserName] = useState<string>("Spectra Member");
   const [isEditingName, setIsEditingName] = useState<boolean>(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState<boolean>(false);
 
@@ -97,13 +100,9 @@ export default function MePage() {
       setDownloadCount(downloadManager.getAll().length);
       setAudioEnabled(soundFx.isEnabled());
 
-      // Load Profile info
       const savedAvatar = localStorage.getItem("spectra_avatar_id");
-      const savedName = localStorage.getItem("spectra_user_name");
       if (savedAvatar) setAvatarId(savedAvatar);
-      if (savedName) setUserName(savedName);
 
-      // Load Preferences
       const savedQuality = localStorage.getItem("spectra_pref_quality") || "auto";
       const savedAutoNext = localStorage.getItem("spectra_pref_autonext");
       const savedHaptics = localStorage.getItem("spectra_pref_haptics");
@@ -153,17 +152,16 @@ export default function MePage() {
     soundFx.playCinematicPop();
     setAvatarId(id);
     localStorage.setItem("spectra_avatar_id", id);
+    if (user) updateUser({ avatarId: id });
     setShowAvatarPicker(false);
   };
 
   const handleSaveName = (newName: string) => {
-    const trimmed = newName.trim() || "Spectra Member";
-    setUserName(trimmed);
-    localStorage.setItem("spectra_user_name", trimmed);
+    const trimmed = newName.trim() || user?.name || "Spectra Member";
+    if (user) updateUser({ name: trimmed });
     setIsEditingName(false);
   };
 
-  // Generate 1-Click Shareable Watchlist URL
   const handleShareWatchlist = () => {
     soundFx.playCinematicPop();
     if (watchlist.length === 0) {
@@ -172,7 +170,6 @@ export default function MePage() {
     }
 
     try {
-      // Lightweight serialization of list items
       const serialized = watchlist.map((item) => ({
         id: item.id,
         title: item.title,
@@ -181,7 +178,6 @@ export default function MePage() {
         voteAverage: item.voteAverage,
       }));
 
-      // Base64 encode string safely
       const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(serialized))));
       const shareUrl = `${window.location.origin}/share?list=${encoded}`;
 
@@ -191,7 +187,7 @@ export default function MePage() {
 
       if (navigator.share) {
         navigator.share({
-          title: `${userName}'s Spectra Watchlist`,
+          title: `${user?.name || "Spectra"}'s Watchlist`,
           text: `Check out my curated watchlist on Spectra Cinema (${watchlist.length} titles)!`,
           url: shareUrl,
         }).catch(() => {});
@@ -246,8 +242,7 @@ export default function MePage() {
   const handleFactoryReset = () => {
     if (confirm("Are you sure? This will reset your watchlist, history, and preferences.")) {
       soundFx.playCinematicWhoosh();
-      localStorage.clear();
-      window.location.reload();
+      logout();
     }
   };
 
@@ -264,8 +259,7 @@ export default function MePage() {
     const backup = {
       version: "1.0",
       timestamp: new Date().toISOString(),
-      userName,
-      avatarId,
+      user,
       watchlist,
       history,
     };
@@ -294,8 +288,8 @@ export default function MePage() {
   };
 
   const resumeItem = history[0];
-
-  const currentAvatar = AVATARS.find((a) => a.id === avatarId) || AVATARS[0];
+  const activeAvatarKey = user?.avatarId || avatarId;
+  const currentAvatar = AVATARS.find((a) => a.id === activeAvatarKey) || AVATARS[0];
   const AvatarIcon = currentAvatar.icon;
 
   const SOUND_EFFECTS = [
@@ -333,7 +327,7 @@ export default function MePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-3 pb-28 space-y-5">
-      {/* 1. SPECTRAL PROFILE CARD WITH INTERACTIVE AVATAR SELECTOR */}
+      {/* 1. AUTHENTICATED PROFILE CARD */}
       <GlassCard className="p-4 sm:p-5 rounded-3xl border border-white/15 bg-[#0e0e14]/75 relative overflow-hidden shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -355,12 +349,11 @@ export default function MePage() {
             </div>
 
             <div className="space-y-1">
-              {/* Editable User Name */}
               <div className="flex items-center gap-2">
                 {isEditingName ? (
                   <input
                     type="text"
-                    defaultValue={userName}
+                    defaultValue={user?.name || "Spectra Member"}
                     autoFocus
                     onBlur={(e) => handleSaveName(e.target.value)}
                     onKeyDown={(e) => {
@@ -375,28 +368,31 @@ export default function MePage() {
                     title="Tap to rename"
                   >
                     <h2 className="text-base sm:text-lg font-black text-white tracking-wide group-hover:text-zinc-300 transition">
-                      {userName}
+                      {user?.name || "Spectra Member"}
                     </h2>
                     <Edit2 className="w-3 h-3 text-zinc-500 group-hover:text-white transition" />
                   </div>
                 )}
-                <Sparkles className="w-3.5 h-3.5 text-white/80" />
+
+                {/* Provider Badge */}
+                <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full bg-white/10 border border-white/15 text-zinc-300">
+                  {user?.provider || "offline"}
+                </span>
               </div>
 
-              {/* Quick Metrics Badges */}
-              <div className="flex items-center gap-2 text-[10px] text-zinc-400 font-semibold">
+              {/* User Email & Metrics */}
+              <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-400 font-semibold">
+                <span className="text-zinc-300">{user?.email || "sync enabled"}</span>
+                <span>•</span>
                 <span className="text-white font-mono">{watchlist.length}</span> in list
                 <span>•</span>
                 <span className="text-white font-mono">{history.length}</span> watched
-                <span>•</span>
-                <span className="text-white font-mono">{downloadCount}</span> offline
               </div>
             </div>
           </div>
 
-          {/* Quick Header Actions: Share, Support, Downloads, Settings */}
+          {/* Quick Header Actions: Share, Support, Settings, Logout */}
           <div className="flex items-center gap-2 self-start sm:self-center">
-            {/* 1-Click Share Watchlist Trigger */}
             <button
               onClick={handleShareWatchlist}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition active:scale-95 shadow-glow"
@@ -405,17 +401,16 @@ export default function MePage() {
               {shareCopied ? (
                 <>
                   <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-400" />
-                  <span className="text-emerald-400">Link Copied!</span>
+                  <span className="text-emerald-400">Copied!</span>
                 </>
               ) : (
                 <>
                   <Share2 className="w-3.5 h-3.5" />
-                  <span>Share List</span>
+                  <span>Share</span>
                 </>
               )}
             </button>
 
-            {/* Support / Donations Trigger */}
             <button
               onClick={() => {
                 soundFx.playCinematicPop();
@@ -427,26 +422,27 @@ export default function MePage() {
               <span>Support</span>
             </button>
 
-            {/* Offline Hub */}
-            <Link
-              href="/downloads"
-              onClick={() => soundFx.playCinematicPop()}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white transition"
-              title="Downloads"
-            >
-              <Download className="w-3.5 h-3.5" />
-            </Link>
-
-            {/* Settings Cog */}
             <button
               onClick={() => {
                 soundFx.playCinematicWhoosh();
                 setShowSettingsModal(true);
               }}
               className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white shadow-glow active:scale-95 transition"
-              title="Open Settings"
+              title="Settings"
             >
               <Settings className="w-4 h-4 animate-spin-slow" />
+            </button>
+
+            {/* LOG OUT BUTTON */}
+            <button
+              onClick={() => {
+                soundFx.playCinematicPop();
+                logout();
+              }}
+              className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 transition"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -475,7 +471,7 @@ export default function MePage() {
             <div className="grid grid-cols-4 gap-2.5">
               {AVATARS.map((av) => {
                 const Icon = av.icon;
-                const isSelected = avatarId === av.id;
+                const isSelected = activeAvatarKey === av.id;
 
                 return (
                   <button
@@ -959,7 +955,7 @@ export default function MePage() {
                     onClick={handleFactoryReset}
                     className="py-1.5 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold text-xs transition"
                   >
-                    Reset App
+                    Sign Out & Reset
                   </button>
                 </div>
               </div>
