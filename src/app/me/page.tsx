@@ -14,6 +14,11 @@ import {
   Star,
   Sparkles,
   Volume2,
+  Disc3,
+  Waves,
+  Sparkle,
+  Radio,
+  Sliders,
 } from "lucide-react";
 import { watchlistManager, WatchlistItem } from "@/lib/watchlistManager";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
@@ -25,7 +30,7 @@ export default function MePage() {
   const [activeTab, setActiveTab] = useState<"watchlist" | "history">("watchlist");
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchProgressItem[]>([]);
-  const [testStatus, setTestStatus] = useState<string>("");
+  const [activeSoundName, setActiveSoundName] = useState<string>("");
 
   useEffect(() => {
     const loadData = () => {
@@ -43,15 +48,48 @@ export default function MePage() {
     };
   }, []);
 
-  const triggerTestSound = () => {
+  const triggerSound = (name: string, fn: () => void) => {
     try {
-      soundFx.playGlassTap();
-      setTestStatus("Played Glass Tap!");
-      setTimeout(() => setTestStatus(""), 1500);
+      fn();
+      setActiveSoundName(name);
+      setTimeout(() => setActiveSoundName(""), 1200);
     } catch (e: any) {
-      setTestStatus("Error: " + e?.message);
+      console.error("Audio trigger error:", e);
     }
   };
+
+  const SOUND_EFFECTS = [
+    {
+      name: "Mechanical Tick",
+      desc: "Top carousel ratchet dial",
+      icon: Disc3,
+      action: () => {
+        soundFx.playMechanicalTick();
+        if (navigator.vibrate) navigator.vibrate(8);
+      },
+    },
+    {
+      name: "Cinematic Whoosh",
+      desc: "Drawer & swipe transitions",
+      icon: Waves,
+      action: () => {
+        soundFx.playCinematicWhoosh();
+        if (navigator.vibrate) navigator.vibrate(12);
+      },
+    },
+    {
+      name: "Glass Pop Chime",
+      desc: "Touch selections & pills",
+      icon: Sparkle,
+      action: () => soundFx.playCinematicPop(),
+    },
+    {
+      name: "Cinematic Swell",
+      desc: "Play & trailer launches",
+      icon: Radio,
+      action: () => soundFx.playCinematicSwell(),
+    },
+  ];
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
@@ -72,31 +110,75 @@ export default function MePage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Audio Test Trigger */}
-          <button
-            onClick={triggerTestSound}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-black text-xs font-bold shadow-glow active:scale-95 transition"
-          >
-            <Volume2 className="w-3.5 h-3.5" />
-            <span>{testStatus || "Test Sound"}</span>
-          </button>
-
-          <Link
-            href="/downloads"
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Offline Hub</span>
-          </Link>
-        </div>
+        <Link
+          href="/downloads"
+          onClick={() => soundFx.playCinematicPop()}
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition backdrop-blur-xl"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>Offline Hub</span>
+        </Link>
       </GlassCard>
+
+      {/* DEDICATED SOUND LAB / AUDIO CHECK PANEL */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-300 flex items-center gap-1.5">
+            <Volume2 className="w-3.5 h-3.5 text-white" />
+            <span>Acoustic Audio Lab</span>
+          </h3>
+          {activeSoundName && (
+            <span className="text-[10px] font-mono font-bold text-emerald-400 animate-pulse">
+              Playing: {activeSoundName}
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {SOUND_EFFECTS.map((snd) => {
+            const SndIcon = snd.icon;
+            const isPlayingThis = activeSoundName === snd.name;
+
+            return (
+              <button
+                key={snd.name}
+                onClick={() => triggerSound(snd.name, snd.action)}
+                className={`p-3 rounded-2xl border text-left flex flex-col justify-between h-24 transition-all duration-150 select-none active:scale-95 ${
+                  isPlayingThis
+                    ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.7)] scale-[1.02]"
+                    : "bg-[#0c0c12]/80 hover:bg-white/[0.08] text-white border-white/15"
+                }`}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className={`p-1.5 rounded-xl border ${
+                    isPlayingThis ? "bg-black/10 border-black/20 text-black" : "bg-white/10 border-white/15 text-white"
+                  }`}>
+                    <SndIcon className="w-4 h-4" />
+                  </div>
+                  <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                    isPlayingThis ? "bg-black text-white" : "bg-white/10 text-zinc-400"
+                  }`}>
+                    TEST
+                  </span>
+                </div>
+
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-black truncate">{snd.name}</h4>
+                  <p className={`text-[9px] truncate ${isPlayingThis ? "text-zinc-800" : "text-zinc-400"}`}>
+                    {snd.desc}
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-3">
         <button
           onClick={() => {
-            soundFx.playGlassTap();
+            soundFx.playCinematicPop();
             setActiveTab("watchlist");
           }}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition border ${
@@ -111,7 +193,7 @@ export default function MePage() {
 
         <button
           onClick={() => {
-            soundFx.playGlassTap();
+            soundFx.playCinematicPop();
             setActiveTab("history");
           }}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition border ${
@@ -142,7 +224,10 @@ export default function MePage() {
                 const poster = item.posterPath ? `${IMAGE_BASE}/w342${item.posterPath}` : null;
                 return (
                   <div key={item.id} className="group relative">
-                    <Link href={`/details/${item.id}?type=${item.type}`}>
+                    <Link
+                      href={`/details/${item.id}?type=${item.type}`}
+                      onClick={() => soundFx.playCinematicPop()}
+                    >
                       <GlassCard
                         hoverEffect
                         className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0b0b10]"
@@ -174,7 +259,7 @@ export default function MePage() {
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              soundFx.playGlassTap();
+                              soundFx.playCinematicPop();
                               watchlistManager.remove(item.id);
                             }}
                             className="p-1 text-zinc-500 hover:text-red-400 transition"
