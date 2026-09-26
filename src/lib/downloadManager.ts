@@ -1,5 +1,5 @@
 export interface OfflineMediaItem {
-  id: string; // composite id: tmdbId-s1-e1 or tmdbId-movie
+  id: string;
   tmdbId: string;
   type: "movie" | "tv";
   title: string;
@@ -8,7 +8,6 @@ export interface OfflineMediaItem {
   posterPath?: string;
   sizeBytes: number;
   savedAt: number;
-  blobKey?: string;
 }
 
 const DB_NAME = "SpectraOfflineDB";
@@ -17,7 +16,7 @@ const METADATA_KEY = "spectra_offline_meta";
 
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") return reject("No window context");
+    if (typeof window === "undefined") return reject("No window");
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -42,8 +41,7 @@ export const downloadManager = {
   },
 
   isDownloaded: (id: string): boolean => {
-    const list = downloadManager.getAll();
-    return list.some((item) => item.id === id);
+    return downloadManager.getAll().some((item) => item.id === id);
   },
 
   saveMedia: async (
@@ -52,10 +50,12 @@ export const downloadManager = {
     onProgress?: (progress: number) => void
   ): Promise<boolean> => {
     try {
-      // Route via proxy to bypass client-side CORS issues
-      const proxyUrl = `/api/download/proxy?url=${encodeURIComponent(rawStreamUrl)}`;
-      
-      const res = await fetch(proxyUrl);
+      const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: rawStreamUrl }),
+      });
+
       if (!res.ok) {
         throw new Error(`Proxy media fetch failed with status: ${res.status}`);
       }
@@ -88,7 +88,7 @@ export const downloadManager = {
 
       if (onProgress) onProgress(100);
 
-      // Persist in IndexedDB
+      // Save to IndexedDB
       const db = await openDB();
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(STORE_NAME, "readwrite");
@@ -98,7 +98,7 @@ export const downloadManager = {
         tx.onerror = () => reject(tx.error);
       });
 
-      // Persist metadata
+      // Save metadata
       const metaItem: OfflineMediaItem = {
         ...item,
         sizeBytes: blob.size,
@@ -151,12 +151,9 @@ export const downloadManager = {
   },
 
   getStorageEstimate: async (): Promise<{ used: number; quota: number }> => {
-    if (typeof navigator !== "undefined" && navigator.storage && navigator.storage.estimate) {
+    if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
       const est = await navigator.storage.estimate();
-      return {
-        used: est.usage || 0,
-        quota: est.quota || 0,
-      };
+      return { used: est.usage || 0, quota: est.quota || 0 };
     }
     return { used: 0, quota: 0 };
   },

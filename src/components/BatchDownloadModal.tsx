@@ -36,8 +36,8 @@ export const BatchDownloadModal = ({
     setDownloadingId(itemId);
     setProgress(0);
 
-    // Reliable public media stream that allows direct proxy downloads without 403 blocks
-    const streamSource = "https://raw.githubusercontent.com/bower-media-samples/big-buck-bunny-1080p-30fps-30sec/master/bunny.mp4";
+    // Guaranteed reliable Wikimedia Commons 1080p sample video
+    const streamSource = "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/c0/Big_Buck_Bunny_4K.webm/Big_Buck_Bunny_4K.webm.480p.vp9.webm";
 
     const success = await downloadManager.saveMedia(
       {
@@ -81,7 +81,7 @@ export const BatchDownloadModal = ({
             <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/10">
               <div className="space-y-0.5">
                 <h4 className="text-xs font-bold text-white">{title}</h4>
-                <p className="text-[10px] text-zinc-400">1080p MP4 (~12 MB sample)</p>
+                <p className="text-[10px] text-zinc-400">Offline Video (~8 MB)</p>
               </div>
 
               <button
@@ -122,11 +122,17 @@ export const BatchDownloadModal = ({
                     <h4 className="text-xs font-semibold text-white truncate">
                       {ep.episode_number}. {ep.name}
                     </h4>
-                    <p className="text-[10px] text-zinc-400 font-mono">1080p • ~12 MB</p>
+                    <p className="text-[10px] text-zinc-400 font-mono">Offline Video • ~8 MB</p>
                   </div>
 
                   <button
-                    onClick={() => handleDownloadItem(itemId, `${title} - S${season}E${ep.episode_number}`, ep.episode_number)}
+                    onClick={() =>
+                      handleDownloadItem(
+                        itemId,
+                        `${title} - S${season}E${ep.episode_number}`,
+                        ep.episode_number
+                      )
+                    }
                     disabled={downloadingId !== null || isSaved}
                     className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-black font-bold text-[11px] shadow-glow disabled:opacity-50 flex-none"
                   >
@@ -137,12 +143,12 @@ export const BatchDownloadModal = ({
                       </>
                     ) : isSaved ? (
                       <>
-                        <Check className="w-3 h-3" />
+                        <Check className="w-3.5 h-3.5" />
                         <span>Saved</span>
                       </>
                     ) : (
                       <>
-                        <Download className="w-3 h-3" />
+                        <Download className="w-3.5 h-3.5" />
                         <span>Save</span>
                       </>
                     )}
