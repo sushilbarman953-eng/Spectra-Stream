@@ -13,16 +13,19 @@ import {
   Film,
   Star,
   Sparkles,
+  Volume2,
 } from "lucide-react";
 import { watchlistManager, WatchlistItem } from "@/lib/watchlistManager";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
 import { IMAGE_BASE } from "@/lib/tmdb";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { soundFx } from "@/lib/soundFx";
 
 export default function MePage() {
   const [activeTab, setActiveTab] = useState<"watchlist" | "history">("watchlist");
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchProgressItem[]>([]);
+  const [testStatus, setTestStatus] = useState<string>("");
 
   useEffect(() => {
     const loadData = () => {
@@ -39,6 +42,16 @@ export default function MePage() {
       window.removeEventListener("spectra_playback_updated", loadData);
     };
   }, []);
+
+  const triggerTestSound = () => {
+    try {
+      soundFx.playGlassTap();
+      setTestStatus("Played Glass Tap!");
+      setTimeout(() => setTestStatus(""), 1500);
+    } catch (e: any) {
+      setTestStatus("Error: " + e?.message);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
@@ -59,19 +72,33 @@ export default function MePage() {
           </div>
         </div>
 
-        <Link
-          href="/downloads"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Offline Hub</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Audio Test Trigger */}
+          <button
+            onClick={triggerTestSound}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-black text-xs font-bold shadow-glow active:scale-95 transition"
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>{testStatus || "Test Sound"}</span>
+          </button>
+
+          <Link
+            href="/downloads"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Offline Hub</span>
+          </Link>
+        </div>
       </GlassCard>
 
-      {/* Tabs: Watchlist vs History */}
+      {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-white/10 pb-3">
         <button
-          onClick={() => setActiveTab("watchlist")}
+          onClick={() => {
+            soundFx.playGlassTap();
+            setActiveTab("watchlist");
+          }}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition border ${
             activeTab === "watchlist"
               ? "bg-white text-black border-white shadow-glow"
@@ -83,7 +110,10 @@ export default function MePage() {
         </button>
 
         <button
-          onClick={() => setActiveTab("history")}
+          onClick={() => {
+            soundFx.playGlassTap();
+            setActiveTab("history");
+          }}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold transition border ${
             activeTab === "history"
               ? "bg-white text-black border-white shadow-glow"
@@ -95,7 +125,7 @@ export default function MePage() {
         </button>
       </div>
 
-      {/* 1. WATCHLIST CONTENT */}
+      {/* Watchlist */}
       {activeTab === "watchlist" && (
         <div>
           {watchlist.length === 0 ? (
@@ -110,7 +140,6 @@ export default function MePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {watchlist.map((item) => {
                 const poster = item.posterPath ? `${IMAGE_BASE}/w342${item.posterPath}` : null;
-
                 return (
                   <div key={item.id} className="group relative">
                     <Link href={`/details/${item.id}?type=${item.type}`}>
@@ -132,7 +161,6 @@ export default function MePage() {
                               <Film className="w-6 h-6" />
                             </div>
                           )}
-
                           {item.voteAverage && (
                             <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
                               <Star className="w-2.5 h-2.5 fill-white text-white" />
@@ -140,17 +168,16 @@ export default function MePage() {
                             </div>
                           )}
                         </div>
-
                         <div className="p-2.5 bg-black/60 flex items-center justify-between gap-1">
                           <h4 className="text-xs font-semibold text-white truncate">{item.title}</h4>
                           <button
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
+                              soundFx.playGlassTap();
                               watchlistManager.remove(item.id);
                             }}
                             className="p-1 text-zinc-500 hover:text-red-400 transition"
-                            title="Remove from list"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -165,9 +192,9 @@ export default function MePage() {
         </div>
       )}
 
-      {/* 2. HISTORY CONTENT */}
+      {/* History */}
       {activeTab === "history" && (
-        <div>
+        <div className="space-y-2">
           {history.length === 0 ? (
             <div className="py-20 text-center space-y-2">
               <History className="w-8 h-8 text-zinc-600 mx-auto" />
@@ -175,50 +202,19 @@ export default function MePage() {
               <p className="text-xs text-zinc-400">Stream a title to start tracking progress.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {history.map((item) => {
-                const streamUrl =
-                  item.type === "tv"
-                    ? `/watch/${item.tmdbId}?type=tv&season=${item.season || 1}&episode=${item.episode || 1}&t=${Math.floor(
-                        item.currentTime
-                      )}`
-                    : `/watch/${item.tmdbId}?type=movie&t=${Math.floor(item.currentTime)}`;
-
-                return (
-                  <Link key={item.id} href={streamUrl} className="block group">
-                    <GlassCard
-                      hoverEffect
-                      className="p-2.5 rounded-2xl flex items-center justify-between gap-3 border border-white/10 bg-[#0e0e14]/70"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-none text-white">
-                          <Play className="w-3.5 h-3.5 fill-white" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
-                          <p className="text-[10px] text-zinc-400">
-                            {item.type === "tv" && `S${item.season}:E${item.episode} • `}
-                            Progress: {item.progressPercent}%
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          playbackHistory.removeItem(item.id);
-                        }}
-                        className="p-1 text-zinc-500 hover:text-red-400 transition"
-                        title="Delete entry"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </GlassCard>
-                  </Link>
-                );
-              })}
-            </div>
+            history.map((item) => (
+              <div key={item.id} className="p-2.5 rounded-2xl flex items-center justify-between gap-3 border border-white/10 bg-[#0e0e14]/70">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                    <Play className="w-3.5 h-3.5 fill-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
+                    <p className="text-[10px] text-zinc-400">Progress: {item.progressPercent}%</p>
+                  </div>
+                </div>
+              </div>
+            ))
           )}
         </div>
       )}
