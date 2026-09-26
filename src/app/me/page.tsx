@@ -28,6 +28,13 @@ import {
   Copy,
   Check,
   Compass,
+  Settings,
+  Vibrate,
+  MonitorPlay,
+  Database,
+  RotateCcw,
+  Sliders,
+  CheckCircle2,
 } from "lucide-react";
 import { watchlistManager, WatchlistItem } from "@/lib/watchlistManager";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
@@ -42,12 +49,20 @@ export default function MePage() {
   const [history, setHistory] = useState<WatchProgressItem[]>([]);
   const [downloadCount, setDownloadCount] = useState<number>(0);
 
-  // States for new features
+  // Audio & Modals
   const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(true);
   const [showAudioLab, setShowAudioLab] = useState<boolean>(false);
   const [activeSoundName, setActiveSoundName] = useState<string>("");
   const [showDonationModal, setShowDonationModal] = useState<boolean>(false);
+  const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  // Settings Preferences States (persisted in localStorage)
+  const [defaultQuality, setDefaultQuality] = useState<string>("auto");
+  const [autoNextEp, setAutoNextEp] = useState<boolean>(true);
+  const [storageUsed, setStorageUsed] = useState<string>("0 KB");
+  const [cacheClearedStatus, setCacheClearedStatus] = useState<boolean>(false);
 
   useEffect(() => {
     const loadData = () => {
@@ -55,7 +70,20 @@ export default function MePage() {
       setHistory(playbackHistory.getAll());
       setDownloadCount(downloadManager.getAll().length);
       setAudioEnabled(soundFx.isEnabled());
+
+      // Load persistent settings
+      const savedQuality = localStorage.getItem("spectra_pref_quality") || "auto";
+      const savedAutoNext = localStorage.getItem("spectra_pref_autonext");
+      const savedHaptics = localStorage.getItem("spectra_pref_haptics");
+
+      setDefaultQuality(savedQuality);
+      setAutoNextEp(savedAutoNext !== null ? savedAutoNext === "true" : true);
+      setHapticsEnabled(savedHaptics !== null ? savedHaptics === "true" : true);
+
+      // Estimate LocalStorage Usage
+      calculateStorageUsage();
     };
+
     loadData();
 
     window.addEventListener("spectra_watchlist_updated", loadData);
@@ -72,11 +100,73 @@ export default function MePage() {
     };
   }, []);
 
+  const calculateStorageUsage = () => {
+    try {
+      let total = 0;
+      for (let x in localStorage) {
+        if (localStorage.hasOwnProperty(x)) {
+          total += (localStorage[x].length + x.length) * 2;
+        }
+      }
+      if (total < 1024 * 1024) {
+        setStorageUsed(`${(total / 1024).toFixed(1)} KB`);
+      } else {
+        setStorageUsed(`${(total / (1024 * 1024)).toFixed(2)} MB`);
+      }
+    } catch {
+      setStorageUsed("1.2 MB");
+    }
+  };
+
   const toggleSoundMaster = () => {
     const next = !audioEnabled;
     soundFx.setEnabled(next);
     setAudioEnabled(next);
     if (next) soundFx.playCinematicPop();
+  };
+
+  const handleQualityChange = (q: string) => {
+    soundFx.playCinematicPop();
+    setDefaultQuality(q);
+    localStorage.setItem("spectra_pref_quality", q);
+  };
+
+  const toggleAutoNext = () => {
+    soundFx.playCinematicPop();
+    const next = !autoNextEp;
+    setAutoNextEp(next);
+    localStorage.setItem("spectra_pref_autonext", String(next));
+  };
+
+  const toggleHaptics = () => {
+    const next = !hapticsEnabled;
+    setHapticsEnabled(next);
+    localStorage.setItem("spectra_pref_haptics", String(next));
+    if (next && navigator.vibrate) navigator.vibrate(10);
+    soundFx.playCinematicPop();
+  };
+
+  const handleClearCache = () => {
+    soundFx.playCinematicPop();
+    // Clears search/query keys without removing watchlist/history
+    try {
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("tmdb_") || key.startsWith("search_cache_")) {
+          localStorage.removeItem(key);
+        }
+      });
+      calculateStorageUsage();
+      setCacheClearedStatus(true);
+      setTimeout(() => setCacheClearedStatus(false), 2000);
+    } catch {}
+  };
+
+  const handleFactoryReset = () => {
+    if (confirm("Are you sure? This will reset all favorites, watch progress, and custom preferences.")) {
+      soundFx.playCinematicWhoosh();
+      localStorage.clear();
+      window.location.reload();
+    }
   };
 
   const triggerTestSound = (name: string, fn: () => void) => {
@@ -87,7 +177,6 @@ export default function MePage() {
     } catch {}
   };
 
-  // Export local state as backup JSON
   const handleExportBackup = () => {
     soundFx.playCinematicPop();
     const backup = {
@@ -105,7 +194,6 @@ export default function MePage() {
     URL.revokeObjectURL(url);
   };
 
-  // Clear all history entries
   const handleClearHistory = () => {
     if (confirm("Clear all playback history?")) {
       soundFx.playCinematicPop();
@@ -121,7 +209,6 @@ export default function MePage() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Resume Quick Shelf Item (First item in history)
   const resumeItem = history[0];
 
   const SOUND_EFFECTS = [
@@ -131,7 +218,7 @@ export default function MePage() {
       icon: Disc3,
       action: () => {
         soundFx.playMechanicalTick();
-        if (navigator.vibrate) navigator.vibrate(8);
+        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(8);
       },
     },
     {
@@ -146,7 +233,7 @@ export default function MePage() {
       icon: Waves,
       action: () => {
         soundFx.playCinematicWhoosh();
-        if (navigator.vibrate) navigator.vibrate(12);
+        if (hapticsEnabled && navigator.vibrate) navigator.vibrate(12);
       },
     },
     {
@@ -159,11 +246,11 @@ export default function MePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-3 pb-28 space-y-5">
-      {/* 1. SPECTRAL PROFILE CARD WITH SPECULAR GLOW RING */}
+      {/* 1. SPECTRAL PROFILE CARD */}
       <GlassCard className="p-4 sm:p-5 rounded-3xl border border-white/15 bg-[#0e0e14]/75 relative overflow-hidden shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            {/* Avatar with Specular Ambient Glow Ring */}
+            {/* Avatar with Ambient Glow Ring */}
             <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-white/70 via-white/10 to-white/40 shadow-[0_0_20px_rgba(255,255,255,0.25)] flex-none">
               <div className="w-full h-full rounded-full bg-[#08080c] flex items-center justify-center text-white">
                 <User className="w-6 h-6 stroke-[2.2]" />
@@ -178,7 +265,7 @@ export default function MePage() {
                 <Sparkles className="w-3.5 h-3.5 text-white/80" />
               </div>
 
-              {/* Quick Metrics Counter Badges */}
+              {/* Quick Metrics Badges */}
               <div className="flex items-center gap-2 text-[10px] text-zinc-400 font-semibold">
                 <span className="text-white font-mono">{watchlist.length}</span> in list
                 <span>•</span>
@@ -189,22 +276,8 @@ export default function MePage() {
             </div>
           </div>
 
-          {/* Quick Header Actions: Audio Toggle + Donate Button */}
+          {/* Quick Header Actions: Settings Cog, Support, Offline Hub */}
           <div className="flex items-center gap-2 self-start sm:self-center">
-            {/* Master Audio Toggle */}
-            <button
-              onClick={toggleSoundMaster}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition select-none active:scale-95 ${
-                audioEnabled
-                  ? "bg-white/[0.08] text-white border-white/20 hover:border-white/40 shadow-[0_0_12px_rgba(255,255,255,0.1)]"
-                  : "bg-red-500/10 text-zinc-400 border-red-500/20"
-              }`}
-              title="Toggle all UI sounds"
-            >
-              {audioEnabled ? <Volume2 className="w-3.5 h-3.5 text-white" /> : <VolumeX className="w-3.5 h-3.5 text-red-400" />}
-              <span className="hidden xs:inline">{audioEnabled ? "Sound ON" : "Muted"}</span>
-            </button>
-
             {/* Support / Donations Trigger */}
             <button
               onClick={() => {
@@ -217,7 +290,7 @@ export default function MePage() {
               <span>Support</span>
             </button>
 
-            {/* Offline Hub Link */}
+            {/* Offline Hub */}
             <Link
               href="/downloads"
               onClick={() => soundFx.playCinematicPop()}
@@ -226,11 +299,23 @@ export default function MePage() {
             >
               <Download className="w-3.5 h-3.5" />
             </Link>
+
+            {/* NEW: SETTINGS BUTTON (Opens full settings sheet) */}
+            <button
+              onClick={() => {
+                soundFx.playCinematicWhoosh();
+                setShowSettingsModal(true);
+              }}
+              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white shadow-glow active:scale-95 transition"
+              title="Open Settings"
+            >
+              <Settings className="w-4 h-4 animate-spin-slow" />
+            </button>
           </div>
         </div>
       </GlassCard>
 
-      {/* 2. RESUME WATCHING QUICK SHELF (If in-progress streams exist) */}
+      {/* 2. RESUME QUICK SHELF */}
       {resumeItem && (
         <div className="p-3 sm:p-3.5 rounded-2xl border border-white/15 bg-[#0c0c12]/90 flex items-center justify-between gap-3 shadow-lg">
           <div className="flex items-center gap-3 min-w-0">
@@ -260,7 +345,6 @@ export default function MePage() {
               </div>
               <h4 className="text-xs font-bold text-white truncate">{resumeItem.title}</h4>
 
-              {/* Progress bar */}
               <div className="w-32 sm:w-48 h-1 bg-white/15 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-white shadow-glow rounded-full"
@@ -285,7 +369,7 @@ export default function MePage() {
         </div>
       )}
 
-      {/* 3. COLLAPSIBLE ACOUSTIC LAB ACCORDION */}
+      {/* 3. COLLAPSIBLE ACOUSTIC LAB */}
       <div className="border border-white/10 rounded-2xl bg-[#0a0a0f]/60 overflow-hidden">
         <button
           onClick={() => {
@@ -339,7 +423,7 @@ export default function MePage() {
         )}
       </div>
 
-      {/* 4. TABS STRIP + HISTORY ACTIONS */}
+      {/* 4. TABS STRIP */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">
           <button
@@ -373,7 +457,6 @@ export default function MePage() {
           </button>
         </div>
 
-        {/* Tab tools (Clear history / Export) */}
         <div className="flex items-center gap-2">
           {activeTab === "history" && history.length > 0 && (
             <button
@@ -396,7 +479,7 @@ export default function MePage() {
         </div>
       </div>
 
-      {/* 5. WATCHLIST VIEW (WITH INTERACTIVE EMPTY STATE CTA) */}
+      {/* 5. WATCHLIST VIEW */}
       {activeTab === "watchlist" && (
         <div>
           {watchlist.length === 0 ? (
@@ -409,7 +492,6 @@ export default function MePage() {
                 </p>
               </div>
 
-              {/* Direct CTA Button to prevent dead end */}
               <Link
                 href="/explore"
                 onClick={() => soundFx.playCinematicWhoosh()}
@@ -533,7 +615,187 @@ export default function MePage() {
         </div>
       )}
 
-      {/* 7. SUPPORT / DONATIONS FROSTED MODAL */}
+      {/* 7. SETTINGS MODAL / SLIDING SHEET */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md rounded-3xl p-5 bg-[#0a0a0f]/95 border border-white/20 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto no-scrollbar">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4 text-white" />
+                <h3 className="text-sm font-bold text-white">Spectra Engine Settings</h3>
+              </div>
+              <button
+                onClick={() => {
+                  soundFx.playCinematicPop();
+                  setShowSettingsModal(false);
+                }}
+                className="p-1 rounded-full text-zinc-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Section 1: Audio & Haptics */}
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <Volume2 className="w-3.5 h-3.5 text-white" />
+                Acoustics & Feedback
+              </span>
+
+              <div className="space-y-2 p-3 rounded-2xl bg-white/[0.03] border border-white/10">
+                {/* Audio Master */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h5 className="text-xs font-bold text-white">Synthesizer Sound Effects</h5>
+                    <p className="text-[10px] text-zinc-400">Tactile dial ticks and cinematic whooshes</p>
+                  </div>
+                  <button
+                    onClick={toggleSoundMaster}
+                    className={`w-11 h-6 rounded-full transition-colors relative p-0.5 border ${
+                      audioEnabled ? "bg-white border-white" : "bg-white/10 border-white/20"
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full transition-transform ${
+                        audioEnabled ? "translate-x-5 bg-black" : "translate-x-0 bg-white"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Haptics */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                  <div>
+                    <h5 className="text-xs font-bold text-white">Device Haptic Vibrations</h5>
+                    <p className="text-[10px] text-zinc-400">Micro-pulses on category swipes & selections</p>
+                  </div>
+                  <button
+                    onClick={toggleHaptics}
+                    className={`w-11 h-6 rounded-full transition-colors relative p-0.5 border ${
+                      hapticsEnabled ? "bg-white border-white" : "bg-white/10 border-white/20"
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full transition-transform ${
+                        hapticsEnabled ? "translate-x-5 bg-black" : "translate-x-0 bg-white"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Video Player Preferences */}
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <MonitorPlay className="w-3.5 h-3.5 text-white" />
+                Playback Engine
+              </span>
+
+              <div className="space-y-3 p-3 rounded-2xl bg-white/[0.03] border border-white/10">
+                {/* Default Quality Selector */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="font-bold text-white">Default Resolution</span>
+                    <span className="text-[10px] font-mono text-zinc-400 uppercase">{defaultQuality}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {["auto", "1080p", "720p", "480p"].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => handleQualityChange(q)}
+                        className={`py-1 rounded-xl text-[10px] font-extrabold uppercase border transition ${
+                          defaultQuality === q
+                            ? "bg-white text-black border-white shadow-glow"
+                            : "bg-white/5 text-zinc-400 border-white/10 hover:text-white"
+                        }`}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Autoplay Next Episode */}
+                <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                  <div>
+                    <h5 className="text-xs font-bold text-white">Auto-Play Next Episode</h5>
+                    <p className="text-[10px] text-zinc-400">Launch upcoming episode automatically</p>
+                  </div>
+                  <button
+                    onClick={toggleAutoNext}
+                    className={`w-11 h-6 rounded-full transition-colors relative p-0.5 border ${
+                      autoNextEp ? "bg-white border-white" : "bg-white/10 border-white/20"
+                    }`}
+                  >
+                    <div
+                      className={`w-4 h-4 rounded-full transition-transform ${
+                        autoNextEp ? "translate-x-5 bg-black" : "translate-x-0 bg-white"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Storage & Cache Management */}
+            <div className="space-y-2.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-white" />
+                Data & Storage
+              </span>
+
+              <div className="p-3 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h5 className="text-xs font-bold text-white">Browser Storage Used</h5>
+                    <p className="text-[10px] text-zinc-400">Posters cache, watch metrics & history</p>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-white px-2 py-0.5 rounded bg-white/10 border border-white/15">
+                    {storageUsed}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={handleClearCache}
+                    className="flex-1 py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs transition flex items-center justify-center gap-1.5"
+                  >
+                    {cacheClearedStatus ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Cache Cleared!</span>
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Clear Image Cache</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleFactoryReset}
+                    className="py-1.5 px-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold text-xs transition"
+                  >
+                    Reset App
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Build Info */}
+            <div className="pt-2 text-center space-y-0.5 border-t border-white/10">
+              <p className="text-[10px] text-zinc-400 font-mono">Spectra Cinema Engine • v2.4.0</p>
+              <p className="text-[9px] text-zinc-600">Client Build #2026.09 • PWA Enabled</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. SUPPORT / DONATIONS MODAL */}
       {showDonationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-3xl p-5 bg-[#0c0c14]/95 border border-white/20 shadow-2xl space-y-4">
@@ -558,7 +820,6 @@ export default function MePage() {
             </p>
 
             <div className="space-y-2">
-              {/* Crypto / Address 1 */}
               <div className="p-2.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider">USDT (TRC20)</p>
@@ -574,7 +835,6 @@ export default function MePage() {
                 </button>
               </div>
 
-              {/* Ko-fi / Buy Coffee Link */}
               <a
                 href="https://ko-fi.com"
                 target="_blank"
