@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Maximize2 } from "lucide-react";
 import { useSearch } from "@/context/SearchContext";
+import { soundFx } from "@/lib/soundFx";
 import { IMAGE_BASE } from "@/lib/tmdb";
 
 const CATEGORIES = [
@@ -32,14 +33,10 @@ export const Navbar = () => {
 
   const isUtilityPage = pathname === "/downloads" || pathname === "/me" || pathname === "/explore";
 
-  // Find active index in original 5 categories
   const activeIdx = CATEGORIES.findIndex((c) => c.href === pathname);
   const currentIndex = activeIdx === -1 ? 0 : activeIdx;
   const N = CATEGORIES.length;
 
-  // Build infinite loop focal view: [ -2, -1, 0 (active), +1, +2 ]
-  // Example for Home (idx 0): [ Anime, Live TV, Home, Movies, Series ]
-  // Example for Live TV (idx 4): [ Series, Anime, Live TV, Home, Movies ]
   const loopOffsets = [-2, -1, 0, 1, 2];
   const visibleCategories = loopOffsets.map((offset) => {
     const rawIndex = (currentIndex + offset) % N;
@@ -88,6 +85,7 @@ export const Navbar = () => {
 
   const handleSearchAction = (e: React.MouseEvent) => {
     e.stopPropagation();
+    soundFx.playGlassTap();
 
     if (clickTimer.current) {
       clearTimeout(clickTimer.current);
@@ -118,17 +116,18 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between gap-1 sm:gap-2 h-10">
           
-          {/* 1. Left: Brand Title WITHOUT dot */}
+          {/* Left: Brand */}
           <div className="flex-none">
             <Link
               href="/"
+              onClick={() => soundFx.playGlassTap()}
               className="font-black text-base sm:text-lg tracking-wider text-white uppercase group"
             >
               <span>SPECTRA</span>
             </Link>
           </div>
 
-          {/* 2. Middle: Infinite Looping Focal Carousel */}
+          {/* Middle: Infinite Looping Carousel */}
           <div className="flex-1 max-w-[230px] sm:max-w-md mx-auto overflow-hidden relative">
             {isUtilityPage ? (
               <div className="flex justify-center">
@@ -141,11 +140,9 @@ export const Navbar = () => {
               </div>
             ) : (
               <div className="relative flex items-center justify-center">
-                {/* Left/Right Edge Gradient Fade Masks */}
                 <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#08080c] to-transparent z-20 pointer-events-none" />
                 <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#08080c] to-transparent z-20 pointer-events-none" />
 
-                {/* Looped Pill Track */}
                 <div className="flex items-center justify-center gap-1.5 sm:gap-2 overflow-visible py-0.5">
                   {visibleCategories.map((item, index) => {
                     const CatIcon = item.icon;
@@ -155,6 +152,7 @@ export const Navbar = () => {
                       <Link
                         key={`${item.label}-${index}`}
                         href={item.href}
+                        onClick={() => soundFx.playGlassTap()}
                         className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-[11px] sm:text-xs whitespace-nowrap transition-all duration-300 select-none ${
                           isCenter
                             ? "bg-white text-black border border-white shadow-[0_0_22px_rgba(255,255,255,0.7),inset_0_1px_1px_#ffffff] scale-100 z-10 font-black"
@@ -175,7 +173,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* 3. Right: Dual-Trigger Search */}
+          {/* Right: Search */}
           <div className="flex-none relative" ref={containerRef}>
             <div
               onClick={handleSearchAction}
@@ -192,7 +190,6 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* Mini Search Popover */}
             {smallGlassOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
@@ -247,6 +244,7 @@ export const Navbar = () => {
                       <div
                         key={`${item.media_type}-${item.id}`}
                         onClick={() => {
+                          soundFx.playGlassTap();
                           setSmallGlassOpen(false);
                           router.push(`/details/${item.id}?type=${item.media_type}`);
                         }}

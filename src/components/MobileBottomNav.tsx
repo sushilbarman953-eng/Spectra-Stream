@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Home, Compass, Search, Download, User } from "lucide-react";
 import { downloadManager } from "@/lib/downloadManager";
 import { useSearch } from "@/context/SearchContext";
+import { soundFx } from "@/lib/soundFx";
 
 export const MobileBottomNav = () => {
   const pathname = usePathname();
@@ -48,6 +49,10 @@ export const MobileBottomNav = () => {
     return () => window.removeEventListener("spectra_downloads_updated", updateCount);
   }, []);
 
+  const handleNavClick = () => {
+    soundFx.playGlassTap();
+  };
+
   return (
     <nav
       className={`fixed bottom-3 left-3 right-3 z-50 md:hidden flex justify-center pointer-events-auto transition-all duration-300 ease-out ${
@@ -62,9 +67,9 @@ export const MobileBottomNav = () => {
           WebkitBackdropFilter: "blur(24px) saturate(180%)",
         }}
       >
-        {/* 1. Home */}
         <Link
           href="/"
+          onClick={handleNavClick}
           className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition ${
             pathname === "/" ? "text-white" : "text-zinc-400 hover:text-white"
           }`}
@@ -73,9 +78,9 @@ export const MobileBottomNav = () => {
           <span className="text-[9px] font-semibold">Home</span>
         </Link>
 
-        {/* 2. Explore (Dedicated Page) */}
         <Link
           href="/explore"
+          onClick={handleNavClick}
           className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition ${
             pathname === "/explore" ? "text-white" : "text-zinc-400 hover:text-white"
           }`}
@@ -84,10 +89,12 @@ export const MobileBottomNav = () => {
           <span className="text-[9px] font-semibold">Explore</span>
         </Link>
 
-        {/* 3. Center Floating Search */}
         <div className="relative -top-5 flex flex-col items-center">
           <button
-            onClick={openSearch}
+            onClick={() => {
+              soundFx.playGlassTap();
+              openSearch();
+            }}
             className="w-12 h-12 rounded-full bg-white text-black border-2 border-black flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.6)] active:scale-95 transition-transform"
             title="Open Search"
           >
@@ -98,9 +105,9 @@ export const MobileBottomNav = () => {
           </span>
         </div>
 
-        {/* 4. Downloads */}
         <Link
           href="/downloads"
+          onClick={handleNavClick}
           className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition relative ${
             pathname === "/downloads" ? "text-white" : "text-zinc-400 hover:text-white"
           }`}
@@ -116,9 +123,9 @@ export const MobileBottomNav = () => {
           <span className="text-[9px] font-semibold">Downloads</span>
         </Link>
 
-        {/* 5. Me */}
         <Link
           href="/me"
+          onClick={handleNavClick}
           className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition ${
             pathname === "/me" ? "text-white" : "text-zinc-400 hover:text-white"
           }`}

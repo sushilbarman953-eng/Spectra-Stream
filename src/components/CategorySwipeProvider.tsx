@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { soundFx } from "@/lib/soundFx";
 
 const TAB_ORDER = [
   { path: "/", index: 0 },
@@ -63,16 +64,15 @@ export const CategorySwipeProvider = ({ children }: { children: React.ReactNode 
 
       const total = TAB_ORDER.length;
 
-      // Swipe Right to Left (Finger goes left -> Next Tab, wraps from Live TV back to Home)
+      // Play tactical audio click + vibration
+      soundFx.playTabShift();
+      if (navigator.vibrate) navigator.vibrate(10);
+
       if (deltaX < 0) {
         const nextIndex = (currentIdx + 1) % total;
-        if (navigator.vibrate) navigator.vibrate(10);
         router.push(TAB_ORDER[nextIndex].path);
-      }
-      // Swipe Left to Right (Finger goes right -> Prev Tab, wraps from Home back to Live TV)
-      else if (deltaX > 0) {
+      } else if (deltaX > 0) {
         const prevIndex = (currentIdx - 1 + total) % total;
-        if (navigator.vibrate) navigator.vibrate(10);
         router.push(TAB_ORDER[prevIndex].path);
       }
     }
