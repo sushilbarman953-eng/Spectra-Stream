@@ -15,7 +15,6 @@ import {
   List,
   Sparkles,
   Loader2,
-  Calendar,
 } from "lucide-react";
 import { tmdb, MediaItem, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
 import { GlassButton } from "@/components/ui/GlassButton";
@@ -102,7 +101,7 @@ export default function DetailsPage() {
   const poster = details.poster_path ? `${IMAGE_BASE}/w500${details.poster_path}` : null;
   const year = (details.release_date || details.first_air_date || "").slice(0, 4);
 
-  // Filter Cast, Directors & Producers
+  // Cast, Directors, Producers
   const rawCast = (details.credits?.cast || []).filter((c: any) => c.profile_path || c.name);
   const cast = rawCast.slice(0, 24).map((c: any) => ({
     ...c,
@@ -130,12 +129,12 @@ export default function DetailsPage() {
   const relatedItems: MediaItem[] = details.similar?.results?.slice(0, 20) || [];
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 pb-28 space-y-5">
       
-      {/* 1. CINEMATIC HERO: BACKDROP BANNER + PRECISE SIDE-BY-SIDE POSTER & CONTROLS */}
+      {/* 1. CINEMATIC HERO SECTION */}
       <div className="relative rounded-3xl overflow-hidden border border-white/15 bg-[#09090c] shadow-2xl">
         {/* Backdrop Banner */}
-        <div className="relative w-full h-36 sm:h-56 md:h-72 bg-zinc-950">
+        <div className="relative w-full h-36 sm:h-52 bg-zinc-950">
           {backdrop && (
             <Image
               src={backdrop}
@@ -148,119 +147,120 @@ export default function DetailsPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#09090c] via-[#09090c]/80 to-transparent" />
         </div>
 
-        {/* Poster (Left) & Title + Tags + Play/List + Download (Right) */}
-        <div className="relative px-4 sm:px-6 pb-5 -mt-20 sm:-mt-28 z-10 flex flex-row items-stretch gap-3.5 sm:gap-6">
+        {/* Content Container */}
+        <div className="relative px-4 sm:px-6 pb-5 -mt-16 sm:-mt-24 z-10 space-y-4">
           
-          {/* Left: Poster */}
-          <div className="relative w-28 sm:w-40 md:w-48 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/20 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.9)] flex-none">
-            {poster ? (
-              <Image src={poster} alt={title} fill priority className="object-cover" />
-            ) : (
-              <div className="flex items-center justify-center h-full text-zinc-600 text-xs">
-                No Poster
-              </div>
-            )}
-            {details.vote_average > 0 && (
-              <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/20 text-[10px] text-white font-bold">
-                <Star className="w-2.5 h-2.5 fill-white text-white" />
-                {details.vote_average.toFixed(1)}
-              </div>
-            )}
-          </div>
+          {/* TOP ROW: Left Poster & Right Title with Tags */}
+          <div className="flex items-end gap-3.5 sm:gap-5">
+            {/* Left: Poster */}
+            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/20 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.9)] flex-none">
+              {poster ? (
+                <Image src={poster} alt={title} fill priority className="object-cover" />
+              ) : (
+                <div className="flex items-center justify-center h-full text-zinc-600 text-xs">
+                  No Poster
+                </div>
+              )}
+              {details.vote_average > 0 && (
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/85 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/20 text-[10px] text-white font-bold">
+                  <Star className="w-2.5 h-2.5 fill-white text-white" />
+                  {details.vote_average.toFixed(1)}
+                </div>
+              )}
+            </div>
 
-          {/* Right: Title, Tags, Play + Add to List, Download */}
-          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-            <div>
-              {/* Year & Type Badge */}
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-zinc-400 font-semibold mb-1">
-                <span className="px-2 py-0.5 rounded-full bg-white/10 text-white uppercase text-[9px]">
+            {/* Right: Title & Tags */}
+            <div className="flex-1 min-w-0 space-y-1.5 pb-1">
+              <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-semibold">
+                <span className="px-2 py-0.5 rounded-md bg-white/10 text-white uppercase text-[9px] font-bold">
                   {type === "tv" ? "Series" : "Movie"}
                 </span>
                 {year && <span>• {year}</span>}
               </div>
 
-              {/* Title */}
-              <h1 className="text-base sm:text-2xl font-extrabold text-white leading-tight line-clamp-2">
+              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-tight line-clamp-2">
                 {title}
               </h1>
 
-              {/* Tags beneath title */}
-              <div className="flex flex-wrap gap-1 mt-1.5">
+              {/* Tags */}
+              <div className="flex flex-wrap gap-1 pt-0.5">
                 {details.genres?.slice(0, 3).map((g: any) => (
                   <span
                     key={g.id}
-                    className="px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-medium bg-white/5 border border-white/10 text-zinc-300 truncate"
+                    className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-white/5 border border-white/10 text-zinc-300"
                   >
                     {g.name}
                   </span>
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Actions beneath Tags */}
-            <div className="space-y-1.5 pt-2 w-full max-w-[280px]">
-              {/* Play & Add to List Button side-by-side */}
-              <div className="flex items-center gap-2">
-                <Link href={`/watch/${id}?type=${type}&season=1&episode=1`} className="flex-1">
-                  <GlassButton
-                    variant="primary"
-                    className="w-full text-xs py-2 font-bold shadow-glow flex items-center justify-center gap-1.5"
-                  >
-                    <Play className="w-3.5 h-3.5 fill-black text-black" />
-                    <span>Play</span>
-                  </GlassButton>
-                </Link>
-
-                <button
-                  onClick={toggleWatchlist}
-                  title={isSaved ? "In List" : "Add to List"}
-                  className={`p-2 rounded-xl border transition flex items-center justify-center ${
-                    isSaved
-                      ? "bg-white text-black border-white shadow-glow"
-                      : "bg-white/10 text-white border-white/20 hover:bg-white/20"
-                  }`}
+          {/* BENEATH ROW: Full-Width Actions (Play + [+] on top, Download directly underneath) */}
+          <div className="space-y-2 pt-1 w-full">
+            <div className="flex items-center gap-2 w-full">
+              {/* Play Button */}
+              <Link href={`/watch/${id}?type=${type}&season=1&episode=1`} className="flex-1">
+                <GlassButton
+                  variant="primary"
+                  className="w-full text-xs py-2.5 font-bold shadow-glow flex items-center justify-center gap-1.5"
                 >
-                  {isSaved ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
-                </button>
-              </div>
+                  <Play className="w-3.5 h-3.5 fill-black text-black" />
+                  <span>Play</span>
+                </GlassButton>
+              </Link>
 
-              {/* Download Button directly beneath Play & Add to List */}
+              {/* Add to List (+) Button */}
               <button
-                onClick={() => setDownloadModalOpen(true)}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-zinc-200 border border-white/15 hover:bg-white/20 hover:text-white transition"
+                onClick={toggleWatchlist}
+                title={isSaved ? "In List" : "Add to List"}
+                className={`p-2.5 rounded-xl border transition flex items-center justify-center flex-none ${
+                  isSaved
+                    ? "bg-white text-black border-white shadow-glow"
+                    : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                }`}
               >
-                <Download className="w-3.5 h-3.5 text-zinc-300" />
-                <span>Download</span>
+                {isSaved ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
               </button>
             </div>
+
+            {/* Download Button (Spans full width beneath Play & Add) */}
+            <button
+              onClick={() => setDownloadModalOpen(true)}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-white/10 text-zinc-200 border border-white/15 hover:bg-white/20 hover:text-white transition"
+            >
+              <Download className="w-3.5 h-3.5 text-zinc-300" />
+              <span>Download</span>
+            </button>
           </div>
+
         </div>
       </div>
 
-      {/* 2. STORYLINE / OVERVIEW */}
+      {/* 2. STORYLINE */}
       <div className="space-y-1.5 px-1">
         <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
-        <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-4xl line-clamp-3">
+        <p className="text-xs text-zinc-300 leading-relaxed line-clamp-3">
           {details.overview || "Stream this title now on Spectra."}
         </p>
       </div>
 
       {/* 3. PEOPLE SECTION: Horizontal Carousel & List Mode Toggle */}
-      <div className="space-y-3 pt-3 border-t border-white/10">
+      <div className="space-y-3 pt-2 border-t border-white/10">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-white" />
-            <h3 className="text-sm sm:text-base font-bold text-white">Cast & Crew</h3>
+            <h3 className="text-sm font-bold text-white">Cast & Crew</h3>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Category Filter Pills */}
+          <div className="flex items-center gap-1.5">
+            {/* Category Pills */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
               {(["cast", "director", "producer"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setPeopleTab(tab)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold capitalize transition ${
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold capitalize transition ${
                     peopleTab === tab
                       ? "bg-white text-black shadow-glow font-bold"
                       : "text-zinc-400 hover:text-white"
@@ -271,7 +271,7 @@ export default function DetailsPage() {
               ))}
             </div>
 
-            {/* View Switcher: Carousel (Grid icon) vs List Mode */}
+            {/* View Switcher: Carousel vs List */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
               <button
                 onClick={() => setPeopleView("grid")}
@@ -280,7 +280,7 @@ export default function DetailsPage() {
                     ? "bg-white text-black shadow-glow"
                     : "text-zinc-400 hover:text-white"
                 }`}
-                title="Horizontal Carousel"
+                title="Carousel"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
               </button>
@@ -291,7 +291,7 @@ export default function DetailsPage() {
                     ? "bg-white text-black shadow-glow"
                     : "text-zinc-400 hover:text-white"
                 }`}
-                title="List Mode"
+                title="List"
               >
                 <List className="w-3.5 h-3.5" />
               </button>
@@ -299,9 +299,8 @@ export default function DetailsPage() {
           </div>
         </div>
 
-        {/* Display: Horizontal Carousel or Stacked List Mode */}
+        {/* Carousel Mode vs List Mode */}
         {peopleView === "grid" ? (
-          /* Horizontal Carousel */
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2 pt-1">
             {activePeopleList.map((person: any, idx: number) => {
               const photo = person.profile_path
@@ -311,7 +310,7 @@ export default function DetailsPage() {
               return (
                 <div
                   key={`${person.id}-${idx}`}
-                  className="flex-none w-28 sm:w-32 flex flex-col items-center text-center p-2.5 rounded-2xl border border-white/10 bg-[#0e0e13]/80 hover:border-white/25 transition group"
+                  className="flex-none w-28 flex flex-col items-center text-center p-2.5 rounded-2xl border border-white/10 bg-[#0e0e13]/80 hover:border-white/25 transition group"
                 >
                   <div className="relative w-14 h-14 rounded-full overflow-hidden bg-zinc-900 border border-white/15 flex-none mb-1.5">
                     {photo ? (
@@ -329,7 +328,6 @@ export default function DetailsPage() {
             })}
           </div>
         ) : (
-          /* List Mode */
           <div className="max-h-64 overflow-y-auto no-scrollbar space-y-1.5 pr-1">
             {activePeopleList.map((person: any, idx: number) => {
               const photo = person.profile_path
@@ -363,16 +361,15 @@ export default function DetailsPage() {
         )}
       </div>
 
-      {/* 4. MORE LIKE THIS: TWO ROWS */}
+      {/* 4. MORE LIKE THIS: 2-ROW HORIZONTAL SWIPE */}
       {relatedItems.length > 0 && (
-        <div className="space-y-3 pt-3 border-t border-white/10">
+        <div className="space-y-2.5 pt-2 border-t border-white/10">
           <div className="flex items-center gap-2 px-1">
             <Sparkles className="w-4 h-4 text-white" />
-            <h3 className="text-sm sm:text-base font-bold text-white">More Like This</h3>
+            <h3 className="text-sm font-bold text-white">More Like This</h3>
           </div>
 
-          {/* 2-Row Horizontal Swipe Shelf */}
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[115px] sm:auto-cols-[145px] gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[105px] sm:auto-cols-[130px] gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
             {relatedItems.map((item) => {
               const itemTitle = item.title || item.name || "Untitled";
               const itemPoster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
@@ -389,7 +386,7 @@ export default function DetailsPage() {
                           src={itemPoster}
                           alt={itemTitle}
                           fill
-                          sizes="150px"
+                          sizes="130px"
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
@@ -403,7 +400,7 @@ export default function DetailsPage() {
                       </div>
                     </div>
                     <div className="p-1.5 bg-black/60">
-                      <h4 className="text-[10px] sm:text-[11px] font-semibold text-white truncate">{itemTitle}</h4>
+                      <h4 className="text-[10px] font-semibold text-white truncate">{itemTitle}</h4>
                     </div>
                   </GlassCard>
                 </Link>
