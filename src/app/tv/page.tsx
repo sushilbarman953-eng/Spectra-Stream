@@ -116,7 +116,7 @@ export default function LiveTvPage() {
         <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.04] border border-white/10">
           <div className="flex items-center gap-3">
             <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-zinc-900 border border-white/20">
-          <Image
+          <Image unoptimized
             src={selectedChannel.logo}
               alt={selectedChannel.name}
                 fill
@@ -186,7 +186,7 @@ export default function LiveTvPage() {
                   }`}
                 >
                   <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-zinc-950 border border-white/15 flex-none">
-                    <Image
+                    <Image unoptimized
                       src={channel.logo}
                       alt={channel.name}
                       fill
