@@ -37,7 +37,7 @@ export const tmdb = {
     return data.results || [];
   },
 
-  // 2. Discover Media by Genre (Required by movies & series pages)
+  // 2. Discover Media by Genre
   discoverMedia: async (type: "movie" | "tv", genreId?: number, page = 1) => {
     const genreParam = genreId ? `&with_genres=${genreId}` : "";
     const res = await fetch(
@@ -73,7 +73,7 @@ export const tmdb = {
     return res.json();
   },
 
-  // 4. Popular & Top Rated Catalogs
+  // 4. Popular & Top Rated Catalogs (Both getPopularSeries & getPopularTV supported)
   getPopularMovies: async (page = 1) => {
     const res = await fetch(
       `${BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&region=IN&page=${page}`,
@@ -84,6 +84,16 @@ export const tmdb = {
   },
 
   getPopularSeries: async (page = 1) => {
+    const res = await fetch(
+      `${BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=${page}`,
+      { next: { revalidate: 3600 } }
+    );
+    const data = await res.json();
+    return data.results || [];
+  },
+
+  // Alias for legacy pages calling getPopularTV
+  getPopularTV: async (page = 1) => {
     const res = await fetch(
       `${BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=${page}`,
       { next: { revalidate: 3600 } }
