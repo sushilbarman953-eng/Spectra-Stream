@@ -29,12 +29,17 @@ import {
   Check,
   Compass,
   Settings,
-  Vibrate,
   MonitorPlay,
   Database,
   RotateCcw,
-  Sliders,
   CheckCircle2,
+  Share2,
+  Edit2,
+  Camera,
+  Bot,
+  Skull,
+  Eye,
+  Tv,
 } from "lucide-react";
 import { watchlistManager, WatchlistItem } from "@/lib/watchlistManager";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
@@ -43,13 +48,34 @@ import { IMAGE_BASE } from "@/lib/tmdb";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { soundFx } from "@/lib/soundFx";
 
+// 8 Curated monochrome aesthetic avatars
+const AVATARS = [
+  { id: "ghost", label: "Spectre", icon: User },
+  { id: "cyber", label: "Cyber Ronin", icon: Bot },
+  { id: "noir", label: "Film Noir", icon: Eye },
+  { id: "skull", label: "Reaper", icon: Skull },
+  { id: "cinema", label: "Director", icon: Film },
+  { id: "vintage", label: "Broadcast", icon: Tv },
+  { id: "spark", label: "Astral", icon: Sparkles },
+  { id: "sound", label: "Acoustic", icon: Disc3 },
+];
+
 export default function MePage() {
   const [activeTab, setActiveTab] = useState<"watchlist" | "history">("watchlist");
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [history, setHistory] = useState<WatchProgressItem[]>([]);
   const [downloadCount, setDownloadCount] = useState<number>(0);
 
-  // Audio & Modals
+  // Profile customization
+  const [avatarId, setAvatarId] = useState<string>("ghost");
+  const [userName, setUserName] = useState<string>("Spectra Member");
+  const [isEditingName, setIsEditingName] = useState<boolean>(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState<boolean>(false);
+
+  // Share URL state
+  const [shareCopied, setShareCopied] = useState<boolean>(false);
+
+  // Settings & Audio
   const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
   const [hapticsEnabled, setHapticsEnabled] = useState<boolean>(true);
   const [showAudioLab, setShowAudioLab] = useState<boolean>(false);
@@ -58,7 +84,7 @@ export default function MePage() {
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Settings Preferences States (persisted in localStorage)
+  // Preferences
   const [defaultQuality, setDefaultQuality] = useState<string>("auto");
   const [autoNextEp, setAutoNextEp] = useState<boolean>(true);
   const [storageUsed, setStorageUsed] = useState<string>("0 KB");
@@ -71,7 +97,13 @@ export default function MePage() {
       setDownloadCount(downloadManager.getAll().length);
       setAudioEnabled(soundFx.isEnabled());
 
-      // Load persistent settings
+      // Load Profile info
+      const savedAvatar = localStorage.getItem("spectra_avatar_id");
+      const savedName = localStorage.getItem("spectra_user_name");
+      if (savedAvatar) setAvatarId(savedAvatar);
+      if (savedName) setUserName(savedName);
+
+      // Load Preferences
       const savedQuality = localStorage.getItem("spectra_pref_quality") || "auto";
       const savedAutoNext = localStorage.getItem("spectra_pref_autonext");
       const savedHaptics = localStorage.getItem("spectra_pref_haptics");
@@ -80,7 +112,6 @@ export default function MePage() {
       setAutoNextEp(savedAutoNext !== null ? savedAutoNext === "true" : true);
       setHapticsEnabled(savedHaptics !== null ? savedHaptics === "true" : true);
 
-      // Estimate LocalStorage Usage
       calculateStorageUsage();
     };
 
@@ -118,6 +149,58 @@ export default function MePage() {
     }
   };
 
+  const handleSelectAvatar = (id: string) => {
+    soundFx.playCinematicPop();
+    setAvatarId(id);
+    localStorage.setItem("spectra_avatar_id", id);
+    setShowAvatarPicker(false);
+  };
+
+  const handleSaveName = (newName: string) => {
+    const trimmed = newName.trim() || "Spectra Member";
+    setUserName(trimmed);
+    localStorage.setItem("spectra_user_name", trimmed);
+    setIsEditingName(false);
+  };
+
+  // Generate 1-Click Shareable Watchlist URL
+  const handleShareWatchlist = () => {
+    soundFx.playCinematicPop();
+    if (watchlist.length === 0) {
+      alert("Add at least one title to your list before sharing!");
+      return;
+    }
+
+    try {
+      // Lightweight serialization of list items
+      const serialized = watchlist.map((item) => ({
+        id: item.id,
+        title: item.title,
+        type: item.type,
+        posterPath: item.posterPath,
+        voteAverage: item.voteAverage,
+      }));
+
+      // Base64 encode string safely
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(serialized))));
+      const shareUrl = `${window.location.origin}/share?list=${encoded}`;
+
+      navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2200);
+
+      if (navigator.share) {
+        navigator.share({
+          title: `${userName}'s Spectra Watchlist`,
+          text: `Check out my curated watchlist on Spectra Cinema (${watchlist.length} titles)!`,
+          url: shareUrl,
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.error("Share generation error:", e);
+    }
+  };
+
   const toggleSoundMaster = () => {
     const next = !audioEnabled;
     soundFx.setEnabled(next);
@@ -148,7 +231,6 @@ export default function MePage() {
 
   const handleClearCache = () => {
     soundFx.playCinematicPop();
-    // Clears search/query keys without removing watchlist/history
     try {
       Object.keys(localStorage).forEach((key) => {
         if (key.startsWith("tmdb_") || key.startsWith("search_cache_")) {
@@ -162,7 +244,7 @@ export default function MePage() {
   };
 
   const handleFactoryReset = () => {
-    if (confirm("Are you sure? This will reset all favorites, watch progress, and custom preferences.")) {
+    if (confirm("Are you sure? This will reset your watchlist, history, and preferences.")) {
       soundFx.playCinematicWhoosh();
       localStorage.clear();
       window.location.reload();
@@ -182,6 +264,8 @@ export default function MePage() {
     const backup = {
       version: "1.0",
       timestamp: new Date().toISOString(),
+      userName,
+      avatarId,
       watchlist,
       history,
     };
@@ -210,6 +294,9 @@ export default function MePage() {
   };
 
   const resumeItem = history[0];
+
+  const currentAvatar = AVATARS.find((a) => a.id === avatarId) || AVATARS[0];
+  const AvatarIcon = currentAvatar.icon;
 
   const SOUND_EFFECTS = [
     {
@@ -246,22 +333,53 @@ export default function MePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-3 pb-28 space-y-5">
-      {/* 1. SPECTRAL PROFILE CARD */}
+      {/* 1. SPECTRAL PROFILE CARD WITH INTERACTIVE AVATAR SELECTOR */}
       <GlassCard className="p-4 sm:p-5 rounded-3xl border border-white/15 bg-[#0e0e14]/75 relative overflow-hidden shadow-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            {/* Avatar with Ambient Glow Ring */}
-            <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-white/70 via-white/10 to-white/40 shadow-[0_0_20px_rgba(255,255,255,0.25)] flex-none">
-              <div className="w-full h-full rounded-full bg-[#08080c] flex items-center justify-center text-white">
-                <User className="w-6 h-6 stroke-[2.2]" />
+            {/* Interactive Tap-to-Change Avatar */}
+            <div
+              onClick={() => {
+                soundFx.playCinematicPop();
+                setShowAvatarPicker(true);
+              }}
+              className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-white/70 via-white/10 to-white/40 shadow-[0_0_20px_rgba(255,255,255,0.25)] flex-none cursor-pointer group active:scale-95 transition-transform"
+              title="Tap to change avatar"
+            >
+              <div className="w-full h-full rounded-full bg-[#08080c] flex items-center justify-center text-white relative overflow-hidden">
+                <AvatarIcon className="w-6 h-6 stroke-[2.2] group-hover:scale-90 transition-transform" />
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                  <Camera className="w-4 h-4 text-white" />
+                </div>
               </div>
             </div>
 
             <div className="space-y-1">
+              {/* Editable User Name */}
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-white tracking-wide">
-                  Spectra Member
-                </h2>
+                {isEditingName ? (
+                  <input
+                    type="text"
+                    defaultValue={userName}
+                    autoFocus
+                    onBlur={(e) => handleSaveName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveName((e.target as HTMLInputElement).value);
+                    }}
+                    className="text-sm font-black text-white bg-white/10 px-2 py-0.5 rounded border border-white/20 focus:outline-none"
+                  />
+                ) : (
+                  <div
+                    onClick={() => setIsEditingName(true)}
+                    className="flex items-center gap-1.5 cursor-pointer group"
+                    title="Tap to rename"
+                  >
+                    <h2 className="text-base sm:text-lg font-black text-white tracking-wide group-hover:text-zinc-300 transition">
+                      {userName}
+                    </h2>
+                    <Edit2 className="w-3 h-3 text-zinc-500 group-hover:text-white transition" />
+                  </div>
+                )}
                 <Sparkles className="w-3.5 h-3.5 text-white/80" />
               </div>
 
@@ -276,8 +394,27 @@ export default function MePage() {
             </div>
           </div>
 
-          {/* Quick Header Actions: Settings Cog, Support, Offline Hub */}
+          {/* Quick Header Actions: Share, Support, Downloads, Settings */}
           <div className="flex items-center gap-2 self-start sm:self-center">
+            {/* 1-Click Share Watchlist Trigger */}
+            <button
+              onClick={handleShareWatchlist}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition active:scale-95 shadow-glow"
+              title="Share Watchlist"
+            >
+              {shareCopied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 stroke-[3] text-emerald-400" />
+                  <span className="text-emerald-400">Link Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Share List</span>
+                </>
+              )}
+            </button>
+
             {/* Support / Donations Trigger */}
             <button
               onClick={() => {
@@ -300,7 +437,7 @@ export default function MePage() {
               <Download className="w-3.5 h-3.5" />
             </Link>
 
-            {/* NEW: SETTINGS BUTTON (Opens full settings sheet) */}
+            {/* Settings Cog */}
             <button
               onClick={() => {
                 soundFx.playCinematicWhoosh();
@@ -315,7 +452,54 @@ export default function MePage() {
         </div>
       </GlassCard>
 
-      {/* 2. RESUME QUICK SHELF */}
+      {/* 2. AVATAR PICKER MODAL */}
+      {showAvatarPicker && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-200">
+          <div className="relative w-full max-w-sm rounded-3xl p-5 bg-[#0c0c14]/95 border border-white/20 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-white" />
+                <h3 className="text-sm font-bold text-white">Choose Profile Avatar</h3>
+              </div>
+              <button
+                onClick={() => {
+                  soundFx.playCinematicPop();
+                  setShowAvatarPicker(false);
+                }}
+                className="p-1 rounded-full text-zinc-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2.5">
+              {AVATARS.map((av) => {
+                const Icon = av.icon;
+                const isSelected = avatarId === av.id;
+
+                return (
+                  <button
+                    key={av.id}
+                    onClick={() => handleSelectAvatar(av.id)}
+                    className={`p-3 rounded-2xl flex flex-col items-center gap-1.5 border transition-all active:scale-95 ${
+                      isSelected
+                        ? "bg-white text-black border-white shadow-glow scale-105"
+                        : "bg-white/5 hover:bg-white/10 text-white border-white/10"
+                    }`}
+                  >
+                    <Icon className="w-6 h-6" />
+                    <span className="text-[9px] font-bold truncate max-w-full">
+                      {av.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. RESUME QUICK SHELF */}
       {resumeItem && (
         <div className="p-3 sm:p-3.5 rounded-2xl border border-white/15 bg-[#0c0c12]/90 flex items-center justify-between gap-3 shadow-lg">
           <div className="flex items-center gap-3 min-w-0">
@@ -369,7 +553,7 @@ export default function MePage() {
         </div>
       )}
 
-      {/* 3. COLLAPSIBLE ACOUSTIC LAB */}
+      {/* 4. COLLAPSIBLE ACOUSTIC LAB */}
       <div className="border border-white/10 rounded-2xl bg-[#0a0a0f]/60 overflow-hidden">
         <button
           onClick={() => {
@@ -423,7 +607,7 @@ export default function MePage() {
         )}
       </div>
 
-      {/* 4. TABS STRIP */}
+      {/* 5. TABS STRIP */}
       <div className="flex items-center justify-between border-b border-white/10 pb-3">
         <div className="flex items-center gap-2">
           <button
@@ -479,7 +663,7 @@ export default function MePage() {
         </div>
       </div>
 
-      {/* 5. WATCHLIST VIEW */}
+      {/* 6. WATCHLIST VIEW */}
       {activeTab === "watchlist" && (
         <div>
           {watchlist.length === 0 ? (
@@ -560,7 +744,7 @@ export default function MePage() {
         </div>
       )}
 
-      {/* 6. HISTORY VIEW */}
+      {/* 7. HISTORY VIEW */}
       {activeTab === "history" && (
         <div className="space-y-2">
           {history.length === 0 ? (
@@ -615,12 +799,11 @@ export default function MePage() {
         </div>
       )}
 
-      {/* 7. SETTINGS MODAL / SLIDING SHEET */}
+      {/* 8. SETTINGS MODAL */}
       {showSettingsModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-200">
           <div className="relative w-full max-w-md rounded-3xl p-5 bg-[#0a0a0f]/95 border border-white/20 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto no-scrollbar">
             
-            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-white" />
@@ -637,7 +820,7 @@ export default function MePage() {
               </button>
             </div>
 
-            {/* Section 1: Audio & Haptics */}
+            {/* Acoustics */}
             <div className="space-y-2.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                 <Volume2 className="w-3.5 h-3.5 text-white" />
@@ -645,7 +828,6 @@ export default function MePage() {
               </span>
 
               <div className="space-y-2 p-3 rounded-2xl bg-white/[0.03] border border-white/10">
-                {/* Audio Master */}
                 <div className="flex items-center justify-between">
                   <div>
                     <h5 className="text-xs font-bold text-white">Synthesizer Sound Effects</h5>
@@ -665,7 +847,6 @@ export default function MePage() {
                   </button>
                 </div>
 
-                {/* Haptics */}
                 <div className="flex items-center justify-between pt-2 border-t border-white/5">
                   <div>
                     <h5 className="text-xs font-bold text-white">Device Haptic Vibrations</h5>
@@ -687,7 +868,7 @@ export default function MePage() {
               </div>
             </div>
 
-            {/* Section 2: Video Player Preferences */}
+            {/* Playback */}
             <div className="space-y-2.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                 <MonitorPlay className="w-3.5 h-3.5 text-white" />
@@ -695,7 +876,6 @@ export default function MePage() {
               </span>
 
               <div className="space-y-3 p-3 rounded-2xl bg-white/[0.03] border border-white/10">
-                {/* Default Quality Selector */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center text-xs">
                     <span className="font-bold text-white">Default Resolution</span>
@@ -718,7 +898,6 @@ export default function MePage() {
                   </div>
                 </div>
 
-                {/* Autoplay Next Episode */}
                 <div className="flex items-center justify-between pt-2 border-t border-white/5">
                   <div>
                     <h5 className="text-xs font-bold text-white">Auto-Play Next Episode</h5>
@@ -740,7 +919,7 @@ export default function MePage() {
               </div>
             </div>
 
-            {/* Section 3: Storage & Cache Management */}
+            {/* Storage */}
             <div className="space-y-2.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
                 <Database className="w-3.5 h-3.5 text-white" />
@@ -786,7 +965,6 @@ export default function MePage() {
               </div>
             </div>
 
-            {/* Footer Build Info */}
             <div className="pt-2 text-center space-y-0.5 border-t border-white/10">
               <p className="text-[10px] text-zinc-400 font-mono">Spectra Cinema Engine • v2.4.0</p>
               <p className="text-[9px] text-zinc-600">Client Build #2026.09 • PWA Enabled</p>
@@ -795,7 +973,7 @@ export default function MePage() {
         </div>
       )}
 
-      {/* 8. SUPPORT / DONATIONS MODAL */}
+      {/* 9. SUPPORT / DONATIONS MODAL */}
       {showDonationModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-2xl animate-in fade-in duration-200">
           <div className="relative w-full max-w-sm rounded-3xl p-5 bg-[#0c0c14]/95 border border-white/20 shadow-2xl space-y-4">
