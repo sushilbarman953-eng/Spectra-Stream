@@ -42,7 +42,7 @@ export default function RootLayout({
         <ServiceWorkerRegister />
         <SearchProvider>
           <Navbar />
-          <main className="pt-24">
+          <main className="pt-20">
             {children}
           </main>
           <SearchModal />

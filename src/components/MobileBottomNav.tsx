@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Compass, Search, Download, User } from "lucide-react";
@@ -11,6 +11,36 @@ export const MobileBottomNav = () => {
   const pathname = usePathname();
   const { openSearch } = useSearch();
   const [downloadCount, setDownloadCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // At the top of the page, always show
+      if (currentScrollY < 30) {
+        setIsVisible(true);
+        lastScrollY.current = currentScrollY;
+        return;
+      }
+
+      // Scrolling Down -> Hide Bottom Bar
+      if (currentScrollY > lastScrollY.current + 8) {
+        setIsVisible(false);
+      } 
+      // Scrolling Up -> Show Bottom Bar
+      else if (currentScrollY < lastScrollY.current - 8) {
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const updateCount = () => {
@@ -24,8 +54,14 @@ export const MobileBottomNav = () => {
   }, []);
 
   return (
-    <nav className="fixed bottom-3 left-3 right-3 z-50 md:hidden flex justify-center pointer-events-auto">
-      <div 
+    <nav
+      className={`fixed bottom-3 left-3 right-3 z-50 md:hidden flex justify-center pointer-events-auto transition-all duration-300 ease-out ${
+        isVisible
+          ? "translate-y-0 opacity-100"
+          : "translate-y-28 opacity-0 pointer-events-none"
+      }`}
+    >
+      <div
         className="w-full max-w-md flex items-center justify-around py-1.5 px-2 rounded-2xl border border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.35)] relative"
         style={{
           background: "rgba(10, 10, 15, 0.75)",
