@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
-import { Search, Sparkles, Film, Tv, Radio, Flame, X, Star } from "lucide-react";
+import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Star, Maximize2 } from "lucide-react";
 import { useSearch } from "@/context/SearchContext";
 import { IMAGE_BASE } from "@/lib/tmdb";
 
@@ -22,14 +22,14 @@ export const Navbar = () => {
   const { openSearch } = useSearch();
 
   const [isScrolled, setIsScrolled] = useState(false);
-  const [inlineSearchOpen, setInlineSearchOpen] = useState(false);
+  const [smallGlassOpen, setSmallGlassOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -40,21 +40,18 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close inline search when clicking outside
+  // Close small glass popover on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        searchContainerRef.current &&
-        !searchContainerRef.current.contains(e.target as Node)
-      ) {
-        setInlineSearchOpen(false);
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setSmallGlassOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Debounced search for inline input
+  // Quick live query
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -68,33 +65,38 @@ export const Navbar = () => {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
         if (res.ok) {
           const data = await res.json();
-          setResults((data.results || []).slice(0, 6));
+          setResults((data.results || []).slice(0, 5));
         }
       } catch (err) {
-        console.error("Inline search error:", err);
+        console.error("Search error:", err);
       } finally {
         setLoading(false);
       }
-    }, 250);
+    }, 220);
 
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Dual-action click handler (Single vs Double click)
-  const handleSearchClick = () => {
+  // Click Handler: Single tap opens small glass popover, double tap launches fullscreen search
+  const handleSearchAction = (e: React.MouseEvent) => {
+    e.stopPropagation();
+
     if (clickTimer.current) {
-      // DOUBLE CLICK DETECTED: Open Fullscreen Drawer (bottom drawer behavior)
+      // 2 TAPS -> Open Fullscreen Search Page
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
-      setInlineSearchOpen(false);
+      setSmallGlassOpen(false);
       openSearch();
     } else {
-      // SINGLE CLICK DETECTED: Open original Inline Dropdown Search
+      // 1 TAP -> Open Small Frosted Glass Popup
       clickTimer.current = setTimeout(() => {
         clickTimer.current = null;
-        setInlineSearchOpen(true);
-        setTimeout(() => inputRef.current?.focus(), 100);
-      }, 280);
+        setSmallGlassOpen((prev) => {
+          const next = !prev;
+          if (next) setTimeout(() => inputRef.current?.focus(), 120);
+          return next;
+        });
+      }, 260);
     }
   };
 
@@ -113,7 +115,8 @@ export const Navbar = () => {
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         {/* 3-Column Top Bar */}
         <div className="grid grid-cols-3 items-center h-10">
-          {/* 1. Left: Brand with Luminous Dot */}
+          
+          {/* 1. Left: Brand */}
           <div className="flex items-center gap-1.5 justify-start">
             <Link
               href="/"
@@ -137,109 +140,127 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* 3. Right: Dual-Trigger Search Button */}
-          <div className="flex justify-end" ref={searchContainerRef}>
-            <button
-              onClick={handleSearchClick}
-              className={`flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-full border transition select-none active:scale-95 ${
-                inlineSearchOpen
+          {/* 3. Right: Original Frosted Glass Search Capsule */}
+          <div className="flex justify-end relative" ref={containerRef}>
+            <div
+              onClick={handleSearchAction}
+              className={`flex items-center gap-2 py-1.5 px-3 rounded-full border transition-all cursor-pointer select-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] active:scale-95 ${
+                smallGlassOpen
                   ? "bg-white text-black border-white shadow-glow"
-                  : "bg-white/[0.06] hover:bg-white/[0.12] border-white/15 text-zinc-300 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]"
+                  : "bg-white/[0.07] hover:bg-white/[0.12] border-white/15 text-zinc-300"
               }`}
-              title="1-tap: Quick search | 2-taps: Fullscreen search"
+              title="Tap 1x: Mini Glass Search | Tap 2x: Fullscreen Search"
             >
-              <Search className={`w-3.5 h-3.5 ${inlineSearchOpen ? "text-black" : "text-zinc-300"}`} />
-              <span className="text-[10px] sm:text-xs font-semibold tracking-wide">
-                {inlineSearchOpen ? "Close" : "Search"}
+              <Search className={`w-3.5 h-3.5 ${smallGlassOpen ? "text-black" : "text-zinc-400"}`} />
+              <span className={`text-[10px] sm:text-xs font-medium ${smallGlassOpen ? "text-black font-bold" : "text-zinc-400"}`}>
+                Search..
               </span>
-            </button>
-          </div>
-        </div>
-
-        {/* INLINE QUICK SEARCH DROPDOWN (Triggered by 1 Tap) */}
-        {inlineSearchOpen && (
-          <div
-            ref={searchContainerRef}
-            className="pt-2 animate-in fade-in slide-in-from-top-2 duration-200 relative"
-          >
-            <div className="relative flex items-center">
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Quick title search..."
-                className="w-full py-2 pl-9 pr-8 rounded-2xl text-xs text-white placeholder-zinc-400 bg-white/[0.08] backdrop-blur-2xl border border-white/20 focus:outline-none focus:border-white shadow-[0_4px_20px_rgba(0,0,0,0.5)] transition"
-              />
-              <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 pointer-events-none" />
-              {query && (
-                <button
-                  onClick={() => {
-                    setQuery("");
-                    setResults([]);
-                  }}
-                  className="absolute right-2.5 p-1 rounded-full text-zinc-400 hover:text-white"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* Quick Autocomplete Results Card */}
-            {(results.length > 0 || loading) && (
-              <div className="absolute top-full left-0 right-0 mt-2 p-2 rounded-2xl bg-[#09090e]/95 backdrop-blur-2xl border border-white/20 shadow-2xl space-y-1.5 z-50 max-h-72 overflow-y-auto no-scrollbar">
-                {loading && (
-                  <div className="py-3 text-center text-xs text-zinc-400">
-                    Searching Spectra...
-                  </div>
-                )}
-                {results.map((item) => {
-                  const itemTitle = item.title || item.name || "Untitled";
-                  const year = (item.release_date || item.first_air_date || "").slice(0, 4);
-                  const poster = item.poster_path ? `${IMAGE_BASE}/w92${item.poster_path}` : null;
-
-                  return (
-                    <div
-                      key={`${item.media_type}-${item.id}`}
+            {/* SMALL FROSTED GLASS SEARCH POPOVER (1-Tap Floating Modal) */}
+            {smallGlassOpen && (
+              <div
+                className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.25)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Mini Glass Input */}
+                <div className="relative flex items-center">
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 pointer-events-none" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search movies, anime..."
+                    className="w-full py-1.5 pl-8 pr-14 rounded-xl text-xs text-white placeholder-zinc-400 bg-white/10 border border-white/20 focus:outline-none focus:border-white transition"
+                  />
+                  <div className="absolute right-2 flex items-center gap-1">
+                    {query && (
+                      <button
+                        onClick={() => {
+                          setQuery("");
+                          setResults([]);
+                        }}
+                        className="p-0.5 rounded-full text-zinc-400 hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
                       onClick={() => {
-                        setInlineSearchOpen(false);
-                        setQuery("");
-                        router.push(`/details/${item.id}?type=${item.media_type}`);
+                        setSmallGlassOpen(false);
+                        openSearch();
                       }}
-                      className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white/10 cursor-pointer transition border border-transparent hover:border-white/15"
+                      className="p-1 rounded text-zinc-400 hover:text-white"
+                      title="Expand to Fullscreen"
                     >
-                      <div className="relative w-8 h-10 rounded-lg overflow-hidden bg-zinc-950 flex-none border border-white/10">
-                        {poster ? (
-                          <Image src={poster} alt={itemTitle} fill className="object-cover" />
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-[8px] text-zinc-600">N/A</div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-bold text-white truncate">{itemTitle}</h4>
-                        <div className="flex items-center gap-1.5 text-[9px] text-zinc-400">
-                          <span className="uppercase font-semibold px-1 py-0.2 rounded bg-white/10 text-zinc-300">
-                            {item.media_type === "tv" ? "Series" : "Movie"}
-                          </span>
-                          {year && <span>{year}</span>}
-                          {item.vote_average > 0 && (
-                            <span className="flex items-center gap-0.5 text-zinc-200">
-                              <Star className="w-2 h-2 fill-white text-white" />
-                              {item.vote_average.toFixed(1)}
-                            </span>
+                      <Maximize2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Instant Suggestions */}
+                <div className="max-h-56 overflow-y-auto no-scrollbar space-y-1">
+                  {loading && (
+                    <div className="py-3 text-center text-[10px] text-zinc-400">
+                      Searching...
+                    </div>
+                  )}
+
+                  {!loading && query && results.length === 0 && (
+                    <div className="py-3 text-center text-[10px] text-zinc-500">
+                      No results found
+                    </div>
+                  )}
+
+                  {results.map((item) => {
+                    const itemTitle = item.title || item.name || "Untitled";
+                    const poster = item.poster_path ? `${IMAGE_BASE}/w92${item.poster_path}` : null;
+
+                    return (
+                      <div
+                        key={`${item.media_type}-${item.id}`}
+                        onClick={() => {
+                          setSmallGlassOpen(false);
+                          router.push(`/details/${item.id}?type=${item.media_type}`);
+                        }}
+                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition cursor-pointer border border-transparent hover:border-white/10 group"
+                      >
+                        <div className="relative w-7 h-9 rounded-md overflow-hidden bg-zinc-950 flex-none border border-white/10">
+                          {poster ? (
+                            <Image src={poster} alt={itemTitle} fill className="object-cover" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-[8px] text-zinc-600">N/A</div>
                           )}
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-[11px] font-bold text-white truncate group-hover:text-zinc-200">
+                            {itemTitle}
+                          </h4>
+                          <div className="flex items-center gap-1.5 text-[9px] text-zinc-400">
+                            <span className="uppercase font-semibold px-1 py-0.2 rounded bg-white/10 text-zinc-300">
+                              {item.media_type === "tv" ? "TV" : "Movie"}
+                            </span>
+                            {item.vote_average > 0 && (
+                              <span className="flex items-center gap-0.5 text-zinc-200">
+                                <Star className="w-2 h-2 fill-white text-white" />
+                                {item.vote_average.toFixed(1)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {/* Sub-bar Category Pills (At top of feed) */}
-        {!isScrolled && !inlineSearchOpen && (
+        {/* Sub-bar Category Pills (Visible at top of feed) */}
+        {!isScrolled && (
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 animate-in fade-in slide-in-from-top-2 duration-300">
             {CATEGORIES.map((cat) => {
               const isActive = pathname === cat.href;
