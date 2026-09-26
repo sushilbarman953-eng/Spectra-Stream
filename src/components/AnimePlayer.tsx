@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Play, RotateCw, Volume2, Sparkles, Check, FastForward } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Play, RotateCw, FastForward, Check, StepForward } from "lucide-react";
 import { GlassButton } from "@/components/ui/GlassButton";
+import { watchProgress } from "@/lib/watchProgress";
 
 interface AnimePlayerProps {
   tmdbId: string;
   animeTitle: string;
+  season?: number;
   episode: number;
   totalEpisodes?: number;
   onNextEpisode?: () => void;
@@ -15,48 +17,116 @@ interface AnimePlayerProps {
 export const AnimePlayer = ({
   tmdbId,
   animeTitle,
+  season = 1,
   episode,
   totalEpisodes,
   onNextEpisode,
 }: AnimePlayerProps) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [audioMode, setAudioMode] = useState<"sub" | "dub">("sub");
   const [currentServer, setCurrentServer] = useState(0);
+
+  // Auto-Next State
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [countdown, setCountdown] = useState(10);
 
-  const cleanTitle = encodeURIComponent(animeTitle.toLowerCase().replace(/[^a-z0-9 ]/g, ""));
+  // Playback & Skip Controls
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [showSkipIntro, setShowSkipIntro] = useState(false);
+  const [showSkipOutro, setShowSkipOutro] = useState(false);
+
+  // Resume check
+  const savedProgress = watchProgress.get(tmdbId, season, episode);
+  const resumeTime = savedProgress && savedProgress.progressPercent < 90 ? savedProgress.currentTime : 0;
 
   const SERVERS = [
     {
-      id: "2embed",
-      name: "2Embed (Fast)",
+      id: "vidlink",
+      name: "VidLink (Fast)",
       getUrl: (ep: number) =>
-        `https://www.2embed.cc/embedtv/${tmdbId}&s=1&e=${ep}`,
+        `https://vidlink.pro/tv/${tmdbId}/${season}/${ep}?subOrDub=${audioMode}&startAt=${Math.floor(resumeTime)}`,
     },
     {
       id: "vidsrc",
       name: "VidSrc Anime",
       getUrl: (ep: number) =>
-        `https://vidsrc.in/embed/tv/${tmdbId}/1/${ep}`,
+        `https://vidsrc.in/embed/tv/${tmdbId}/${season}/${ep}`,
     },
     {
-      id: "vidlink",
-      name: "VidLink Anime",
+      id: "2embed",
+      name: "2Embed",
       getUrl: (ep: number) =>
-        `https://vidlink.pro/tv/${tmdbId}/1/${ep}?subOrDub=${audioMode}`,
+        `https://www.2embed.cc/embedtv/${tmdbId}&s=${season}&e=${ep}`,
     },
     {
       id: "autoembed",
       name: "AutoEmbed Multi",
       getUrl: (ep: number) =>
-        `https://player.autoembed.cc/embed/tv/${tmdbId}/1/${ep}`,
+        `https://player.autoembed.cc/embed/tv/${tmdbId}/${season}/${ep}`,
     },
   ];
 
   const activeServer = SERVERS[currentServer];
   const streamUrl = activeServer.getUrl(episode);
 
-  // Auto next-episode countdown timer simulation
+  // Listen to postMessage from embed players (VidLink, PlayerJS, etc.)
+  const handleMessage = useCallback(
+    (event: MessageEvent) => {
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (!data) return;
+
+        // Extract timeupdate / progress
+        const time = data.currentTime || data.time || data.detail?.currentTime;
+        const dur = data.duration || data.totalTime || data.detail?.duration;
+
+        if (typeof time === "number") {
+          setCurrentTime(time);
+          if (dur) setDuration(dur);
+
+          // Save progress
+          if (dur > 0) {
+            watchProgress.save(tmdbId, "tv", season, episode, time, dur);
+          }
+
+          // Intro detector (typically within first 2.5 minutes)
+          setShowSkipIntro(time >= 10 && time <= 110);
+
+          // Outro detector (typically final 2 minutes)
+          if (dur > 0) {
+            setShowSkipOutro(time >= dur - 130 && time < dur - 20);
+          }
+
+          // Trigger Auto-Next at 96% completion
+          if (dur > 0 && time / dur >= 0.96 && !showNextOverlay && onNextEpisode) {
+            setShowNextOverlay(true);
+            setCountdown(10);
+          }
+        }
+
+        // Trigger Auto-Next on explicit "ended" event
+        if (
+          (data.event === "ended" || data.status === "ended" || data === "ended") &&
+          !showNextOverlay &&
+          onNextEpisode
+        ) {
+          setShowNextOverlay(true);
+          setCountdown(10);
+        }
+      } catch {
+        // Non-JSON iframe message
+      }
+    },
+    [tmdbId, season, episode, showNextOverlay, onNextEpisode]
+  );
+
+  useEffect(() => {
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [handleMessage]);
+
+  // Next Episode Countdown Timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (showNextOverlay && countdown > 0) {
@@ -69,34 +139,71 @@ export const AnimePlayer = ({
     return () => clearTimeout(timer);
   }, [showNextOverlay, countdown, onNextEpisode]);
 
+  // Skip Forward via postMessage
+  const sendSeek = (secondsToAdd: number) => {
+    if (!iframeRef.current?.contentWindow) return;
+    const target = currentTime + secondsToAdd;
+    iframeRef.current.contentWindow.postMessage(
+      JSON.stringify({ event: "seek", time: target }),
+      "*"
+    );
+    iframeRef.current.contentWindow.postMessage(
+      { type: "player:seek", time: target },
+      "*"
+    );
+  };
+
   return (
     <div className="w-full flex flex-col gap-3 select-none">
-      {/* Frame Screen with Next Episode Countdown Overlay */}
+      {/* Player Screen */}
       <div className="relative aspect-video w-full rounded-2xl overflow-hidden glass-panel border border-white/15 bg-black shadow-2xl">
         <iframe
-          key={`${activeServer.id}-${episode}-${audioMode}`}
+          ref={iframeRef}
+          key={`${activeServer.id}-${season}-${episode}-${audioMode}`}
           src={streamUrl}
-          title={`Episode ${episode}`}
+          title={`Season ${season} Episode ${episode}`}
           className="w-full h-full border-0"
           allowFullScreen
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         />
 
-        {/* Countdown Trigger Button (Manual simulation trigger) */}
-        {!showNextOverlay && onNextEpisode && (
+        {/* Skip Intro Button */}
+        {showSkipIntro && (
           <button
             onClick={() => {
-              setShowNextOverlay(true);
-              setCountdown(10);
+              sendSeek(85);
+              setShowSkipIntro(false);
             }}
-            className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-panel text-[11px] text-white border border-white/20 hover:bg-white/15 transition opacity-70 hover:opacity-100"
+            className="absolute bottom-14 left-4 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/30 text-xs font-bold text-white shadow-glow animate-in fade-in slide-in-from-bottom-2 duration-200"
+            style={{
+              background: "rgba(12, 12, 16, 0.85)",
+              backdropFilter: "blur(20px)",
+            }}
           >
-            <FastForward className="w-3.5 h-3.5" />
-            <span>Finish Ep</span>
+            <StepForward className="w-3.5 h-3.5 fill-white" />
+            <span>Skip Intro (+85s)</span>
           </button>
         )}
 
-        {/* Next Episode Countdown Dialog */}
+        {/* Skip Outro Button */}
+        {showSkipOutro && (
+          <button
+            onClick={() => {
+              sendSeek(90);
+              setShowSkipOutro(false);
+            }}
+            className="absolute bottom-14 right-4 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/30 text-xs font-bold text-white shadow-glow animate-in fade-in slide-in-from-bottom-2 duration-200"
+            style={{
+              background: "rgba(12, 12, 16, 0.85)",
+              backdropFilter: "blur(20px)",
+            }}
+          >
+            <StepForward className="w-3.5 h-3.5 fill-white" />
+            <span>Skip Outro</span>
+          </button>
+        )}
+
+        {/* Automatic Next Episode Countdown Modal */}
         {showNextOverlay && (
           <div className="absolute inset-0 z-40 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center gap-3 animate-in fade-in duration-300">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
@@ -133,10 +240,9 @@ export const AnimePlayer = ({
         )}
       </div>
 
-      {/* Control Strip: Sub/Dub Switcher + Multi-Server Controls */}
+      {/* Control Strip: Sub/Dub Switcher + Server Picker */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl glass-panel border border-white/10">
         <div className="flex items-center gap-2">
-          {/* Sub / Dub Mode Switcher */}
           <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
             <button
               onClick={() => setAudioMode("sub")}
@@ -161,7 +267,7 @@ export const AnimePlayer = ({
           </div>
 
           <span className="text-xs text-zinc-300 font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-            Ep {episode} {totalEpisodes ? `/ ${totalEpisodes}` : ""}
+            S{season} : Ep {episode} {totalEpisodes ? `/ ${totalEpisodes}` : ""}
           </span>
         </div>
 
