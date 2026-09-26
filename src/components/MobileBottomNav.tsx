@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Film, Tv, PlaySquare, Radio } from "lucide-react";
+import { Compass, Film, Tv, PlaySquare, User } from "lucide-react";
 
 export const MobileBottomNav = () => {
   const pathname = usePathname();
@@ -13,7 +13,7 @@ export const MobileBottomNav = () => {
     { label: "Movies", href: "/movies", icon: Film },
     { label: "Series", href: "/series", icon: Tv },
     { label: "Anime", href: "/anime", icon: PlaySquare },
-    { label: "Live TV", href: "/tv", icon: Radio },
+    { label: "Me", href: "/me", icon: User },
   ];
 
   return (
@@ -21,7 +21,7 @@ export const MobileBottomNav = () => {
       <div 
         className="w-full max-w-sm flex items-center justify-around py-2 px-2 rounded-2xl border border-white/20 shadow-[0_10px_35px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.35)]"
         style={{
-          background: "rgba(12, 12, 16, 0.62)",
+          background: "rgba(12, 12, 16, 0.65)",
           backdropFilter: "blur(24px) saturate(180%)",
           WebkitBackdropFilter: "blur(24px) saturate(180%)",
         }}
@@ -35,9 +35,7 @@ export const MobileBottomNav = () => {
               key={item.href}
               href={item.href}
               className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all duration-200 ${
-                isActive
-                  ? "text-white"
-                  : "text-zinc-300 hover:text-white"
+                isActive ? "text-white" : "text-zinc-300 hover:text-white"
               }`}
             >
               <div
