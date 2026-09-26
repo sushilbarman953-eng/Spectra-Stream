@@ -21,6 +21,8 @@ import {
   AlertCircle,
   RefreshCw,
   Check,
+  Sun,
+  Scaling,
 } from "lucide-react";
 import { playbackHistory } from "@/lib/playbackHistory";
 
@@ -75,6 +77,13 @@ export const GlassVideoPlayer = ({
   const [showControls, setShowControls] = useState(true);
   const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Gestures & HUD states
+  const [brightness, setBrightness] = useState<number>(100);
+  const [volumeLevel, setVolumeLevel] = useState<number>(100);
+  const [hudIndicator, setHudIndicator] = useState<{ type: "brightness" | "volume"; value: number } | null>(null);
+  const [doubleTapFeedback, setDoubleTapFeedback] = useState<"left" | "right" | null>(null);
+  const [objectFit, setObjectFit] = useState<"contain" | "cover">("contain");
+
   // Skip states
   const [inIntro, setInIntro] = useState(false);
   const [inOutro, setInOutro] = useState(false);
@@ -83,11 +92,13 @@ export const GlassVideoPlayer = ({
   const [showSettings, setShowSettings] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [qualityLevels, setQualityLevels] = useState<{ id: number; height: number; bitrate: number }[]>([]);
-  const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = Auto
+  const [currentQuality, setCurrentQuality] = useState<number>(-1);
 
   const lastSavedTime = useRef<number>(0);
+  const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
+  const touchStartRef = useRef<{ x: number; y: number; isLeft: boolean } | null>(null);
+  const hudTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-hide controls timer
   const triggerUserActivity = () => {
     setShowControls(true);
     if (controlsTimeout) clearTimeout(controlsTimeout);
@@ -97,7 +108,6 @@ export const GlassVideoPlayer = ({
     setControlsTimeout(timeout);
   };
 
-  // Setup HLS / Stream
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
@@ -136,7 +146,6 @@ export const GlassVideoPlayer = ({
               video.currentTime = initialTime;
             } catch {}
           }
-          // Populate available resolutions
           const levels = data.levels.map((lvl, index) => ({
             id: index,
             height: lvl.height,
@@ -210,10 +219,7 @@ export const GlassVideoPlayer = ({
     setCurrentTime(curr);
     setDuration(dur);
 
-    // Intro window
     setInIntro(curr >= introStart && curr <= introEnd);
-
-    // Outro window: default to last 90 seconds if not provided
     const computedOutro = outroStart || (dur > 120 ? dur - 90 : 0);
     setInOutro(computedOutro > 0 && curr >= computedOutro && curr < dur - 5);
 
@@ -221,7 +227,6 @@ export const GlassVideoPlayer = ({
       setBuffered((video.buffered.end(video.buffered.length - 1) / dur) * 100);
     }
 
-    // Save playback progress every 5 seconds
     if (tmdbId && dur > 0 && Math.abs(curr - lastSavedTime.current) > 5) {
       lastSavedTime.current = curr;
       playbackHistory.saveProgress({
@@ -244,10 +249,7 @@ export const GlassVideoPlayer = ({
     if (!video || hasError) return;
 
     if (video.paused) {
-      video
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false));
+      video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     } else {
       video.pause();
       setIsPlaying(false);
@@ -268,12 +270,10 @@ export const GlassVideoPlayer = ({
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
-      } else if (video !== document.pictureInPictureElement) {
+      } else {
         await video.requestPictureInPicture();
       }
-    } catch (err) {
-      console.error("PiP error:", err);
-    }
+    } catch {}
   };
 
   const toggleFullscreen = () => {
@@ -290,6 +290,71 @@ export const GlassVideoPlayer = ({
     if (!video) return;
     video.currentTime = Math.max(0, Math.min(video.duration || 0, time));
     triggerUserActivity();
+  };
+
+  // TOUCH GESTURE HANDLING
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    triggerUserActivity();
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const isLeft = x < rect.width / 2;
+
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, isLeft };
+
+    // Double tap check
+    const now = Date.now();
+    if (now - lastTapRef.current.time < 300) {
+      if (isLeft) {
+        seek(currentTime - 10);
+        setDoubleTapFeedback("left");
+      } else {
+        seek(currentTime + 10);
+        setDoubleTapFeedback("right");
+      }
+      setTimeout(() => setDoubleTapFeedback(null), 600);
+      lastTapRef.current = { time: 0, x: 0 };
+    } else {
+      lastTapRef.current = { time: now, x };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchStartRef.current || e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    const deltaY = touchStartRef.current.y - touch.clientY;
+
+    if (Math.abs(deltaY) > 8) {
+      const step = (deltaY / 200) * 100;
+      if (touchStartRef.current.isLeft) {
+        // Brightness adjust
+        setBrightness((prev) => {
+          const updated = Math.min(160, Math.max(30, Math.round(prev + step * 0.1)));
+          setHudIndicator({ type: "brightness", value: updated });
+          return updated;
+        });
+      } else {
+        // Volume adjust
+        setVolumeLevel((prev) => {
+          const updated = Math.min(100, Math.max(0, Math.round(prev + step * 0.1)));
+          if (videoRef.current) {
+            videoRef.current.volume = updated / 100;
+            videoRef.current.muted = updated === 0;
+            setIsMuted(updated === 0);
+          }
+          setHudIndicator({ type: "volume", value: updated });
+          return updated;
+        });
+      }
+
+      if (hudTimeoutRef.current) clearTimeout(hudTimeoutRef.current);
+      hudTimeoutRef.current = setTimeout(() => setHudIndicator(null), 1000);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartRef.current = null;
   };
 
   const changeSpeed = (speed: number) => {
@@ -317,7 +382,9 @@ export const GlassVideoPlayer = ({
     <div
       ref={containerRef}
       onMouseMove={triggerUserActivity}
-      onTouchStart={triggerUserActivity}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className="relative aspect-video w-full rounded-3xl overflow-hidden bg-black border border-white/20 shadow-2xl group select-none"
     >
       <video
@@ -338,8 +405,55 @@ export const GlassVideoPlayer = ({
           setLoading(false);
         }}
         onClick={togglePlay}
-        className="w-full h-full object-contain cursor-pointer"
+        style={{
+          filter: `brightness(${brightness}%)`,
+          objectFit: objectFit,
+        }}
+        className="w-full h-full cursor-pointer transition-all duration-150"
       />
+
+      {/* SWIPE HUD INDICATOR (BRIGHTNESS / VOLUME) */}
+      {hudIndicator && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+          <div className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-black/85 backdrop-blur-2xl border border-white/25 shadow-2xl">
+            {hudIndicator.type === "brightness" ? (
+              <Sun className="w-6 h-6 text-white animate-spin-slow" />
+            ) : (
+              <Volume2 className="w-6 h-6 text-white" />
+            )}
+            <div className="w-24 h-1.5 bg-white/20 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-white shadow-glow transition-all"
+                style={{
+                  width: `${
+                    hudIndicator.type === "brightness"
+                      ? Math.min(100, Math.round((hudIndicator.value / 160) * 100))
+                      : hudIndicator.value
+                  }%`,
+                }}
+              />
+            </div>
+            <span className="text-[10px] font-bold text-white font-mono">
+              {hudIndicator.type === "brightness" ? `${Math.round(hudIndicator.value)}%` : `${hudIndicator.value}%`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* DOUBLE TAP RIPPLE REWIND / FORWARD FEEDBACK */}
+      {doubleTapFeedback === "left" && (
+        <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 text-white font-black text-xs shadow-glow animate-out fade-out duration-500 pointer-events-none z-30">
+          <RotateCcw className="w-4 h-4 animate-spin" />
+          <span>-10s</span>
+        </div>
+      )}
+
+      {doubleTapFeedback === "right" && (
+        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-white/20 backdrop-blur-xl border border-white/30 text-white font-black text-xs shadow-glow animate-out fade-out duration-500 pointer-events-none z-30">
+          <span>+10s</span>
+          <RotateCw className="w-4 h-4 animate-spin" />
+        </div>
+      )}
 
       {/* Loading Spinner */}
       {loading && !hasError && (
@@ -372,7 +486,7 @@ export const GlassVideoPlayer = ({
         </div>
       )}
 
-      {/* CENTER PLAY BUTTON */}
+      {/* Center Play Button */}
       {!loading && !hasError && (
         <div
           onClick={togglePlay}
@@ -390,14 +504,14 @@ export const GlassVideoPlayer = ({
         </div>
       )}
 
-      {/* FROSTED GLASS CONTROLS OVERLAY */}
+      {/* Frosted Glass Overlay */}
       {!hasError && (
         <div
           className={`absolute inset-0 flex flex-col justify-between p-3.5 sm:p-5 bg-gradient-to-t from-black/90 via-transparent to-black/80 transition-opacity duration-300 pointer-events-none z-20 ${
             showControls ? "opacity-100" : "opacity-0"
           }`}
         >
-          {/* TOP GLASS STRIP: Title & Badges */}
+          {/* Top Info */}
           <div className="flex flex-col gap-1.5 pointer-events-auto">
             <h2 className="text-xs sm:text-base font-extrabold text-white tracking-wide truncate drop-shadow-md">
               {title}
@@ -414,9 +528,9 @@ export const GlassVideoPlayer = ({
             </div>
           </div>
 
-          {/* BOTTOM CONTROLS & SKIP ACTIONS */}
+          {/* Bottom Bar & Controls */}
           <div className="space-y-2 pointer-events-auto">
-            {/* SKIP INTRO / OUTRO / NEXT EPISODE (Aligned right above timeline) */}
+            {/* Skip Actions */}
             <div className="flex items-center justify-end gap-2 pb-0.5">
               {inIntro && (
                 <button
@@ -449,7 +563,7 @@ export const GlassVideoPlayer = ({
               )}
             </div>
 
-            {/* TIMELINE SLIDER */}
+            {/* Timeline */}
             <div className="relative w-full h-1.5 sm:h-2 bg-white/20 hover:h-2.5 rounded-full overflow-hidden cursor-pointer transition-all">
               <div
                 className="absolute left-0 top-0 bottom-0 bg-white/30"
@@ -469,9 +583,8 @@ export const GlassVideoPlayer = ({
               />
             </div>
 
-            {/* CONTROL BAR */}
+            {/* Control Strip */}
             <div className="flex items-center justify-between text-xs text-white pt-1">
-              {/* Left Controls: Play/Pause, -10s, +10s, Time */}
               <div className="flex items-center gap-2.5 sm:gap-4">
                 <button onClick={togglePlay} className="p-1 hover:text-zinc-300 active:scale-90 transition">
                   {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white" />}
@@ -490,8 +603,16 @@ export const GlassVideoPlayer = ({
                 </span>
               </div>
 
-              {/* Right Controls: Volume, PiP, Settings, Fullscreen */}
               <div className="flex items-center gap-2 sm:gap-3.5 relative">
+                {/* Fit / Crop Aspect Ratio Toggle */}
+                <button
+                  onClick={() => setObjectFit(objectFit === "contain" ? "cover" : "contain")}
+                  className={`p-1 transition ${objectFit === "cover" ? "text-white" : "text-zinc-400 hover:text-white"}`}
+                  title={objectFit === "cover" ? "Aspect: Fill Screen" : "Aspect: Fit"}
+                >
+                  <Scaling className="w-4 h-4" />
+                </button>
+
                 <button onClick={toggleMute} className="p-1 hover:text-zinc-300 active:scale-90 transition">
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
@@ -512,10 +633,8 @@ export const GlassVideoPlayer = ({
                     <Settings className="w-4 h-4 transition-transform" />
                   </button>
 
-                  {/* Settings Modal Popover */}
                   {showSettings && (
                     <div className="absolute bottom-9 right-0 w-44 rounded-2xl p-2.5 bg-[#0a0a0f]/95 backdrop-blur-2xl border border-white/20 shadow-2xl space-y-2.5 z-40 text-left">
-                      {/* Speed Settings */}
                       <div>
                         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">
                           Speed
@@ -537,7 +656,6 @@ export const GlassVideoPlayer = ({
                         </div>
                       </div>
 
-                      {/* Quality Settings */}
                       {qualityLevels.length > 0 && (
                         <div className="pt-1.5 border-t border-white/10">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-1">
