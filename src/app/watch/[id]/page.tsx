@@ -7,12 +7,12 @@ import {
   Server,
   Volume2,
   RefreshCw,
+  Maximize2,
+  AlertCircle,
+  Radio,
   Sparkles,
-  Languages,
-  Check,
 } from "lucide-react";
-import { STREAM_SERVERS } from "@/lib/streamingSources";
-import { SUPPORTED_LANGUAGES, LanguageOption } from "@/lib/languages";
+import { STREAM_SERVERS, StreamSource } from "@/lib/streamingSources";
 import { soundFx } from "@/lib/soundFx";
 
 export default function WatchPage() {
@@ -25,15 +25,15 @@ export default function WatchPage() {
   const season = parseInt(searchParams.get("season") || "1", 10);
   const episode = parseInt(searchParams.get("episode") || "1", 10);
 
+  // Streaming State
   const [currentServerIdx, setCurrentServerIdx] = useState<number>(0);
-  const [selectedLang, setSelectedLang] = useState<string>("hi");
+  const [audioTrack, setAudioTrack] = useState<"hindi" | "original">("hindi");
   const [loading, setLoading] = useState<boolean>(true);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [failoverToast, setFailoverToast] = useState<string | null>(null);
   const [showServerMenu, setShowServerMenu] = useState<boolean>(false);
-  const [showLangMenu, setShowLangMenu] = useState<boolean>(false);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const watchdogTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const failoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const activeServer = STREAM_SERVERS[currentServerIdx];
   const streamUrl = activeServer.buildUrl({
@@ -41,45 +41,49 @@ export default function WatchPage() {
     type,
     season,
     episode,
-    lang: selectedLang,
+    audio: audioTrack,
   });
 
+  // Watchdog: If iframe fails to finish handshaking within 8 seconds, automatically failover
   useEffect(() => {
     setLoading(true);
-    if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
 
-    watchdogTimerRef.current = setTimeout(() => {
+    if (failoverTimeoutRef.current) clearTimeout(failoverTimeoutRef.current);
+
+    failoverTimeoutRef.current = setTimeout(() => {
       if (loading && currentServerIdx < STREAM_SERVERS.length - 1) {
-        handleServerSwitch(currentServerIdx + 1, "Optimizing route: Switched to next Indian mirror");
+        handleFailover(currentServerIdx + 1, "Slow Indian route response. Switched to backup server.");
       }
     }, 8500);
 
     return () => {
-      if (watchdogTimerRef.current) clearTimeout(watchdogTimerRef.current);
+      if (failoverTimeoutRef.current) clearTimeout(failoverTimeoutRef.current);
     };
-  }, [currentServerIdx, selectedLang, id, season, episode]);
+  }, [currentServerIdx, audioTrack, id, season, episode]);
 
-  const handleServerSwitch = (idx: number, msg?: string) => {
+  const handleFailover = (nextIdx: number, reason?: string) => {
     soundFx.playCinematicWhoosh();
-    setCurrentServerIdx(idx);
-    setShowServerMenu(false);
-    setToastMsg(msg || `Connected to ${STREAM_SERVERS[idx].name}`);
-    setTimeout(() => setToastMsg(null), 3000);
+    setCurrentServerIdx(nextIdx);
+    setFailoverToast(reason || `Switched to ${STREAM_SERVERS[nextIdx].name}`);
+    setTimeout(() => setFailoverToast(null), 3000);
   };
 
-  const handleLanguageSelect = (lang: LanguageOption) => {
+  const handleIframeLoaded = () => {
+    setLoading(false);
+    if (failoverTimeoutRef.current) clearTimeout(failoverTimeoutRef.current);
+  };
+
+  const toggleAudioTrack = () => {
     soundFx.playCinematicPop();
-    setSelectedLang(lang.code);
-    setShowLangMenu(false);
-    setToastMsg(`Audio switched to ${lang.label} (${lang.native})`);
-    setTimeout(() => setToastMsg(null), 3000);
+    const nextAudio = audioTrack === "hindi" ? "original" : "hindi";
+    setAudioTrack(nextAudio);
+    setFailoverToast(`Switched to ${nextAudio === "hindi" ? "Hindi Dub / Audio" : "Original Audio"}`);
+    setTimeout(() => setFailoverToast(null), 2500);
   };
-
-  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang) || SUPPORTED_LANGUAGES[0];
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col select-none">
-      {/* Top OTT Player HUD */}
+      {/* Top HUD Controls */}
       <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/90 via-black/40 to-transparent">
         <div className="flex items-center gap-2">
           <button
@@ -92,13 +96,12 @@ export default function WatchPage() {
             <ArrowLeft className="w-4 h-4" />
           </button>
 
-          {/* Server Selector Button */}
+          {/* Active Server Info */}
           <div className="relative">
             <button
               onClick={() => {
                 soundFx.playCinematicPop();
                 setShowServerMenu(!showServerMenu);
-                setShowLangMenu(false);
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white backdrop-blur-xl transition shadow-glow"
             >
@@ -109,15 +112,19 @@ export default function WatchPage() {
               </span>
             </button>
 
+            {/* Server Selector Dropdown */}
             {showServerMenu && (
               <div className="absolute top-12 left-0 w-64 rounded-2xl p-2 bg-[#0c0c14]/95 border border-white/20 shadow-2xl backdrop-blur-3xl space-y-1 z-50">
                 <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 px-2 py-1 block">
-                  Select Indian Low-Latency CDN
+                  Select Indian / Asian Mirror
                 </span>
                 {STREAM_SERVERS.map((server, idx) => (
                   <button
                     key={server.id}
-                    onClick={() => handleServerSwitch(idx)}
+                    onClick={() => {
+                      setShowServerMenu(false);
+                      handleFailover(idx);
+                    }}
                     className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition ${
                       currentServerIdx === idx
                         ? "bg-white text-black font-extrabold"
@@ -138,76 +145,37 @@ export default function WatchPage() {
           </div>
         </div>
 
-        {/* Right HUD: Multi-Language Selector */}
-        <div className="relative">
+        {/* Right HUD Controls: Audio Track Switch */}
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              soundFx.playCinematicPop();
-              setShowLangMenu(!showLangMenu);
-              setShowServerMenu(false);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-xs font-bold text-emerald-300 backdrop-blur-xl transition shadow-glow"
+            onClick={toggleAudioTrack}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border backdrop-blur-xl ${
+              audioTrack === "hindi"
+                ? "bg-emerald-400 text-black border-emerald-400 shadow-glow font-black"
+                : "bg-white/10 hover:bg-white/20 text-white border-white/20"
+            }`}
           >
-            <Languages className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{currentLangObj.badge} • {currentLangObj.label}</span>
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>{audioTrack === "hindi" ? "Hindi Audio" : "Original"}</span>
           </button>
-
-          {showLangMenu && (
-            <div className="absolute top-12 right-0 w-56 rounded-2xl p-2 bg-[#0c0c14]/95 border border-white/20 shadow-2xl backdrop-blur-3xl space-y-1 z-50">
-              <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 px-2 py-1 block">
-                Indian & Regional Audio Tracks
-              </span>
-              <div className="max-h-60 overflow-y-auto no-scrollbar space-y-1">
-                {SUPPORTED_LANGUAGES.map((lang) => {
-                  const isSelected = selectedLang === lang.code;
-                  return (
-                    <button
-                      key={lang.code}
-                      onClick={() => handleLanguageSelect(lang)}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition ${
-                        isSelected
-                          ? "bg-white text-black font-extrabold"
-                          : "hover:bg-white/10 text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-mono px-1 py-0.5 rounded font-black ${
-                          isSelected ? "bg-black text-white" : "bg-white/10 text-zinc-300"
-                        }`}>
-                          {lang.badge}
-                        </span>
-                        <div>
-                          <p className="font-bold">{lang.label}</p>
-                          <p className={`text-[9px] ${isSelected ? "text-zinc-700" : "text-zinc-400"}`}>
-                            {lang.native}
-                          </p>
-                        </div>
-                      </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-black" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Toast Notification */}
-      {toastMsg && (
+      {/* Failover Toast Notification */}
+      {failoverToast && (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-2xl bg-white text-black text-xs font-bold shadow-glow flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>{toastMsg}</span>
+          <span>{failoverToast}</span>
         </div>
       )}
 
-      {/* Stream Embed */}
+      {/* Video Stream Embed */}
       <div className="relative w-full h-full flex items-center justify-center bg-black">
         {loading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 bg-black/90">
             <RefreshCw className="w-6 h-6 animate-spin text-white" />
             <span className="text-xs text-zinc-300 font-mono">
-              Buffering stream from {activeServer.region} ({currentLangObj.label})...
+              Connecting to {activeServer.region} ({activeServer.latency})...
             </span>
           </div>
         )}
@@ -215,7 +183,7 @@ export default function WatchPage() {
         <iframe
           ref={iframeRef}
           src={streamUrl}
-          onLoad={() => setLoading(false)}
+          onLoad={handleIframeLoaded}
           className="w-full h-full border-0"
           allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
           allowFullScreen
