@@ -19,19 +19,15 @@ export const MobileBottomNav = () => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
 
-      // At the top of the page, always show
       if (currentScrollY < 30) {
         setIsVisible(true);
         lastScrollY.current = currentScrollY;
         return;
       }
 
-      // Scrolling Down -> Hide Bottom Bar
       if (currentScrollY > lastScrollY.current + 8) {
         setIsVisible(false);
-      } 
-      // Scrolling Up -> Show Bottom Bar
-      else if (currentScrollY < lastScrollY.current - 8) {
+      } else if (currentScrollY < lastScrollY.current - 8) {
         setIsVisible(true);
       }
 
@@ -44,8 +40,7 @@ export const MobileBottomNav = () => {
 
   useEffect(() => {
     const updateCount = () => {
-      const all = downloadManager.getAll();
-      setDownloadCount(all.length);
+      setDownloadCount(downloadManager.getAll().length);
     };
 
     updateCount();
@@ -56,9 +51,7 @@ export const MobileBottomNav = () => {
   return (
     <nav
       className={`fixed bottom-3 left-3 right-3 z-50 md:hidden flex justify-center pointer-events-auto transition-all duration-300 ease-out ${
-        isVisible
-          ? "translate-y-0 opacity-100"
-          : "translate-y-28 opacity-0 pointer-events-none"
+        isVisible ? "translate-y-0 opacity-100" : "translate-y-28 opacity-0 pointer-events-none"
       }`}
     >
       <div
@@ -80,20 +73,18 @@ export const MobileBottomNav = () => {
           <span className="text-[9px] font-semibold">Home</span>
         </Link>
 
-        {/* 2. Explore */}
+        {/* 2. Explore (Dedicated Page) */}
         <Link
-          href="/movies"
+          href="/explore"
           className={`flex flex-col items-center gap-1 px-2 py-1 rounded-xl transition ${
-            pathname.startsWith("/movies") || pathname.startsWith("/series")
-              ? "text-white"
-              : "text-zinc-400 hover:text-white"
+            pathname === "/explore" ? "text-white" : "text-zinc-400 hover:text-white"
           }`}
         >
-          <Compass className="w-4 h-4 stroke-[2]" />
+          <Compass className={`w-4 h-4 ${pathname === "/explore" ? "text-white stroke-[2.5]" : "stroke-[2]"}`} />
           <span className="text-[9px] font-semibold">Explore</span>
         </Link>
 
-        {/* 3. Center Elevated Floating Search Button */}
+        {/* 3. Center Floating Search */}
         <div className="relative -top-5 flex flex-col items-center">
           <button
             onClick={openSearch}

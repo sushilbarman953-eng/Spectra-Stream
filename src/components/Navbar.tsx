@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
-import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Star, Maximize2 } from "lucide-react";
+import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Star, Maximize2, Compass } from "lucide-react";
 import { useSearch } from "@/context/SearchContext";
 import { IMAGE_BASE } from "@/lib/tmdb";
 
@@ -31,6 +31,9 @@ export const Navbar = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Pages where category sub-bar should never show
+  const isUtilityPage = pathname === "/downloads" || pathname === "/me";
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 25);
@@ -40,7 +43,6 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close small glass popover on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -51,7 +53,6 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Quick live query
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -77,18 +78,15 @@ export const Navbar = () => {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Click Handler: Single tap opens small glass popover, double tap launches fullscreen search
   const handleSearchAction = (e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (clickTimer.current) {
-      // 2 TAPS -> Open Fullscreen Search Page
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
       setSmallGlassOpen(false);
       openSearch();
     } else {
-      // 1 TAP -> Open Small Frosted Glass Popup
       clickTimer.current = setTimeout(() => {
         clickTimer.current = null;
         setSmallGlassOpen((prev) => {
@@ -100,6 +98,15 @@ export const Navbar = () => {
     }
   };
 
+  const getPageTitle = () => {
+    if (pathname === "/downloads") return "DOWNLOADS";
+    if (pathname === "/me") return "PROFILE";
+    if (pathname === "/explore") return "EXPLORE";
+    return (
+      CATEGORIES.find((cat) => cat.href === pathname)?.label.toUpperCase() || "HOME"
+    );
+  };
+
   const currentCategory =
     CATEGORIES.find((cat) => cat.href === pathname) || CATEGORIES[0];
   const Icon = currentCategory.icon;
@@ -107,15 +114,13 @@ export const Navbar = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-        isScrolled
+        isScrolled || isUtilityPage
           ? "bg-[#08080c]/85 backdrop-blur-2xl border-b border-white/10 py-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
           : "bg-gradient-to-b from-[#08080c]/90 via-[#08080c]/40 to-transparent pt-3 pb-2"
       }`}
     >
       <div className="max-w-6xl mx-auto px-4 md:px-8">
-        {/* 3-Column Top Bar */}
         <div className="grid grid-cols-3 items-center h-10">
-          
           {/* 1. Left: Brand */}
           <div className="flex items-center gap-1.5 justify-start">
             <Link
@@ -127,20 +132,19 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* 2. Center: Cyber-Glass Indicator Pill (Morphs in when scrolled) */}
+          {/* 2. Center: Status Pill */}
           <div className="flex justify-center">
-            {isScrolled && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/25 backdrop-blur-xl shadow-[0_0_16px_rgba(255,255,255,0.15),inset_0_1px_1px_rgba(255,255,255,0.35)] animate-in fade-in zoom-in-95 duration-300">
+            {(isScrolled || isUtilityPage) && (
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/25 backdrop-blur-xl shadow-[0_0_16px_rgba(255,255,255,0.15)] animate-in fade-in duration-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
-                <Icon className="w-3 h-3 text-zinc-200" />
                 <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-widest">
-                  {currentCategory.label}
+                  {getPageTitle()}
                 </span>
               </div>
             )}
           </div>
 
-          {/* 3. Right: Original Frosted Glass Search Capsule */}
+          {/* 3. Right: Search Trigger */}
           <div className="flex justify-end relative" ref={containerRef}>
             <div
               onClick={handleSearchAction}
@@ -149,7 +153,7 @@ export const Navbar = () => {
                   ? "bg-white text-black border-white shadow-glow"
                   : "bg-white/[0.07] hover:bg-white/[0.12] border-white/15 text-zinc-300"
               }`}
-              title="Tap 1x: Mini Glass Search | Tap 2x: Fullscreen Search"
+              title="Tap 1x: Mini Search | Tap 2x: Fullscreen Search"
             >
               <Search className={`w-3.5 h-3.5 ${smallGlassOpen ? "text-black" : "text-zinc-400"}`} />
               <span className={`text-[10px] sm:text-xs font-medium ${smallGlassOpen ? "text-black font-bold" : "text-zinc-400"}`}>
@@ -158,13 +162,12 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* SMALL FROSTED GLASS SEARCH POPOVER (1-Tap Floating Modal) */}
+            {/* Mini Popover */}
             {smallGlassOpen && (
               <div
-                className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.25)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
+                className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Mini Glass Input */}
                 <div className="relative flex items-center">
                   <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 pointer-events-none" />
                   <input
@@ -172,7 +175,7 @@ export const Navbar = () => {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search movies, anime..."
+                    placeholder="Search titles..."
                     className="w-full py-1.5 pl-8 pr-14 rounded-xl text-xs text-white placeholder-zinc-400 bg-white/10 border border-white/20 focus:outline-none focus:border-white transition"
                   />
                   <div className="absolute right-2 flex items-center gap-1">
@@ -193,24 +196,16 @@ export const Navbar = () => {
                         openSearch();
                       }}
                       className="p-1 rounded text-zinc-400 hover:text-white"
-                      title="Expand to Fullscreen"
                     >
                       <Maximize2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
 
-                {/* Instant Suggestions */}
                 <div className="max-h-56 overflow-y-auto no-scrollbar space-y-1">
                   {loading && (
                     <div className="py-3 text-center text-[10px] text-zinc-400">
                       Searching...
-                    </div>
-                  )}
-
-                  {!loading && query && results.length === 0 && (
-                    <div className="py-3 text-center text-[10px] text-zinc-500">
-                      No results found
                     </div>
                   )}
 
@@ -225,7 +220,7 @@ export const Navbar = () => {
                           setSmallGlassOpen(false);
                           router.push(`/details/${item.id}?type=${item.media_type}`);
                         }}
-                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition cursor-pointer border border-transparent hover:border-white/10 group"
+                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition cursor-pointer"
                       >
                         <div className="relative w-7 h-9 rounded-md overflow-hidden bg-zinc-950 flex-none border border-white/10">
                           {poster ? (
@@ -235,20 +230,10 @@ export const Navbar = () => {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-[11px] font-bold text-white truncate group-hover:text-zinc-200">
-                            {itemTitle}
-                          </h4>
-                          <div className="flex items-center gap-1.5 text-[9px] text-zinc-400">
-                            <span className="uppercase font-semibold px-1 py-0.2 rounded bg-white/10 text-zinc-300">
-                              {item.media_type === "tv" ? "TV" : "Movie"}
-                            </span>
-                            {item.vote_average > 0 && (
-                              <span className="flex items-center gap-0.5 text-zinc-200">
-                                <Star className="w-2 h-2 fill-white text-white" />
-                                {item.vote_average.toFixed(1)}
-                              </span>
-                            )}
-                          </div>
+                          <h4 className="text-[11px] font-bold text-white truncate">{itemTitle}</h4>
+                          <span className="text-[9px] text-zinc-400 uppercase">
+                            {item.media_type === "tv" ? "Series" : "Movie"}
+                          </span>
                         </div>
                       </div>
                     );
@@ -259,8 +244,8 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Sub-bar Category Pills (Visible at top of feed) */}
-        {!isScrolled && (
+        {/* Categories ONLY on browse/catalog pages */}
+        {!isScrolled && !isUtilityPage && (
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 animate-in fade-in slide-in-from-top-2 duration-300">
             {CATEGORIES.map((cat) => {
               const isActive = pathname === cat.href;
