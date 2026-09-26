@@ -18,11 +18,9 @@ export const CategorySwipeProvider = ({ children }: { children: React.ReactNode 
   const touchStart = useRef<{ x: number; y: number; time: number; isExcluded: boolean } | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    // Only enable category swiping on catalog tabs
     const isCatalog = TAB_ORDER.some((t) => t.path === pathname);
     if (!isCatalog || e.touches.length !== 1) return;
 
-    // Check if touch originates inside an internal horizontal scroller
     let target = e.target as HTMLElement | null;
     let isInsideHorizontalShelf = false;
 
@@ -59,20 +57,23 @@ export const CategorySwipeProvider = ({ children }: { children: React.ReactNode 
 
     touchStart.current = null;
 
-    // Must be a decisive horizontal flick (< 500ms, > 65px distance, mostly horizontal)
     if (deltaTime < 500 && Math.abs(deltaX) > 65 && Math.abs(deltaX) > Math.abs(deltaY) * 1.8) {
       const currentIdx = TAB_ORDER.findIndex((t) => t.path === pathname);
       if (currentIdx === -1) return;
 
-      // Swipe Right to Left (Finger moves left -> Next Tab)
-      if (deltaX < 0 && currentIdx < TAB_ORDER.length - 1) {
+      const total = TAB_ORDER.length;
+
+      // Swipe Right to Left (Finger goes left -> Next Tab, wraps from Live TV back to Home)
+      if (deltaX < 0) {
+        const nextIndex = (currentIdx + 1) % total;
         if (navigator.vibrate) navigator.vibrate(10);
-        router.push(TAB_ORDER[currentIdx + 1].path);
+        router.push(TAB_ORDER[nextIndex].path);
       }
-      // Swipe Left to Right (Finger moves right -> Prev Tab)
-      else if (deltaX > 0 && currentIdx > 0) {
+      // Swipe Left to Right (Finger goes right -> Prev Tab, wraps from Home back to Live TV)
+      else if (deltaX > 0) {
+        const prevIndex = (currentIdx - 1 + total) % total;
         if (navigator.vibrate) navigator.vibrate(10);
-        router.push(TAB_ORDER[currentIdx - 1].path);
+        router.push(TAB_ORDER[prevIndex].path);
       }
     }
   };

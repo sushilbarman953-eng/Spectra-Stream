@@ -29,26 +29,27 @@ export const Navbar = () => {
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollerRef = useRef<HTMLDivElement>(null);
 
   const isUtilityPage = pathname === "/downloads" || pathname === "/me" || pathname === "/explore";
 
-  // Automatically center the active category item in the middle viewfinder
-  useEffect(() => {
-    if (scrollerRef.current && !isUtilityPage) {
-      const activeEl = scrollerRef.current.querySelector<HTMLElement>("[data-active='true']");
-      if (activeEl) {
-        const containerWidth = scrollerRef.current.offsetWidth;
-        const targetLeft = activeEl.offsetLeft;
-        const targetWidth = activeEl.offsetWidth;
+  // Find active index in original 5 categories
+  const activeIdx = CATEGORIES.findIndex((c) => c.href === pathname);
+  const currentIndex = activeIdx === -1 ? 0 : activeIdx;
+  const N = CATEGORIES.length;
 
-        scrollerRef.current.scrollTo({
-          left: targetLeft - containerWidth / 2 + targetWidth / 2,
-          behavior: "smooth",
-        });
-      }
-    }
-  }, [pathname, isUtilityPage]);
+  // Build infinite loop focal view: [ -2, -1, 0 (active), +1, +2 ]
+  // Example for Home (idx 0): [ Anime, Live TV, Home, Movies, Series ]
+  // Example for Live TV (idx 4): [ Series, Anime, Live TV, Home, Movies ]
+  const loopOffsets = [-2, -1, 0, 1, 2];
+  const visibleCategories = loopOffsets.map((offset) => {
+    const rawIndex = (currentIndex + offset) % N;
+    const realIndex = rawIndex < 0 ? rawIndex + N : rawIndex;
+    return {
+      ...CATEGORIES[realIndex],
+      isCenter: offset === 0,
+      offset,
+    };
+  });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -115,21 +116,20 @@ export const Navbar = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#08080c]/85 backdrop-blur-2xl border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.8)] py-2 transition-all">
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        <div className="flex items-center justify-between gap-2 h-10">
+        <div className="flex items-center justify-between gap-1 sm:gap-2 h-10">
           
-          {/* 1. Left: Brand Title */}
+          {/* 1. Left: Brand Title WITHOUT dot */}
           <div className="flex-none">
             <Link
               href="/"
-              className="font-black text-base sm:text-lg tracking-wider text-white uppercase flex items-center gap-1 group"
+              className="font-black text-base sm:text-lg tracking-wider text-white uppercase group"
             >
               <span>SPECTRA</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-white opacity-80 group-hover:scale-125 transition-transform shadow-[0_0_8px_#ffffff]" />
             </Link>
           </div>
 
-          {/* 2. Middle: Integrated Center Focal Category Wheel (Exactly in the red marked zone) */}
-          <div className="flex-1 max-w-sm sm:max-w-md mx-auto overflow-hidden relative">
+          {/* 2. Middle: Infinite Looping Focal Carousel */}
+          <div className="flex-1 max-w-[230px] sm:max-w-md mx-auto overflow-hidden relative">
             {isUtilityPage ? (
               <div className="flex justify-center">
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/25 backdrop-blur-xl shadow-[0_0_16px_rgba(255,255,255,0.15)]">
@@ -140,34 +140,37 @@ export const Navbar = () => {
                 </div>
               </div>
             ) : (
-              <div
-                ref={scrollerRef}
-                className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth px-[32vw] sm:px-[18vw] py-0.5"
-              >
-                {CATEGORIES.map((cat) => {
-                  const isActive = pathname === cat.href;
-                  const CatIcon = cat.icon;
+              <div className="relative flex items-center justify-center">
+                {/* Left/Right Edge Gradient Fade Masks */}
+                <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#08080c] to-transparent z-20 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#08080c] to-transparent z-20 pointer-events-none" />
 
-                  return (
-                    <Link
-                      key={cat.href}
-                      href={cat.href}
-                      data-active={isActive ? "true" : "false"}
-                      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-300 select-none ${
-                        isActive
-                          ? "bg-white text-black border border-white shadow-[0_0_20px_rgba(255,255,255,0.65),inset_0_1px_1px_#ffffff] scale-105 z-10 font-black"
-                          : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.08] hover:border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.03)] scale-95 opacity-75 hover:opacity-100"
-                      }`}
-                    >
-                      <CatIcon
-                        className={`w-3.5 h-3.5 transition-colors ${
-                          isActive ? "text-black fill-black" : "text-zinc-400"
+                {/* Looped Pill Track */}
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2 overflow-visible py-0.5">
+                  {visibleCategories.map((item, index) => {
+                    const CatIcon = item.icon;
+                    const isCenter = item.isCenter;
+
+                    return (
+                      <Link
+                        key={`${item.label}-${index}`}
+                        href={item.href}
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-[11px] sm:text-xs whitespace-nowrap transition-all duration-300 select-none ${
+                          isCenter
+                            ? "bg-white text-black border border-white shadow-[0_0_22px_rgba(255,255,255,0.7),inset_0_1px_1px_#ffffff] scale-100 z-10 font-black"
+                            : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.08] hover:border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.03)] scale-90 opacity-60 hover:opacity-90"
                         }`}
-                      />
-                      <span>{cat.label}</span>
-                    </Link>
-                  );
-                })}
+                      >
+                        <CatIcon
+                          className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-colors ${
+                            isCenter ? "text-black fill-black" : "text-zinc-400"
+                          }`}
+                        />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -189,7 +192,7 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* Mini Popover */}
+            {/* Mini Search Popover */}
             {smallGlassOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
