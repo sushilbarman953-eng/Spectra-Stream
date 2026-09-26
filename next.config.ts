@@ -6,10 +6,22 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "image.tmdb.org",
+        pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "images.unsplash.com",
+        hostname: "cdn.myanimelist.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+        pathname: "/**",
       },
     ],
   },

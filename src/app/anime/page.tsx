@@ -14,7 +14,6 @@ export default function AnimePage() {
   const [filterMode, setFilterMode] = useState<"all" | "hindi">("hindi");
   const [loading, setLoading] = useState(true);
 
-  // Helper: Deduplicate anime lists by mal_id
   const dedupeAnime = (list: AnimeItem[]): AnimeItem[] => {
     const seen = new Set<number>();
     return list.filter((item) => {
@@ -64,7 +63,6 @@ export default function AnimePage() {
             </p>
           </div>
 
-          {/* Filter Pills */}
           <div className="flex items-center gap-1.5 self-start sm:self-center p-1 rounded-2xl bg-white/5 border border-white/10">
             <button
               onClick={() => {
@@ -119,6 +117,7 @@ export default function AnimePage() {
                   src={item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || ""}
                   alt={item.title || "Anime"}
                   fill
+                  unoptimized
                   sizes="180px"
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                 />
@@ -174,6 +173,7 @@ export default function AnimePage() {
                       src={item.images?.jpg?.large_image_url || item.images?.jpg?.image_url || ""}
                       alt={item.title || "Anime"}
                       fill
+                      unoptimized
                       sizes="180px"
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
