@@ -5,6 +5,8 @@ import { Navbar } from "@/components/Navbar";
 import { CategoryBar } from "@/components/CategoryBar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { SearchProvider } from "@/context/SearchContext";
+import { SearchModal } from "@/components/SearchModal";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,12 +41,15 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-[#08080c] text-white min-h-screen antialiased select-none`}>
         <ServiceWorkerRegister />
-        <Navbar />
-        <main className="pt-16">
-          <CategoryBar />
-          {children}
-        </main>
-        <MobileBottomNav />
+        <SearchProvider>
+          <Navbar />
+          <main className="pt-16">
+            <CategoryBar />
+            {children}
+          </main>
+          <SearchModal />
+          <MobileBottomNav />
+        </SearchProvider>
       </body>
     </html>
   );

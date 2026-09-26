@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Home, Compass, Search, Download, User } from "lucide-react";
 import { downloadManager } from "@/lib/downloadManager";
+import { useSearch } from "@/context/SearchContext";
 
 export const MobileBottomNav = () => {
   const pathname = usePathname();
-  const router = useRouter();
+  const { openSearch } = useSearch();
   const [downloadCount, setDownloadCount] = useState(0);
 
   useEffect(() => {
@@ -21,17 +22,6 @@ export const MobileBottomNav = () => {
     window.addEventListener("spectra_downloads_updated", updateCount);
     return () => window.removeEventListener("spectra_downloads_updated", updateCount);
   }, []);
-
-  const triggerSearchFocus = () => {
-    // Focus search input or scroll to top to search
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    const searchInput = document.querySelector("header input") as HTMLInputElement;
-    if (searchInput) {
-      setTimeout(() => searchInput.focus(), 300);
-    } else {
-      router.push("/#search");
-    }
-  };
 
   return (
     <nav className="fixed bottom-3 left-3 right-3 z-50 md:hidden flex justify-center pointer-events-auto">
@@ -70,9 +60,9 @@ export const MobileBottomNav = () => {
         {/* 3. Center Elevated Floating Search Button */}
         <div className="relative -top-5 flex flex-col items-center">
           <button
-            onClick={triggerSearchFocus}
+            onClick={openSearch}
             className="w-12 h-12 rounded-full bg-white text-black border-2 border-black flex items-center justify-center shadow-[0_0_24px_rgba(255,255,255,0.6)] active:scale-95 transition-transform"
-            title="Search"
+            title="Open Search"
           >
             <Search className="w-5 h-5 stroke-[2.5] text-black" />
           </button>
