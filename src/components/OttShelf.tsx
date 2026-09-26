@@ -14,7 +14,6 @@ interface OttShelfProps {
   items: (MediaItem & { audioLanguages?: string[]; rank?: number })[];
   isRanked?: boolean;
   type?: "movie" | "tv";
-  badgeLabel?: string;
 }
 
 export const OttShelf: React.FC<OttShelfProps> = ({
@@ -24,7 +23,6 @@ export const OttShelf: React.FC<OttShelfProps> = ({
   items,
   isRanked = false,
   type = "movie",
-  badgeLabel,
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +31,14 @@ export const OttShelf: React.FC<OttShelfProps> = ({
     const scrollAmount = direction === "left" ? -340 : 340;
     rowRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
     soundFx.playMechanicalTick();
+  };
+
+  const getAudioBadgeText = (langs?: string[]): string => {
+    if (!langs || langs.length === 0) return "HINDI";
+    const hasHindi = langs.some((l) => ["hi", "hin", "hindi"].includes(l.toLowerCase()));
+    if (hasHindi) return "HINDI";
+    if (langs.length > 2) return "MULTI";
+    return langs[0].toUpperCase();
   };
 
   if (!items || items.length === 0) return null;
@@ -72,12 +78,13 @@ export const OttShelf: React.FC<OttShelfProps> = ({
 
       <div
         ref={rowRef}
+        data-no-swipe="true"
         className="flex gap-2.5 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory pb-1 px-1"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {items.map((item, idx) => {
           const mediaType = item.media_type || type;
-          const audioTags = item.audioLanguages || ["HIN", "ENG"];
+          const badgeText = getAudioBadgeText(item.audioLanguages);
           const rank = idx + 1;
 
           return (
@@ -110,30 +117,27 @@ export const OttShelf: React.FC<OttShelfProps> = ({
                   </div>
                 )}
 
-                <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 max-w-[85%] overflow-hidden">
-                  <span className="bg-emerald-400 text-black px-1 py-0.5 rounded text-[7px] font-black uppercase shadow-glow truncate">
-                    {badgeLabel || audioTags[0]}
-                  </span>
-                  {audioTags.length > 1 && !badgeLabel && (
-                    <span className="bg-black/70 backdrop-blur-md text-[7px] font-bold text-zinc-200 px-1 py-0.5 rounded border border-white/15">
-                      +{audioTags.length - 1}
-                    </span>
-                  )}
-                </div>
-
+                {/* Top-Left: Star Rating */}
                 {item.vote_average ? (
-                  <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                  <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15 shadow-sm">
                     <Star className="w-2 h-2 fill-white text-white" />
                     {item.vote_average.toFixed(1)}
                   </div>
                 ) : null}
+
+                {/* Top-Right: Language Badge */}
+                <div className="absolute top-1.5 right-1.5 flex items-center">
+                  <span className="bg-emerald-400 text-black px-1.5 py-0.5 rounded text-[7.5px] font-black uppercase shadow-glow tracking-tight">
+                    {badgeText}
+                  </span>
+                </div>
               </div>
 
               <h4 className="text-[11px] font-bold text-white truncate mt-1 group-hover:text-emerald-300 transition-colors">
                 {item.title || item.name}
               </h4>
               <p className="text-[9px] text-zinc-400 font-mono truncate">
-                {audioTags.join(" • ")}
+                {(item.audioLanguages || ["HIN", "ENG"]).join(" • ")}
               </p>
             </Link>
           );

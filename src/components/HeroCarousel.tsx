@@ -18,16 +18,18 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
   defaultType = "movie",
 }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   const slides = items.slice(0, 10);
   const current = slides[currentIdx] || items[0];
 
+  // 10-second auto-timer with pause-on-touch/hover
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (slides.length <= 1 || isPaused) return;
     const timer = setInterval(() => {
       setCurrentIdx((prev) => (prev + 1) % slides.length);
-    }, 6000);
+    }, 10000);
     return () => clearInterval(timer);
-  }, [slides.length]);
+  }, [slides.length, isPaused]);
 
   if (!current) return null;
 
@@ -52,11 +54,22 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
   };
 
   return (
-    <div className="relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl overflow-hidden border border-white/15 bg-black shadow-2xl select-none group">
+    <div
+      data-no-swipe="true"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+      className="relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl overflow-hidden border border-white/15 bg-black shadow-2xl select-none group"
+    >
       {/* Background Poster / Backdrop */}
       {current.backdrop_path || current.poster_path ? (
         <Image
-          src={`${IMAGE_BASE}/w1280${current.backdrop_path || current.poster_path}`}
+          src={
+            current.backdrop_path?.startsWith("http")
+              ? current.backdrop_path
+              : `${IMAGE_BASE}/w1280${current.backdrop_path || current.poster_path}`
+          }
           alt={current.title || current.name || "Hero"}
           fill
           priority
@@ -71,7 +84,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
       <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-black/40 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent hidden sm:block" />
 
-      {/* Clean Overlay Content (Screenshot 2) */}
+      {/* Content Overlay */}
       <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-7 max-w-xl space-y-2 z-10">
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 rounded-full bg-white text-black font-black text-[9px] uppercase tracking-wider">
@@ -93,14 +106,10 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
           {current.overview || "Stream now in ultra high definition."}
         </p>
 
-        {/* Clean Buttons: Play + Add to List (Screenshot 2) */}
+        {/* Action Buttons: ► Play (Opens Details) & + Add to List */}
         <div className="flex items-center gap-2 pt-1">
           <Link
-            href={
-              mediaType === "tv"
-                ? `/watch/${current.id}?type=tv&season=1&episode=1`
-                : `/watch/${current.id}?type=movie`
-            }
+            href={`/details/${current.id}?type=${mediaType}`}
             onClick={() => soundFx.playCinematicSwell()}
             className="px-5 py-2 rounded-xl bg-white text-black font-black text-xs shadow-glow hover:bg-zinc-200 active:scale-95 transition flex items-center gap-1.5"
           >
@@ -118,7 +127,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
         </div>
       </div>
 
-      {/* Slide Indicators on Bottom Right (Screenshot 2) */}
+      {/* Slide Indicators on Bottom-Right */}
       <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-7 flex items-center gap-1.5 z-20">
         {slides.map((_, idx) => (
           <button
