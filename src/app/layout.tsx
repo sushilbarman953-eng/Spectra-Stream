@@ -44,7 +44,7 @@ export default function RootLayout({
         <SearchProvider>
           <CategorySwipeProvider>
             <Navbar />
-            <main className="pt-20">
+            <main className="pt-14">
               {children}
             </main>
             <SearchModal />
