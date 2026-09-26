@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
-import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Star, Maximize2, Compass } from "lucide-react";
+import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Maximize2 } from "lucide-react";
 import { useSearch } from "@/context/SearchContext";
 import { IMAGE_BASE } from "@/lib/tmdb";
 
@@ -31,8 +31,8 @@ export const Navbar = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Pages where category sub-bar should never show
-  const isUtilityPage = pathname === "/downloads" || pathname === "/me";
+  // Exclude category sub-bar on utility/hub pages: downloads, me, AND explore
+  const isUtilityPage = pathname === "/downloads" || pathname === "/me" || pathname === "/explore";
 
   useEffect(() => {
     const handleScroll = () => {
