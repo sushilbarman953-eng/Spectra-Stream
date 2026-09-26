@@ -1,16 +1,15 @@
 export interface WatchProgressItem {
-  id: string; // tmdbId or composite
-  tmdbId: string;
-  type: "movie" | "tv";
+  id: string;
+  tmdbId: string | number;
   title: string;
+  type: "movie" | "tv";
   season?: number;
   episode?: number;
-  currentTime: number;
-  duration: number;
+  posterPath: string | null;
+  currentTime?: number;
+  duration?: number;
   progressPercent: number;
-  posterPath?: string;
-  backdropPath?: string;
-  updatedAt: number;
+  lastWatched: number;
 }
 
 const STORAGE_KEY = "spectra_playback_history";
@@ -26,46 +25,60 @@ export const playbackHistory = {
     }
   },
 
-  saveProgress: (item: Omit<WatchProgressItem, "updatedAt" | "progressPercent">) => {
-    if (typeof window === "undefined" || !item.duration || item.duration <= 0) return;
-    try {
-      const percent = Math.min(100, Math.round((item.currentTime / item.duration) * 100));
-      // Don't save if watched less than 1% or already 95%+ (considered finished)
-      if (percent < 1) return;
-
-      const current = playbackHistory.getAll();
-      const filtered = current.filter((p) => p.id !== item.id);
-
-      // If finished (>95%), remove from Continue Watching
-      if (percent >= 95) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-        window.dispatchEvent(new Event("spectra_playback_updated"));
-        return;
-      }
-
-      const updatedItem: WatchProgressItem = {
-        ...item,
-        progressPercent: percent,
-        updatedAt: Date.now(),
-      };
-
-      const updatedList = [updatedItem, ...filtered].slice(0, 20); // Keep last 20
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
-      window.dispatchEvent(new Event("spectra_playback_updated"));
-    } catch (e) {
-      console.error("Playback save error:", e);
-    }
+  get: (id: string): WatchProgressItem | undefined => {
+    const list = playbackHistory.getAll();
+    return list.find((item) => item.id === id);
   },
 
-  removeItem: (id: string) => {
+  save: (item: WatchProgressItem): void => {
     if (typeof window === "undefined") return;
     try {
       const current = playbackHistory.getAll();
-      const updated = current.filter((p) => p.id !== id);
+      const filtered = current.filter((i) => i.id !== item.id && i.tmdbId !== item.tmdbId);
+      const updated = [item, ...filtered].slice(0, 20); // Keep latest 20 items
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       window.dispatchEvent(new Event("spectra_playback_updated"));
     } catch (e) {
-      console.error(e);
+      console.error("Failed to save playback progress:", e);
     }
   },
+
+  // Alias for backward compatibility
+  add: (item: WatchProgressItem): void => {
+    playbackHistory.save(item);
+  },
+
+  updateProgress: (
+    tmdbId: string | number,
+    progressPercent: number,
+    currentTime?: number,
+    duration?: number
+  ): void => {
+    const current = playbackHistory.getAll();
+    const existing = current.find((i) => String(i.tmdbId) === String(tmdbId));
+    if (existing) {
+      playbackHistory.save({
+        ...existing,
+        progressPercent,
+        currentTime: currentTime ?? existing.currentTime,
+        duration: duration ?? existing.duration,
+        lastWatched: Date.now(),
+      });
+    }
+  },
+
+  remove: (id: string): void => {
+    if (typeof window === "undefined") return;
+    const current = playbackHistory.getAll();
+    const updated = current.filter((item) => item.id !== id && String(item.tmdbId) !== String(id));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event("spectra_playback_updated"));
+  },
+
+  clear: (): void => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("spectra_playback_updated"));
+  }
 };
