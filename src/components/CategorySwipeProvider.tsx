@@ -23,16 +23,17 @@ export const CategorySwipeProvider = ({ children }: { children: React.ReactNode 
     if (!isCatalog || e.touches.length !== 1) return;
 
     let target = e.target as HTMLElement | null;
-    let isInsideHorizontalShelf = false;
+    let isInsideExcludedArea = false;
 
     while (target && target !== document.body) {
       if (
+        target.tagName === "HEADER" ||
         target.classList.contains("no-scrollbar") ||
         target.getAttribute("data-prevent-swipe") === "true" ||
         target.tagName === "INPUT" ||
         target.tagName === "VIDEO"
       ) {
-        isInsideHorizontalShelf = true;
+        isInsideExcludedArea = true;
         break;
       }
       target = target.parentElement;
@@ -42,7 +43,7 @@ export const CategorySwipeProvider = ({ children }: { children: React.ReactNode 
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
       time: Date.now(),
-      isExcluded: isInsideHorizontalShelf,
+      isExcluded: isInsideExcludedArea,
     };
   };
 
@@ -64,7 +65,6 @@ export const CategorySwipeProvider = ({ children }: { children: React.ReactNode 
 
       const total = TAB_ORDER.length;
 
-      // Play tactical audio click + vibration
       soundFx.playTabShift();
       if (navigator.vibrate) navigator.vibrate(10);
 
