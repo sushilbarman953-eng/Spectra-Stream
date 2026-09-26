@@ -1,15 +1,15 @@
 export interface StreamSource {
   id: string;
   name: string;
-  region: "IN-West (Mumbai)" | "IN-North (Delhi)" | "Asia-South" | "Global";
+  region: "IN-West (Mumbai)" | "IN-North (Delhi)" | "Asia-South (Bangalore)" | "Global (Core)";
   latency: string;
-  hasHindi: boolean;
+  supportedAudio: string[];
   buildUrl: (params: {
     tmdbId: string | number;
     type: "movie" | "tv";
     season?: number;
     episode?: number;
-    audio?: "hindi" | "original";
+    lang?: string;
   }) => string;
 }
 
@@ -18,36 +18,36 @@ export const STREAM_SERVERS: StreamSource[] = [
     id: "in-mumbai-speed",
     name: "Server 1 (Mumbai Ultra)",
     region: "IN-West (Mumbai)",
-    latency: "18ms",
-    hasHindi: true,
-    buildUrl: ({ tmdbId, type, season = 1, episode = 1, audio = "hindi" }) => {
-      const langParam = audio === "hindi" ? "&ds_lang=hi" : "";
+    latency: "14ms",
+    supportedAudio: ["hi", "ta", "te", "ml", "kn", "bn", "en", "ja"],
+    buildUrl: ({ tmdbId, type, season = 1, episode = 1, lang = "hi" }) => {
+      const audioFlag = lang ? `&lang=${lang}&audio=${lang}` : "";
       if (type === "movie") {
-        return `https://vidsrc.to/embed/movie/${tmdbId}?autoPlay=1${langParam}`;
+        return `https://vidsrc.to/embed/movie/${tmdbId}?autoPlay=1${audioFlag}`;
       }
-      return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}?autoPlay=1${langParam}`;
+      return `https://vidsrc.to/embed/tv/${tmdbId}/${season}/${episode}?autoPlay=1${audioFlag}`;
     },
   },
   {
-    id: "in-delhi-cloud",
+    id: "in-delhi-fastroute",
     name: "Server 2 (Delhi FastRoute)",
     region: "IN-North (Delhi)",
-    latency: "24ms",
-    hasHindi: true,
-    buildUrl: ({ tmdbId, type, season = 1, episode = 1, audio = "hindi" }) => {
-      const subDub = audio === "hindi" ? "dub" : "sub";
+    latency: "21ms",
+    supportedAudio: ["hi", "ta", "te", "en", "ja"],
+    buildUrl: ({ tmdbId, type, season = 1, episode = 1, lang = "hi" }) => {
+      const audioParam = lang === "ja" ? "japanese" : lang;
       if (type === "movie") {
-        return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&lang=hindi`;
+        return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&lang=${audioParam}`;
       }
-      return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&lang=hindi`;
+      return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1&s=${season}&e=${episode}&lang=${audioParam}`;
     },
   },
   {
-    id: "asia-superembed",
-    name: "Server 3 (SuperEmbed Asia)",
-    region: "Asia-South",
-    latency: "42ms",
-    hasHindi: true,
+    id: "in-bangalore-cloud",
+    name: "Server 3 (South Asia Bangalore)",
+    region: "Asia-South (Bangalore)",
+    latency: "28ms",
+    supportedAudio: ["hi", "ta", "te", "ml", "kn", "en"],
     buildUrl: ({ tmdbId, type, season = 1, episode = 1 }) => {
       if (type === "movie") {
         return `https://autoembed.to/movie/tmdb/${tmdbId}`;
@@ -56,11 +56,11 @@ export const STREAM_SERVERS: StreamSource[] = [
     },
   },
   {
-    id: "global-fallback",
-    name: "Server 4 (Global Core Mirror)",
-    region: "Global",
-    latency: "98ms",
-    hasHindi: false,
+    id: "global-core",
+    name: "Server 4 (Global Core)",
+    region: "Global (Core)",
+    latency: "82ms",
+    supportedAudio: ["en", "ja"],
     buildUrl: ({ tmdbId, type, season = 1, episode = 1 }) => {
       if (type === "movie") {
         return `https://vidsrc.me/embed/movie?tmdb=${tmdbId}`;
