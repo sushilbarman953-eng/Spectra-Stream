@@ -3,13 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Download, CheckCircle2 } from "lucide-react";
-import { tmdb, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
-import { downloadManager } from "@/lib/downloadManager";
+import Image from "next/image";
+import { ArrowLeft, Loader2, Download, Star, Sparkles } from "lucide-react";
+import { tmdb, MediaItem, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
 import { AnimePlayer } from "@/components/AnimePlayer";
 import { AnimeEpisodeGrid } from "@/components/AnimeEpisodeGrid";
 import { Player } from "@/components/Player";
 import { GlassButton } from "@/components/ui/GlassButton";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { BatchDownloadModal } from "@/components/BatchDownloadModal";
 
 export default function WatchPage() {
   const params = useParams();
@@ -26,18 +28,11 @@ export default function WatchPage() {
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
   const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
 
   const title = details?.title || details?.name || "Loading Title...";
   const isSeriesOrAnime = type === "tv";
   const seasonsCount = details?.number_of_seasons || 1;
-
-  // Check download state
-  useEffect(() => {
-    const downloadKey = `${id}-${type}-s${currentSeason}-e${currentEpisode}`;
-    const all = downloadManager.getAll();
-    setIsDownloaded(all.some((d) => d.id === downloadKey));
-  }, [id, type, currentSeason, currentEpisode]);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,31 +102,11 @@ export default function WatchPage() {
     handleSelectEpisode(nextEp);
   };
 
-  const handleDownload = () => {
-    const downloadKey = `${id}-${type}-s${currentSeason}-e${currentEpisode}`;
-    const displayTitle =
-      type === "tv"
-        ? `${title} - S${currentSeason}:E${currentEpisode}`
-        : title;
-
-    downloadManager.startDownload({
-      id: downloadKey,
-      tmdbId: id,
-      title: displayTitle,
-      type,
-      season: currentSeason,
-      episode: currentEpisode,
-      posterPath: details?.poster_path,
-      fileSizeMb: type === "tv" ? 380 : 920,
-      streamUrl: window.location.href,
-    });
-
-    setIsDownloaded(true);
-  };
-
   const posterImage = details?.backdrop_path
     ? `${IMAGE_BASE}/w1280${details.backdrop_path}`
     : undefined;
+
+  const relatedItems: MediaItem[] = details?.similar?.results?.slice(0, 10) || [];
 
   if (loading) {
     return (
@@ -144,7 +119,7 @@ export default function WatchPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
-      {/* Top Header with Back & One-Tap Download Trigger */}
+      {/* Top Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Link href={`/details/${id}?type=${type}`}>
@@ -158,30 +133,16 @@ export default function WatchPage() {
           </h2>
         </div>
 
-        {/* Download Button */}
         <button
-          onClick={handleDownload}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition ${
-            isDownloaded
-              ? "bg-white/10 text-emerald-400 border-emerald-400/30"
-              : "bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-glow"
-          }`}
+          onClick={() => setDownloadModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/20 shadow-glow"
         >
-          {isDownloaded ? (
-            <>
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Downloaded</span>
-            </>
-          ) : (
-            <>
-              <Download className="w-3.5 h-3.5" />
-              <span>Download</span>
-            </>
-          )}
+          <Download className="w-3.5 h-3.5" />
+          <span>Download</span>
         </button>
       </div>
 
-      {/* Main Video Stream */}
+      {/* Main Video Stream locked to Glass Player */}
       {isSeriesOrAnime ? (
         <AnimePlayer
           tmdbId={id}
@@ -213,6 +174,56 @@ export default function WatchPage() {
           onSelectSeason={handleSelectSeason}
         />
       )}
+
+      {/* Explore More Related Media below player */}
+      {relatedItems.length > 0 && (
+        <div className="space-y-3 pt-4 border-t border-white/10">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-white" />
+            <h3 className="text-sm sm:text-base font-bold text-white">Related Titles</h3>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+            {relatedItems.map((item) => {
+              const itemTitle = item.title || item.name || "Untitled";
+              const itemPoster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
+
+              return (
+                <Link key={item.id} href={`/details/${item.id}?type=${type}`} className="flex-none w-32 sm:w-36 group">
+                  <GlassCard hoverEffect className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0c0c10]">
+                    <div className="relative aspect-[2/3] w-full bg-zinc-950">
+                      {itemPoster ? (
+                        <Image src={itemPoster} alt={itemTitle} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-zinc-600 text-xs">No Poster</div>
+                      )}
+                      <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 px-1.5 py-0.5 rounded text-[9px] text-zinc-200">
+                        <Star className="w-2.5 h-2.5 fill-white text-white" />
+                        {item.vote_average ? item.vote_average.toFixed(1) : "N/A"}
+                      </div>
+                    </div>
+                    <div className="p-2 bg-black/60">
+                      <h4 className="text-xs font-semibold text-white truncate">{itemTitle}</h4>
+                    </div>
+                  </GlassCard>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Batch Download Modal */}
+      <BatchDownloadModal
+        isOpen={downloadModalOpen}
+        onClose={() => setDownloadModalOpen(false)}
+        tmdbId={id}
+        title={title}
+        type={type}
+        season={currentSeason}
+        episodes={episodes}
+        posterPath={details?.poster_path}
+      />
     </div>
   );
 }
