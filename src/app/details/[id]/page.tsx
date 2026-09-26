@@ -16,8 +16,6 @@ import {
   Sparkles,
   Loader2,
   Calendar,
-  Film,
-  Clapperboard,
 } from "lucide-react";
 import { tmdb, MediaItem, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
 import { GlassButton } from "@/components/ui/GlassButton";
@@ -104,7 +102,7 @@ export default function DetailsPage() {
   const poster = details.poster_path ? `${IMAGE_BASE}/w500${details.poster_path}` : null;
   const year = (details.release_date || details.first_air_date || "").slice(0, 4);
 
-  // Cast & Crew with Profile Avatars
+  // Filter Cast, Directors & Producers
   const rawCast = (details.credits?.cast || []).filter((c: any) => c.profile_path || c.name);
   const cast = rawCast.slice(0, 24).map((c: any) => ({
     ...c,
@@ -129,32 +127,32 @@ export default function DetailsPage() {
       ? directors.length > 0 ? directors : [{ id: 999, name: "Not Listed", roleName: "Director" }]
       : producers;
 
-  const relatedItems: MediaItem[] = details.similar?.results?.slice(0, 12) || [];
+  const relatedItems: MediaItem[] = details.similar?.results?.slice(0, 20) || [];
 
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-6">
       
-      {/* 1. CINEMATIC HERO: BACKDROP + SIDE-BY-SIDE POSTER & CONTROLS */}
+      {/* 1. CINEMATIC HERO: BACKDROP BANNER + PRECISE SIDE-BY-SIDE POSTER & CONTROLS */}
       <div className="relative rounded-3xl overflow-hidden border border-white/15 bg-[#09090c] shadow-2xl">
-        {/* Top Backdrop Banner */}
-        <div className="relative w-full h-40 sm:h-64 md:h-80 bg-zinc-950">
+        {/* Backdrop Banner */}
+        <div className="relative w-full h-36 sm:h-56 md:h-72 bg-zinc-950">
           {backdrop && (
             <Image
               src={backdrop}
               alt={title}
               fill
               priority
-              className="object-cover object-top opacity-40"
+              className="object-cover object-top opacity-35"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#09090c] via-[#09090c]/70 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#09090c] via-[#09090c]/80 to-transparent" />
         </div>
 
-        {/* Side-by-Side Flex Container (Left: Poster | Right: Details & Buttons) */}
-        <div className="relative px-4 sm:px-6 pb-6 -mt-24 sm:-mt-36 z-10 flex flex-row items-end gap-3.5 sm:gap-6">
+        {/* Poster (Left) & Title + Tags + Play/List + Download (Right) */}
+        <div className="relative px-4 sm:px-6 pb-5 -mt-20 sm:-mt-28 z-10 flex flex-row items-stretch gap-3.5 sm:gap-6">
           
-          {/* Left: Compact Overlapping Poster */}
-          <div className="relative w-32 sm:w-44 md:w-52 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/25 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.9)] flex-none">
+          {/* Left: Poster */}
+          <div className="relative w-28 sm:w-40 md:w-48 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/20 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.9)] flex-none">
             {poster ? (
               <Image src={poster} alt={title} fill priority className="object-cover" />
             ) : (
@@ -170,9 +168,10 @@ export default function DetailsPage() {
             )}
           </div>
 
-          {/* Right: Title, Meta & Staged Buttons (Fill The Gap) */}
-          <div className="flex-1 min-w-0 flex flex-col justify-end space-y-2 sm:space-y-3">
+          {/* Right: Title, Tags, Play + Add to List, Download */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
             <div>
+              {/* Year & Type Badge */}
               <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-zinc-400 font-semibold mb-1">
                 <span className="px-2 py-0.5 rounded-full bg-white/10 text-white uppercase text-[9px]">
                   {type === "tv" ? "Series" : "Movie"}
@@ -180,11 +179,12 @@ export default function DetailsPage() {
                 {year && <span>• {year}</span>}
               </div>
 
-              <h1 className="text-lg sm:text-2xl md:text-3xl font-extrabold text-white leading-tight truncate">
+              {/* Title */}
+              <h1 className="text-base sm:text-2xl font-extrabold text-white leading-tight line-clamp-2">
                 {title}
               </h1>
 
-              {/* Genre Chips */}
+              {/* Tags beneath title */}
               <div className="flex flex-wrap gap-1 mt-1.5">
                 {details.genres?.slice(0, 3).map((g: any) => (
                   <span
@@ -197,10 +197,10 @@ export default function DetailsPage() {
               </div>
             </div>
 
-            {/* Tight Action Buttons Grid */}
-            <div className="space-y-1.5 pt-1 w-full max-w-[280px] sm:max-w-xs">
+            {/* Actions beneath Tags */}
+            <div className="space-y-1.5 pt-2 w-full max-w-[280px]">
+              {/* Play & Add to List Button side-by-side */}
               <div className="flex items-center gap-2">
-                {/* Play Button */}
                 <Link href={`/watch/${id}?type=${type}&season=1&episode=1`} className="flex-1">
                   <GlassButton
                     variant="primary"
@@ -211,7 +211,6 @@ export default function DetailsPage() {
                   </GlassButton>
                 </Link>
 
-                {/* Add to List (+) Button */}
                 <button
                   onClick={toggleWatchlist}
                   title={isSaved ? "In List" : "Add to List"}
@@ -225,7 +224,7 @@ export default function DetailsPage() {
                 </button>
               </div>
 
-              {/* Download Button (Directly beneath Play & Plus) */}
+              {/* Download Button directly beneath Play & Add to List */}
               <button
                 onClick={() => setDownloadModalOpen(true)}
                 className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-zinc-200 border border-white/15 hover:bg-white/20 hover:text-white transition"
@@ -238,15 +237,15 @@ export default function DetailsPage() {
         </div>
       </div>
 
-      {/* 2. OVERVIEW */}
+      {/* 2. STORYLINE / OVERVIEW */}
       <div className="space-y-1.5 px-1">
         <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
-        <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-4xl line-clamp-4">
+        <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-4xl line-clamp-3">
           {details.overview || "Stream this title now on Spectra."}
         </p>
       </div>
 
-      {/* 3. UPGRADED PEOPLE SECTION (Vertical Carousel & Clean Toggle) */}
+      {/* 3. PEOPLE SECTION: Horizontal Carousel & List Mode Toggle */}
       <div className="space-y-3 pt-3 border-t border-white/10">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -255,7 +254,7 @@ export default function DetailsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Category Sub-Buttons (Cast, Director, Producer) */}
+            {/* Category Filter Pills */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
               {(["cast", "director", "producer"] as const).map((tab) => (
                 <button
@@ -272,25 +271,27 @@ export default function DetailsPage() {
               ))}
             </div>
 
-            {/* View Switcher: Grid vs List Toggle */}
+            {/* View Switcher: Carousel (Grid icon) vs List Mode */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
               <button
                 onClick={() => setPeopleView("grid")}
-                className={`p-1 rounded-lg transition ${
+                className={`p-1.5 rounded-lg transition ${
                   peopleView === "grid"
                     ? "bg-white text-black shadow-glow"
                     : "text-zinc-400 hover:text-white"
                 }`}
+                title="Horizontal Carousel"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setPeopleView("list")}
-                className={`p-1 rounded-lg transition ${
+                className={`p-1.5 rounded-lg transition ${
                   peopleView === "list"
                     ? "bg-white text-black shadow-glow"
                     : "text-zinc-400 hover:text-white"
                 }`}
+                title="List Mode"
               >
                 <List className="w-3.5 h-3.5" />
               </button>
@@ -298,42 +299,38 @@ export default function DetailsPage() {
           </div>
         </div>
 
-        {/* Dynamic People Render */}
+        {/* Display: Horizontal Carousel or Stacked List Mode */}
         {peopleView === "grid" ? (
-          /* Sleek Vertical Carousel Deck (2-Column Glass Pills) */
-          <div className="max-h-72 overflow-y-auto no-scrollbar pr-1">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {activePeopleList.map((person: any, idx: number) => {
-                const photo = person.profile_path
-                  ? `${IMAGE_BASE}/w185${person.profile_path}`
-                  : null;
+          /* Horizontal Carousel */
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2 pt-1">
+            {activePeopleList.map((person: any, idx: number) => {
+              const photo = person.profile_path
+                ? `${IMAGE_BASE}/w185${person.profile_path}`
+                : null;
 
-                return (
-                  <div
-                    key={`${person.id}-${idx}`}
-                    className="flex items-center gap-2.5 p-2 rounded-2xl border border-white/10 bg-[#0e0e13]/80 hover:border-white/25 transition group"
-                  >
-                    <div className="relative w-11 h-11 rounded-xl overflow-hidden bg-zinc-900 border border-white/15 flex-none">
-                      {photo ? (
-                        <Image src={photo} alt={person.name} fill className="object-cover group-hover:scale-105 transition" />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-zinc-600 text-[10px] font-bold">
-                          {person.name?.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-white truncate">{person.name}</p>
-                      <p className="text-[10px] text-zinc-400 truncate">{person.roleName}</p>
-                    </div>
+              return (
+                <div
+                  key={`${person.id}-${idx}`}
+                  className="flex-none w-28 sm:w-32 flex flex-col items-center text-center p-2.5 rounded-2xl border border-white/10 bg-[#0e0e13]/80 hover:border-white/25 transition group"
+                >
+                  <div className="relative w-14 h-14 rounded-full overflow-hidden bg-zinc-900 border border-white/15 flex-none mb-1.5">
+                    {photo ? (
+                      <Image src={photo} alt={person.name} fill className="object-cover group-hover:scale-105 transition" />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-zinc-600 text-[11px] font-bold">
+                        {person.name?.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+                  <p className="text-xs font-bold text-white truncate w-full">{person.name}</p>
+                  <p className="text-[10px] text-zinc-400 truncate w-full">{person.roleName}</p>
+                </div>
+              );
+            })}
           </div>
         ) : (
-          /* High-Density List View */
-          <div className="max-h-72 overflow-y-auto no-scrollbar space-y-1.5 pr-1">
+          /* List Mode */
+          <div className="max-h-64 overflow-y-auto no-scrollbar space-y-1.5 pr-1">
             {activePeopleList.map((person: any, idx: number) => {
               const photo = person.profile_path
                 ? `${IMAGE_BASE}/w185${person.profile_path}`
@@ -366,7 +363,7 @@ export default function DetailsPage() {
         )}
       </div>
 
-      {/* 4. MORE LIKE THIS EXPLORE */}
+      {/* 4. MORE LIKE THIS: TWO ROWS */}
       {relatedItems.length > 0 && (
         <div className="space-y-3 pt-3 border-t border-white/10">
           <div className="flex items-center gap-2 px-1">
@@ -374,13 +371,14 @@ export default function DetailsPage() {
             <h3 className="text-sm sm:text-base font-bold text-white">More Like This</h3>
           </div>
 
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
+          {/* 2-Row Horizontal Swipe Shelf */}
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[115px] sm:auto-cols-[145px] gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
             {relatedItems.map((item) => {
               const itemTitle = item.title || item.name || "Untitled";
               const itemPoster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
 
               return (
-                <Link key={item.id} href={`/details/${item.id}?type=${type}`} className="flex-none w-28 sm:w-36 group">
+                <Link key={item.id} href={`/details/${item.id}?type=${type}`} className="group">
                   <GlassCard
                     hoverEffect
                     className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0c0c10]"
@@ -405,7 +403,7 @@ export default function DetailsPage() {
                       </div>
                     </div>
                     <div className="p-1.5 bg-black/60">
-                      <h4 className="text-[11px] font-semibold text-white truncate">{itemTitle}</h4>
+                      <h4 className="text-[10px] sm:text-[11px] font-semibold text-white truncate">{itemTitle}</h4>
                     </div>
                   </GlassCard>
                 </Link>
