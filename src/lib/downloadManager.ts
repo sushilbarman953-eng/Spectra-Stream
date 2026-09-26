@@ -1,160 +1,50 @@
-export interface OfflineMediaItem {
+export interface DownloadedItem {
   id: string;
-  tmdbId: string;
-  type: "movie" | "tv";
   title: string;
-  season?: number;
-  episode?: number;
-  posterPath?: string;
-  sizeBytes: number;
-  savedAt: number;
+  type: "movie" | "tv";
+  posterPath: string | null;
+  sizeBytes?: number;
+  downloadedAt?: number;
 }
 
-const DB_NAME = "SpectraOfflineDB";
-const STORE_NAME = "offline_chunks";
-const METADATA_KEY = "spectra_offline_meta";
-
-const openDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    if (typeof window === "undefined") return reject("No window");
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-};
+const STORAGE_KEY = "spectra_downloads";
 
 export const downloadManager = {
-  getAll: (): OfflineMediaItem[] => {
+  getAll: (): DownloadedItem[] => {
     if (typeof window === "undefined") return [];
     try {
-      const data = localStorage.getItem(METADATA_KEY);
+      const data = localStorage.getItem(STORAGE_KEY);
       return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
   },
 
-  isDownloaded: (id: string): boolean => {
-    return downloadManager.getAll().some((item) => item.id === id);
+  has: (id: string | number): boolean => {
+    if (typeof window === "undefined") return false;
+    const items = downloadManager.getAll();
+    return items.some((item) => String(item.id) === String(id));
   },
 
-  saveMedia: async (
-    item: Omit<OfflineMediaItem, "savedAt" | "sizeBytes">,
-    rawStreamUrl: string,
-    onProgress?: (progress: number) => void
-  ): Promise<boolean> => {
-    try {
-      const res = await fetch("/api/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: rawStreamUrl }),
-      });
+  isDownloaded: (id: string | number): boolean => {
+    return downloadManager.has(id);
+  },
 
-      if (!res.ok) {
-        throw new Error(`Proxy media fetch failed with status: ${res.status}`);
-      }
-
-      const contentLength = res.headers.get("content-length");
-      const total = contentLength ? parseInt(contentLength, 10) : 0;
-
-      let blob: Blob;
-
-      if (res.body && total > 0) {
-        const reader = res.body.getReader();
-        let received = 0;
-        const chunks: Uint8Array[] = [];
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          if (value) {
-            chunks.push(value);
-            received += value.length;
-            if (onProgress) {
-              onProgress(Math.min(99, Math.round((received / total) * 100)));
-            }
-          }
-        }
-        blob = new Blob(chunks, { type: "video/mp4" });
-      } else {
-        blob = await res.blob();
-      }
-
-      if (onProgress) onProgress(100);
-
-      // Save to IndexedDB
-      const db = await openDB();
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        store.put(blob, item.id);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-
-      // Save metadata
-      const metaItem: OfflineMediaItem = {
-        ...item,
-        sizeBytes: blob.size,
-        savedAt: Date.now(),
-      };
-
-      const current = downloadManager.getAll().filter((i) => i.id !== item.id);
-      localStorage.setItem(METADATA_KEY, JSON.stringify([metaItem, ...current]));
+  add: (item: DownloadedItem): void => {
+    if (typeof window === "undefined") return;
+    const items = downloadManager.getAll();
+    if (!items.some((i) => String(i.id) === String(item.id))) {
+      const updated = [{ ...item, downloadedAt: Date.now() }, ...items];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       window.dispatchEvent(new Event("spectra_downloads_updated"));
-      return true;
-    } catch (e) {
-      console.error("Offline download error:", e);
-      return false;
     }
   },
 
-  getOfflineBlobUrl: async (id: string): Promise<string | null> => {
-    try {
-      const db = await openDB();
-      return await new Promise((resolve) => {
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const store = tx.objectStore(STORE_NAME);
-        const req = store.get(id);
-        req.onsuccess = () => {
-          if (req.result instanceof Blob) {
-            resolve(URL.createObjectURL(req.result));
-          } else {
-            resolve(null);
-          }
-        };
-        req.onerror = () => resolve(null);
-      });
-    } catch {
-      return null;
-    }
-  },
-
-  removeMedia: async (id: string) => {
-    try {
-      const db = await openDB();
-      const tx = db.transaction(STORE_NAME, "readwrite");
-      tx.objectStore(STORE_NAME).delete(id);
-
-      const current = downloadManager.getAll().filter((i) => i.id !== id);
-      localStorage.setItem(METADATA_KEY, JSON.stringify(current));
-      window.dispatchEvent(new Event("spectra_downloads_updated"));
-    } catch (e) {
-      console.error("Remove download error:", e);
-    }
-  },
-
-  getStorageEstimate: async (): Promise<{ used: number; quota: number }> => {
-    if (typeof navigator !== "undefined" && navigator.storage?.estimate) {
-      const est = await navigator.storage.estimate();
-      return { used: est.usage || 0, quota: est.quota || 0 };
-    }
-    return { used: 0, quota: 0 };
+  remove: (id: string | number): void => {
+    if (typeof window === "undefined") return;
+    const items = downloadManager.getAll();
+    const updated = items.filter((i) => String(i.id) !== String(id));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event("spectra_downloads_updated"));
   },
 };

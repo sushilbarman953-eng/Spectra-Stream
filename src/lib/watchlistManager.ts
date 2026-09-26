@@ -1,67 +1,60 @@
 export interface WatchlistItem {
-  id: string | number;
+  id: string;
   title: string;
   type: "movie" | "tv";
-  posterPath?: string;
-  backdropPath?: string;
+  posterPath: string | null;
   voteAverage?: number;
-  overview?: string;
   addedAt: number;
 }
 
-const WATCHLIST_KEY = "spectra_user_watchlist";
+const STORAGE_KEY = "spectra_watchlist";
 
 export const watchlistManager = {
   getAll: (): WatchlistItem[] => {
     if (typeof window === "undefined") return [];
     try {
-      const stored = localStorage.getItem(WATCHLIST_KEY);
-      return stored ? JSON.parse(stored) : [];
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
     } catch {
       return [];
     }
   },
 
-  isInList: (id: string | number): boolean => {
-    const list = watchlistManager.getAll();
-    return list.some((item) => String(item.id) === String(id));
+  has: (id: string | number): boolean => {
+    if (typeof window === "undefined") return false;
+    const items = watchlistManager.getAll();
+    return items.some((item) => String(item.id) === String(id));
   },
 
-  toggle: (item: Omit<WatchlistItem, "addedAt">): boolean => {
-    if (typeof window === "undefined") return false;
-    try {
-      const list = watchlistManager.getAll();
-      const exists = list.some((i) => String(i.id) === String(item.id));
+  isInWatchlist: (id: string | number): boolean => {
+    return watchlistManager.has(id);
+  },
 
-      let updated: WatchlistItem[];
-      if (exists) {
-        updated = list.filter((i) => String(i.id) !== String(item.id));
-      } else {
-        const newItem: WatchlistItem = {
-          ...item,
-          addedAt: Date.now(),
-        };
-        updated = [newItem, ...list];
-      }
-
-      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(updated));
+  add: (item: WatchlistItem): void => {
+    if (typeof window === "undefined") return;
+    const items = watchlistManager.getAll();
+    if (!items.some((i) => String(i.id) === String(item.id))) {
+      const updated = [item, ...items];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       window.dispatchEvent(new Event("spectra_watchlist_updated"));
-      return !exists;
-    } catch (e) {
-      console.error("Watchlist toggle error:", e);
-      return false;
     }
   },
 
-  remove: (id: string | number) => {
+  remove: (id: string | number): void => {
     if (typeof window === "undefined") return;
-    try {
-      const list = watchlistManager.getAll();
-      const updated = list.filter((i) => String(i.id) !== String(id));
-      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(updated));
-      window.dispatchEvent(new Event("spectra_watchlist_updated"));
-    } catch (e) {
-      console.error(e);
+    const items = watchlistManager.getAll();
+    const updated = items.filter((i) => String(i.id) !== String(id));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event("spectra_watchlist_updated"));
+  },
+
+  toggle: (item: WatchlistItem): boolean => {
+    if (watchlistManager.has(item.id)) {
+      watchlistManager.remove(item.id);
+      return false;
+    } else {
+      watchlistManager.add(item);
+      return true;
     }
   },
 };
