@@ -30,7 +30,7 @@ export const Navbar = () => {
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const activePillRef = useRef<HTMLAnchorElement | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   const isUtilityPage = pathname === "/downloads" || pathname === "/me" || pathname === "/explore";
 
@@ -42,16 +42,22 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Auto-scroll active pill into view when tab changes via swipe
+  // Smoothly center the active category pill in the viewport
   useEffect(() => {
-    if (activePillRef.current) {
-      activePillRef.current.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest",
-      });
+    if (scrollerRef.current && !isUtilityPage) {
+      const activeEl = scrollerRef.current.querySelector<HTMLElement>("[data-active='true']");
+      if (activeEl) {
+        const containerWidth = scrollerRef.current.offsetWidth;
+        const targetLeft = activeEl.offsetLeft;
+        const targetWidth = activeEl.offsetWidth;
+
+        scrollerRef.current.scrollTo({
+          left: targetLeft - containerWidth / 2 + targetWidth / 2,
+          behavior: "smooth",
+        });
+      }
     }
-  }, [pathname]);
+  }, [pathname, isUtilityPage]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -120,10 +126,11 @@ export const Navbar = () => {
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
         isScrolled || isUtilityPage
           ? "bg-[#08080c]/85 backdrop-blur-2xl border-b border-white/10 py-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)]"
-          : "bg-gradient-to-b from-[#08080c]/90 via-[#08080c]/40 to-transparent pt-3 pb-2"
+          : "bg-gradient-to-b from-[#08080c]/95 via-[#08080c]/50 to-transparent pt-3 pb-2"
       }`}
     >
       <div className="max-w-6xl mx-auto px-4 md:px-8">
+        {/* Top 3-Column Bar */}
         <div className="grid grid-cols-3 items-center h-10">
           {/* Left: Brand */}
           <div className="flex items-center gap-1.5 justify-start">
@@ -136,7 +143,7 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* Center: Status Indicator */}
+          {/* Center Indicator (When Scrolled or Utility Pages) */}
           <div className="flex justify-center">
             {(isScrolled || isUtilityPage) && (
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/25 backdrop-blur-xl shadow-[0_0_16px_rgba(255,255,255,0.15)] animate-in fade-in duration-300">
@@ -165,7 +172,7 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* Mini Popover */}
+            {/* Mini Search Popover */}
             {smallGlassOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
@@ -247,29 +254,39 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Sub-bar Category Pills */}
+        {/* CENTER FOCAL CARROUSEL SUB-BAR (Catalog View) */}
         {!isScrolled && !isUtilityPage && (
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 animate-in fade-in slide-in-from-top-2 duration-300">
-            {CATEGORIES.map((cat) => {
-              const isActive = pathname === cat.href;
-              const CatIcon = cat.icon;
+          <div
+            ref={scrollerRef}
+            className="relative flex items-center overflow-x-auto no-scrollbar pt-2.5 pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 scroll-smooth snap-x snap-mandatory"
+          >
+            {/* Center Spacer Mask to allow ends to center */}
+            <div className="flex items-center gap-2.5 mx-auto min-w-full justify-center px-[35vw] sm:px-0">
+              {CATEGORIES.map((cat) => {
+                const isActive = pathname === cat.href;
+                const CatIcon = cat.icon;
 
-              return (
-                <Link
-                  key={cat.href}
-                  href={cat.href}
-                  ref={isActive ? activePillRef : null}
-                  className={`flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold tracking-wide whitespace-nowrap transition-all duration-300 border ${
-                    isActive
-                      ? "bg-white text-black border-white shadow-[0_0_18px_rgba(255,255,255,0.45)] scale-105"
-                      : "bg-white/5 text-zinc-300 border-white/10 hover:bg-white/15 hover:text-white"
-                  }`}
-                >
-                  <CatIcon className={`w-3 h-3 ${isActive ? "text-black" : "text-zinc-400"}`} />
-                  <span>{cat.label}</span>
-                </Link>
-              );
-            })}
+                return (
+                  <Link
+                    key={cat.href}
+                    href={cat.href}
+                    data-active={isActive ? "true" : "false"}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide whitespace-nowrap transition-all duration-300 snap-center select-none ${
+                      isActive
+                        ? "bg-white text-black border border-white shadow-[0_0_24px_rgba(255,255,255,0.7),inset_0_1px_1px_#ffffff] scale-105 z-10 font-black"
+                        : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.08] hover:border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.03)] scale-95 opacity-80 hover:opacity-100"
+                    }`}
+                  >
+                    <CatIcon
+                      className={`w-3.5 h-3.5 transition-colors ${
+                        isActive ? "text-black fill-black" : "text-zinc-400"
+                      }`}
+                    />
+                    <span>{cat.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
