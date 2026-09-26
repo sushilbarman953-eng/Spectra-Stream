@@ -65,88 +65,115 @@ export const GlassVideoPlayer = ({
 
   const lastSavedTime = useRef<number>(0);
 
-  // Setup Stream (HLS.js / Native Safari HLS / MP4)
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !src) return;
 
+    let isDisposed = false;
     setLoading(true);
     setHasError(false);
     setErrorMessage("");
 
     // Destroy existing Hls instance if any
     if (hlsRef.current) {
-      hlsRef.current.destroy();
+      try {
+        hlsRef.current.destroy();
+      } catch {}
       hlsRef.current = null;
     }
 
-    const isHlsStream = src.includes(".m3u8") || src.includes("live") || src.includes("hls");
+    const isHls = src.includes(".m3u8") || src.includes("live") || src.includes("hls");
 
-    if (isHlsStream && Hls.isSupported()) {
+    if (isHls && Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        backBufferLength: 90,
+        backBufferLength: 60,
       });
 
       hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setLoading(false);
-        if (initialTime > 0) {
-          try {
-            video.currentTime = initialTime;
-          } catch {}
-        }
-      });
+      try {
+        hls.loadSource(src);
+        hls.attachMedia(video);
 
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              setHasError(true);
-              setErrorMessage("Live stream currently unavailable. Please try another channel.");
-              setLoading(false);
-              hls.destroy();
-              break;
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (isDisposed) return;
+          setLoading(false);
+          if (initialTime > 0) {
+            try {
+              video.currentTime = initialTime;
+            } catch {}
           }
-        }
-      });
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (isDisposed) return;
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                setHasError(true);
+                setErrorMessage("Live stream currently unavailable. Please select another channel.");
+                setLoading(false);
+                try {
+                  hls.destroy();
+                } catch {}
+                break;
+            }
+          }
+        });
+      } catch {
+        setHasError(true);
+        setErrorMessage("Error initializing stream engine.");
+        setLoading(false);
+      }
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native Apple/Safari HLS
+      // Native Safari / iOS HLS
       video.src = src;
       const onLoadedMetadata = () => {
-        setLoading(false);
-        if (initialTime > 0) video.currentTime = initialTime;
+        if (!isDisposed) {
+          setLoading(false);
+          if (initialTime > 0) {
+            try {
+              video.currentTime = initialTime;
+            } catch {}
+          }
+        }
       };
       video.addEventListener("loadedmetadata", onLoadedMetadata, { once: true });
-    } else if (!isHlsStream) {
-      // Regular video formats (.mp4, .webm)
+    } else if (!isHls) {
+      // Standard video formats (.mp4, .webm)
       video.src = src;
-      const onCanPlay = () => setLoading(false);
+      const onCanPlay = () => {
+        if (!isDisposed) setLoading(false);
+      };
       video.addEventListener("canplay", onCanPlay, { once: true });
     } else {
       setHasError(true);
-      setErrorMessage("Your browser does not support HLS media playback.");
+      setErrorMessage("HLS playback is not supported on this browser.");
       setLoading(false);
     }
 
     return () => {
+      isDisposed = true;
       if (hlsRef.current) {
-        hlsRef.current.destroy();
+        try {
+          hlsRef.current.destroy();
+        } catch {}
         hlsRef.current = null;
       }
       if (video) {
-        video.removeAttribute("src");
-        video.load();
+        try {
+          video.pause();
+          // Avoid removeAttribute('src') and video.load() which trigger NotSupportedError
+          video.src = "";
+        } catch {}
       }
     };
   }, [src, initialTime]);
@@ -188,15 +215,14 @@ export const GlassVideoPlayer = ({
     if (!video || hasError) return;
 
     if (video.paused) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsPlaying(true))
-          .catch((err) => {
-            console.warn("Playback interrupted or unpermitted:", err);
-            setIsPlaying(false);
-          });
-      }
+      try {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
+        }
+      } catch {}
     } else {
       video.pause();
       setIsPlaying(false);
@@ -222,7 +248,9 @@ export const GlassVideoPlayer = ({
   const seek = (time: number) => {
     const video = videoRef.current;
     if (!video) return;
-    video.currentTime = Math.max(0, Math.min(video.duration || 0, time));
+    try {
+      video.currentTime = Math.max(0, Math.min(video.duration || 0, time));
+    } catch {}
   };
 
   const formatTime = (seconds: number) => {
@@ -241,13 +269,17 @@ export const GlassVideoPlayer = ({
       <video
         ref={videoRef}
         playsInline
+        preload="metadata"
         onTimeUpdate={handleTimeUpdate}
         onWaiting={() => setLoading(true)}
         onPlaying={() => {
           setLoading(false);
           setIsPlaying(true);
         }}
-        onError={() => {
+        onError={(e) => {
+          // Suppress empty source cleanup errors
+          const target = e.target as HTMLVideoElement;
+          if (!target.currentSrc && !target.src) return;
           setHasError(true);
           setErrorMessage("Failed to load stream source. Please select another channel.");
           setLoading(false);
@@ -277,7 +309,11 @@ export const GlassVideoPlayer = ({
             onClick={() => {
               setHasError(false);
               setLoading(true);
-              if (hlsRef.current) hlsRef.current.loadSource(src);
+              if (hlsRef.current) {
+                hlsRef.current.loadSource(src);
+              } else if (videoRef.current) {
+                videoRef.current.src = src;
+              }
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-black font-bold text-xs shadow-glow active:scale-95 transition"
           >
