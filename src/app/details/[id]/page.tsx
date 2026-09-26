@@ -128,39 +128,40 @@ export default function DetailsPage() {
   const relatedItems: MediaItem[] = details.similar?.results?.slice(0, 20) || [];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 pb-28 space-y-5">
+    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-6">
       
-      {/* 1. CINEMATIC HERO: FULL BACKDROP EXTENDING BEHIND POSTER & BUTTONS WITH FROSTED GLASS */}
-      <div className="relative rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-black">
-        {/* Full-bleed background image covering the entire container */}
+      {/* 1. EXPANDED HERO SHOWCASE WITH CINEMATIC AMBIENT GLASS */}
+      <div className="relative rounded-3xl overflow-hidden border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.9)] bg-[#0b0b10] min-h-[440px] sm:min-h-[500px] flex flex-col justify-end">
+        
+        {/* Backdrop: Vivid, Crisp with Light Cinematic Depth Blur */}
         {backdrop && (
-          <Image
-            src={backdrop}
-            alt={title}
-            fill
-            priority
-            className="object-cover object-top opacity-60 filter brightness-90 contrast-105"
-          />
+          <div className="absolute inset-0">
+            <Image
+              src={backdrop}
+              alt={title}
+              fill
+              priority
+              className="object-cover object-center opacity-85 filter blur-[3px] scale-105 contrast-110"
+            />
+          </div>
         )}
 
-        {/* Global Frosted Glass Vignette Overlay */}
+        {/* Cinematic Vignette Overlay */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
-            backdropFilter: "blur(14px) saturate(160%)",
-            WebkitBackdropFilter: "blur(14px) saturate(160%)",
             background:
-              "linear-gradient(to bottom, rgba(10, 10, 14, 0.25) 0%, rgba(10, 10, 14, 0.70) 50%, rgba(8, 8, 12, 0.95) 100%)",
+              "linear-gradient(to bottom, rgba(5, 5, 8, 0.15) 0%, rgba(5, 5, 8, 0.50) 45%, rgba(6, 6, 10, 0.96) 92%)",
           }}
         />
 
-        {/* Hero Content Container */}
-        <div className="relative z-10 p-4 sm:p-6 space-y-4">
+        {/* Content Container (Expanded with Roomy Spacing) */}
+        <div className="relative z-10 p-5 sm:p-7 space-y-5">
           
-          {/* TOP ROW: Left Poster & Right Title with Tags */}
-          <div className="flex items-end gap-3.5 sm:gap-5 pt-1">
-            {/* Left: Foreground Poster */}
-            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/30 bg-zinc-950/80 shadow-[0_12px_35px_rgba(0,0,0,0.95)] flex-none">
+          {/* Top Block: Larger Poster + Title & Tags */}
+          <div className="flex items-end gap-4 sm:gap-6">
+            {/* Expanded Foreground Poster */}
+            <div className="relative w-32 sm:w-44 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/30 bg-zinc-950/90 shadow-[0_15px_40px_rgba(0,0,0,0.95)] flex-none">
               {poster ? (
                 <Image src={poster} alt={title} fill priority className="object-cover" />
               ) : (
@@ -169,32 +170,32 @@ export default function DetailsPage() {
                 </div>
               )}
               {details.vote_average > 0 && (
-                <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/85 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/20 text-[10px] text-white font-bold">
-                  <Star className="w-2.5 h-2.5 fill-white text-white" />
+                <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/85 backdrop-blur-md px-2 py-0.5 rounded-md border border-white/25 text-[11px] text-white font-bold">
+                  <Star className="w-3 h-3 fill-white text-white" />
                   {details.vote_average.toFixed(1)}
                 </div>
               )}
             </div>
 
-            {/* Right: Title & Tags */}
-            <div className="flex-1 min-w-0 space-y-1.5 pb-1">
-              <div className="flex items-center gap-1.5 text-[10px] text-zinc-300 font-semibold drop-shadow-sm">
-                <span className="px-2 py-0.5 rounded-md bg-white/15 text-white uppercase text-[9px] font-bold border border-white/20 backdrop-blur-md">
+            {/* Title & Metadata */}
+            <div className="flex-1 min-w-0 space-y-2 pb-1">
+              <div className="flex items-center gap-2 text-xs text-zinc-300 font-semibold drop-shadow-md">
+                <span className="px-2.5 py-0.5 rounded-md bg-white/20 text-white uppercase text-[10px] font-bold border border-white/20 backdrop-blur-md">
                   {type === "tv" ? "Series" : "Movie"}
                 </span>
                 {year && <span>• {year}</span>}
               </div>
 
-              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-tight line-clamp-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+              <h1 className="text-xl sm:text-3xl font-extrabold text-white leading-tight line-clamp-2 drop-shadow-[0_2px_12px_rgba(0,0,0,0.95)]">
                 {title}
               </h1>
 
               {/* Tags */}
-              <div className="flex flex-wrap gap-1 pt-0.5">
+              <div className="flex flex-wrap gap-1.5 pt-1">
                 {details.genres?.slice(0, 3).map((g: any) => (
                   <span
                     key={g.id}
-                    className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-white/10 backdrop-blur-md border border-white/15 text-zinc-200"
+                    className="px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] font-medium bg-black/60 backdrop-blur-md border border-white/20 text-zinc-200"
                   >
                     {g.name}
                   </span>
@@ -203,16 +204,16 @@ export default function DetailsPage() {
             </div>
           </div>
 
-          {/* BENEATH ROW: Full-Width Actions (Play + [+] on top, Download directly underneath) */}
-          <div className="space-y-2 pt-1 w-full">
-            <div className="flex items-center gap-2 w-full">
+          {/* Full-Width Action Buttons */}
+          <div className="space-y-2.5 pt-2 w-full">
+            <div className="flex items-center gap-2.5 w-full">
               {/* Play Button */}
               <Link href={`/watch/${id}?type=${type}&season=1&episode=1`} className="flex-1">
                 <GlassButton
                   variant="primary"
-                  className="w-full text-xs py-2.5 font-bold shadow-glow flex items-center justify-center gap-1.5"
+                  className="w-full text-sm py-3 font-bold shadow-glow flex items-center justify-center gap-2"
                 >
-                  <Play className="w-3.5 h-3.5 fill-black text-black" />
+                  <Play className="w-4 h-4 fill-black text-black" />
                   <span>Play</span>
                 </GlassButton>
               </Link>
@@ -221,22 +222,22 @@ export default function DetailsPage() {
               <button
                 onClick={toggleWatchlist}
                 title={isSaved ? "In List" : "Add to List"}
-                className={`p-2.5 rounded-xl border transition flex items-center justify-center flex-none ${
+                className={`p-3 rounded-2xl border transition flex items-center justify-center flex-none ${
                   isSaved
                     ? "bg-white text-black border-white shadow-glow"
-                    : "bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-md"
+                    : "bg-black/50 text-white border-white/25 hover:bg-white/20 backdrop-blur-md"
                 }`}
               >
-                {isSaved ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
+                {isSaved ? <Check className="w-5 h-5 stroke-[3]" /> : <Plus className="w-5 h-5 stroke-[2.5]" />}
               </button>
             </div>
 
             {/* Download Button */}
             <button
               onClick={() => setDownloadModalOpen(true)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-white/10 backdrop-blur-md text-zinc-200 border border-white/15 hover:bg-white/20 hover:text-white transition shadow-sm"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold bg-white/10 backdrop-blur-md text-zinc-200 border border-white/20 hover:bg-white/20 hover:text-white transition shadow-sm"
             >
-              <Download className="w-3.5 h-3.5 text-zinc-300" />
+              <Download className="w-4 h-4 text-zinc-300" />
               <span>Download</span>
             </button>
           </div>
@@ -246,8 +247,8 @@ export default function DetailsPage() {
 
       {/* 2. STORYLINE */}
       <div className="space-y-1.5 px-1">
-        <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
-        <p className="text-xs text-zinc-300 leading-relaxed line-clamp-3">
+        <h3 className="text-sm sm:text-base font-bold text-white tracking-wide">Storyline</h3>
+        <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed line-clamp-3">
           {details.overview || "Stream this title now on Spectra."}
         </p>
       </div>
@@ -257,7 +258,7 @@ export default function DetailsPage() {
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-white" />
-            <h3 className="text-sm font-bold text-white">Cast & Crew</h3>
+            <h3 className="text-sm sm:text-base font-bold text-white">Cast & Crew</h3>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -371,7 +372,7 @@ export default function DetailsPage() {
         <div className="space-y-2.5 pt-2 border-t border-white/10">
           <div className="flex items-center gap-2 px-1">
             <Sparkles className="w-4 h-4 text-white" />
-            <h3 className="text-sm font-bold text-white">More Like This</h3>
+            <h3 className="text-sm sm:text-base font-bold text-white">More Like This</h3>
           </div>
 
           <div className="grid grid-rows-2 grid-flow-col auto-cols-[105px] sm:auto-cols-[130px] gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
