@@ -1,50 +1,193 @@
-import React from "react";
-import { tmdb } from "@/lib/tmdb";
-import { HeroCarousel } from "@/components/HeroCarousel";
-import { VerticalSectionRow } from "@/components/VerticalSectionRow";
+"use client";
 
-export default async function AnimePage() {
-  const [topAiring, popularAnime, actionAnime, fantasyAnime] = await Promise.all([
-    tmdb.getAnime().catch(() => []),
-    tmdb.discoverMedia("tv", 16, "vote_average.desc").catch(() => []),
-    tmdb.discoverMedia("tv", 10759).catch(() => []), // Action & Adventure
-    tmdb.discoverMedia("tv", 10765).catch(() => []), // Sci-Fi & Fantasy
-  ]);
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Flame, Star, Sparkles, Volume2, Search, Play, Filter } from "lucide-react";
+import { animeService, AnimeItem } from "@/lib/animeService";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { soundFx } from "@/lib/soundFx";
+
+export default function AnimePage() {
+  const [topAiring, setTopAiring] = useState<AnimeItem[]>([]);
+  const [popular, setPopular] = useState<AnimeItem[]>([]);
+  const [filterMode, setFilterMode] = useState<"all" | "hindi">("hindi");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnime = async () => {
+      try {
+        const [airingData, popData] = await Promise.all([
+          animeService.getTopAiring(),
+          animeService.getHindiDubbedPopular(),
+        ]);
+        setTopAiring(airingData);
+        setPopular(popData);
+      } catch (e) {
+        console.error("Anime fetch error:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnime();
+  }, []);
+
+  const displayList = filterMode === "hindi"
+    ? popular.filter((a) => a.hasHindiDub)
+    : popular;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 pb-24 space-y-8">
-      {/* 1. Top 10 Featured Anime Carousel */}
-      <HeroCarousel items={topAiring} type="tv" />
+    <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 pb-28 space-y-6">
+      {/* Top Banner */}
+      <GlassCard className="p-4 sm:p-6 rounded-3xl border border-white/15 bg-[#0e0e14]/75 relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-black tracking-widest uppercase">
+              <Flame className="w-3.5 h-3.5 fill-orange-400" />
+              <span>Anime Hub • India</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              Hindi Dubbed & Simulcast Anime
+            </h1>
+            <p className="text-xs text-zinc-400 max-w-lg">
+              Stream top-rated anime with official Hindi dubs, dual-audio tracks, and high-speed Indian mirrors.
+            </p>
+          </div>
 
-      {/* 2. Vertically Stacked Content Rows */}
-      <div className="space-y-6">
-        <VerticalSectionRow
-          title="Top Airing & Trending Anime"
-          items={topAiring}
-          type="tv"
-          seeAllHref="/explore?type=tv&genre=16"
-        />
+          {/* Filter Pills */}
+          <div className="flex items-center gap-1.5 self-start sm:self-center p-1 rounded-2xl bg-white/5 border border-white/10">
+            <button
+              onClick={() => {
+                soundFx.playCinematicPop();
+                setFilterMode("hindi");
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                filterMode === "hindi"
+                  ? "bg-white text-black shadow-glow font-black"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Volume2 className="w-3.5 h-3.5" />
+              <span>Hindi Dubbed</span>
+            </button>
+            <button
+              onClick={() => {
+                soundFx.playCinematicPop();
+                setFilterMode("all");
+              }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                filterMode === "all"
+                  ? "bg-white text-black shadow-glow font-black"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <span>All Anime</span>
+            </button>
+          </div>
+        </div>
+      </GlassCard>
 
-        <VerticalSectionRow
-          title="Highest Rated Masterpieces"
-          items={popularAnime}
-          type="tv"
-          seeAllHref="/explore?type=tv&genre=16&sort=vote_average.desc"
-        />
+      {/* Airing Carousel */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-white tracking-wide uppercase flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>Top Airing Anime</span>
+          </h3>
+        </div>
 
-        <VerticalSectionRow
-          title="Shonen & Action Adventures"
-          items={actionAnime}
-          type="tv"
-          seeAllHref="/explore?type=tv&genre=10759"
-        />
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+          {topAiring.map((item) => (
+            <Link
+              key={item.mal_id}
+              href={`/details/${item.mal_id}?type=tv&source=anime`}
+              onClick={() => soundFx.playCinematicPop()}
+              className="flex-none w-36 sm:w-44 group"
+            >
+              <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-lg">
+                <Image
+                  src={item.images.jpg.large_image_url || item.images.jpg.image_url}
+                  alt={item.title}
+                  fill
+                  sizes="180px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                {item.score && (
+                  <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
+                    <Star className="w-2.5 h-2.5 fill-white text-white" />
+                    {item.score.toFixed(1)}
+                  </div>
+                )}
+                {item.hasHindiDub && (
+                  <div className="absolute bottom-2 left-2 bg-emerald-500/90 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-black font-black uppercase">
+                    Hindi Dub
+                  </div>
+                )}
+              </div>
+              <h4 className="text-xs font-bold text-white truncate mt-1.5">{item.title_english || item.title}</h4>
+              <p className="text-[10px] text-zinc-400">{item.episodes ? `${item.episodes} Episodes` : "Simulcasting"}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
 
-        <VerticalSectionRow
-          title="Fantasy & Supernatural Worlds"
-          items={fantasyAnime}
-          type="tv"
-          seeAllHref="/explore?type=tv&genre=10765"
-        />
+      {/* Main Grid */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-white tracking-wide uppercase flex items-center gap-2">
+            <Volume2 className="w-4 h-4 text-emerald-400" />
+            <span>{filterMode === "hindi" ? "Popular in Hindi" : "All Trending Anime"}</span>
+          </h3>
+          <span className="text-[10px] text-zinc-500 font-mono">{displayList.length} Titles</span>
+        </div>
+
+        {loading ? (
+          <div className="py-20 text-center text-zinc-400 text-xs flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 animate-spin text-white" />
+            <span>Loading anime catalog...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {displayList.map((item) => (
+              <Link
+                key={item.mal_id}
+                href={`/details/${item.mal_id}?type=tv&source=anime`}
+                onClick={() => soundFx.playCinematicPop()}
+                className="group relative"
+              >
+                <GlassCard
+                  hoverEffect
+                  className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0b0b10]"
+                >
+                  <div className="relative aspect-[2/3] w-full bg-zinc-950">
+                    <Image
+                      src={item.images.jpg.large_image_url || item.images.jpg.image_url}
+                      alt={item.title}
+                      fill
+                      sizes="180px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
+                      <Star className="w-2.5 h-2.5 fill-white text-white" />
+                      {item.score?.toFixed(1) || "7.8"}
+                    </div>
+                    {item.hasHindiDub && (
+                      <div className="absolute top-2 left-2 bg-emerald-400 text-black px-1.5 py-0.5 rounded text-[8px] font-black uppercase shadow-glow">
+                        Hindi
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2.5 bg-black/60 space-y-0.5">
+                    <h4 className="text-xs font-semibold text-white truncate">{item.title_english || item.title}</h4>
+                    <span className="text-[9px] text-zinc-400 block font-mono">
+                      {item.episodes ? `${item.episodes} EPS` : "SERIES"}
+                    </span>
+                  </div>
+                </GlassCard>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

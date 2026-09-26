@@ -1,17 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, Loader2, Download, Star, Sparkles } from "lucide-react";
-import { tmdb, MediaItem, EpisodeItem, IMAGE_BASE } from "@/lib/tmdb";
-import { AnimePlayer } from "@/components/AnimePlayer";
-import { AnimeEpisodeGrid } from "@/components/AnimeEpisodeGrid";
-import { Player } from "@/components/Player";
-import { GlassButton } from "@/components/ui/GlassButton";
-import { GlassCard } from "@/components/ui/GlassCard";
-import { BatchDownloadModal } from "@/components/BatchDownloadModal";
+import {
+  ArrowLeft,
+  Server,
+  Volume2,
+  RefreshCw,
+  Maximize2,
+  AlertCircle,
+  Radio,
+  Sparkles,
+} from "lucide-react";
+import { STREAM_SERVERS, StreamSource } from "@/lib/streamingSources";
+import { soundFx } from "@/lib/soundFx";
 
 export default function WatchPage() {
   const params = useParams();
@@ -20,224 +22,173 @@ export default function WatchPage() {
 
   const id = params?.id as string;
   const type = (searchParams.get("type") as "movie" | "tv") || "movie";
-  const initialEpisode = parseInt(searchParams.get("episode") || "1", 10);
-  const initialSeason = parseInt(searchParams.get("season") || "1", 10);
+  const season = parseInt(searchParams.get("season") || "1", 10);
+  const episode = parseInt(searchParams.get("episode") || "1", 10);
 
-  const [details, setDetails] = useState<any>(null);
-  const [currentSeason, setCurrentSeason] = useState(initialSeason);
-  const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
-  const [episodes, setEpisodes] = useState<EpisodeItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+  // Streaming State
+  const [currentServerIdx, setCurrentServerIdx] = useState<number>(0);
+  const [audioTrack, setAudioTrack] = useState<"hindi" | "original">("hindi");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [failoverToast, setFailoverToast] = useState<string | null>(null);
+  const [showServerMenu, setShowServerMenu] = useState<boolean>(false);
 
-  const title = details?.title || details?.name || "Loading Title...";
-  const isSeriesOrAnime = type === "tv";
-  const seasonsCount = details?.number_of_seasons || 1;
-  const voteRating = details?.vote_average ? details.vote_average.toFixed(1) : "8.6";
-  const certification = details?.adult ? "18+" : "PG-13";
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const failoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const activeServer = STREAM_SERVERS[currentServerIdx];
+  const streamUrl = activeServer.buildUrl({
+    tmdbId: id,
+    type,
+    season,
+    episode,
+    audio: audioTrack,
+  });
+
+  // Watchdog: If iframe fails to finish handshaking within 8 seconds, automatically failover
   useEffect(() => {
-    let isMounted = true;
-    const loadDetails = async () => {
-      setLoading(true);
-      try {
-        const data = await tmdb.getDetails(type, id);
-        if (isMounted) setDetails(data);
-      } catch (err) {
-        console.error("Watch details error:", err);
-      } finally {
-        if (isMounted) setLoading(false);
+    setLoading(true);
+
+    if (failoverTimeoutRef.current) clearTimeout(failoverTimeoutRef.current);
+
+    failoverTimeoutRef.current = setTimeout(() => {
+      if (loading && currentServerIdx < STREAM_SERVERS.length - 1) {
+        handleFailover(currentServerIdx + 1, "Slow Indian route response. Switched to backup server.");
       }
-    };
+    }, 8500);
 
-    if (id) loadDetails();
     return () => {
-      isMounted = false;
+      if (failoverTimeoutRef.current) clearTimeout(failoverTimeoutRef.current);
     };
-  }, [id, type]);
+  }, [currentServerIdx, audioTrack, id, season, episode]);
 
-  useEffect(() => {
-    if (!isSeriesOrAnime || !id) return;
-
-    let isMounted = true;
-    const fetchEpisodes = async () => {
-      try {
-        const epList = await tmdb.getSeasonEpisodes(id, currentSeason);
-        if (isMounted) {
-          if (epList && epList.length > 0) {
-            setEpisodes(epList);
-          } else {
-            const total = details?.number_of_episodes || 25;
-            const fallbackList: EpisodeItem[] = Array.from({ length: total }).map((_, i) => ({
-              id: i + 1,
-              episode_number: i + 1,
-              name: `Episode ${i + 1}`,
-              overview: "Stream this episode on Spectra.",
-            }));
-            setEpisodes(fallbackList);
-          }
-        }
-      } catch (e) {
-        console.error("Episode fetch error:", e);
-      }
-    };
-
-    fetchEpisodes();
-    return () => {
-      isMounted = false;
-    };
-  }, [id, isSeriesOrAnime, currentSeason, details]);
-
-  const handleSelectEpisode = (ep: number) => {
-    setCurrentEpisode(ep);
-    router.replace(`/watch/${id}?type=${type}&season=${currentSeason}&episode=${ep}`);
+  const handleFailover = (nextIdx: number, reason?: string) => {
+    soundFx.playCinematicWhoosh();
+    setCurrentServerIdx(nextIdx);
+    setFailoverToast(reason || `Switched to ${STREAM_SERVERS[nextIdx].name}`);
+    setTimeout(() => setFailoverToast(null), 3000);
   };
 
-  const handleSelectSeason = (s: number) => {
-    setCurrentSeason(s);
-    setCurrentEpisode(1);
-    router.replace(`/watch/${id}?type=${type}&season=${s}&episode=1`);
+  const handleIframeLoaded = () => {
+    setLoading(false);
+    if (failoverTimeoutRef.current) clearTimeout(failoverTimeoutRef.current);
   };
 
-  const handleNextEpisode = () => {
-    const nextEp = currentEpisode + 1;
-    handleSelectEpisode(nextEp);
+  const toggleAudioTrack = () => {
+    soundFx.playCinematicPop();
+    const nextAudio = audioTrack === "hindi" ? "original" : "hindi";
+    setAudioTrack(nextAudio);
+    setFailoverToast(`Switched to ${nextAudio === "hindi" ? "Hindi Dub / Audio" : "Original Audio"}`);
+    setTimeout(() => setFailoverToast(null), 2500);
   };
-
-  const posterImage = details?.backdrop_path
-    ? `${IMAGE_BASE}/w1280${details.backdrop_path}`
-    : undefined;
-
-  const relatedItems: MediaItem[] = details?.similar?.results?.slice(0, 20) || [];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] gap-2 text-zinc-400 text-xs">
-        <Loader2 className="w-5 h-5 animate-spin text-white" />
-        <span>Loading stream engine...</span>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 pb-28 space-y-6">
-      {/* Top Header */}
-      <div className="flex items-center justify-between gap-2">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col select-none">
+      {/* Top HUD Controls */}
+      <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between p-3 sm:p-4 bg-gradient-to-b from-black/90 via-black/40 to-transparent">
         <div className="flex items-center gap-2">
-          <Link href={`/details/${id}?type=${type}`}>
-            <GlassButton variant="secondary" className="text-xs py-1.5 px-3">
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Details</span>
-            </GlassButton>
-          </Link>
-          <h2 className="text-xs sm:text-sm font-semibold text-zinc-300 truncate max-w-[150px] sm:max-w-md">
-            {title}
-          </h2>
+          <button
+            onClick={() => {
+              soundFx.playCinematicWhoosh();
+              router.back();
+            }}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-xl transition"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+
+          {/* Active Server Info */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                soundFx.playCinematicPop();
+                setShowServerMenu(!showServerMenu);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white backdrop-blur-xl transition shadow-glow"
+            >
+              <Server className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{activeServer.name}</span>
+              <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline">
+                ({activeServer.latency})
+              </span>
+            </button>
+
+            {/* Server Selector Dropdown */}
+            {showServerMenu && (
+              <div className="absolute top-12 left-0 w-64 rounded-2xl p-2 bg-[#0c0c14]/95 border border-white/20 shadow-2xl backdrop-blur-3xl space-y-1 z-50">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-zinc-400 px-2 py-1 block">
+                  Select Indian / Asian Mirror
+                </span>
+                {STREAM_SERVERS.map((server, idx) => (
+                  <button
+                    key={server.id}
+                    onClick={() => {
+                      setShowServerMenu(false);
+                      handleFailover(idx);
+                    }}
+                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition ${
+                      currentServerIdx === idx
+                        ? "bg-white text-black font-extrabold"
+                        : "hover:bg-white/10 text-white"
+                    }`}
+                  >
+                    <div>
+                      <p className="font-bold truncate">{server.name}</p>
+                      <p className={`text-[9px] ${currentServerIdx === idx ? "text-zinc-700" : "text-zinc-400"}`}>
+                        {server.region}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono">{server.latency}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <button
-          onClick={() => setDownloadModalOpen(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/20 shadow-glow"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Download</span>
-        </button>
+        {/* Right HUD Controls: Audio Track Switch */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleAudioTrack}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border backdrop-blur-xl ${
+              audioTrack === "hindi"
+                ? "bg-emerald-400 text-black border-emerald-400 shadow-glow font-black"
+                : "bg-white/10 hover:bg-white/20 text-white border-white/20"
+            }`}
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>{audioTrack === "hindi" ? "Hindi Audio" : "Original"}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Main Video Stream locked to Frosted Glass Player Canvas */}
-      {isSeriesOrAnime ? (
-        <AnimePlayer
-          tmdbId={id}
-          animeTitle={title}
-          season={currentSeason}
-          episode={currentEpisode}
-          totalEpisodes={episodes.length || undefined}
-          poster={posterImage}
-          onNextEpisode={handleNextEpisode}
-        />
-      ) : (
-        <Player
-          id={id}
-          type={type}
-          season={1}
-          episode={currentEpisode}
-          poster={posterImage}
-          title={title}
-        />
-      )}
-
-      {/* Episode Browser Grid */}
-      {isSeriesOrAnime && episodes.length > 0 && (
-        <AnimeEpisodeGrid
-          episodes={episodes}
-          currentEpisode={currentEpisode}
-          currentSeason={currentSeason}
-          seasonsCount={seasonsCount}
-          onSelectEpisode={handleSelectEpisode}
-          onSelectSeason={handleSelectSeason}
-        />
-      )}
-
-      {/* 2-Row Related Media Shelf */}
-      {relatedItems.length > 0 && (
-        <div className="space-y-2.5 pt-3 border-t border-white/10">
-          <div className="flex items-center gap-2 px-1">
-            <Sparkles className="w-4 h-4 text-white" />
-            <h3 className="text-sm font-bold text-white">Related Titles</h3>
-          </div>
-
-          <div className="grid grid-rows-2 grid-flow-col auto-cols-[105px] sm:auto-cols-[130px] gap-2.5 overflow-x-auto no-scrollbar scroll-smooth pb-2">
-            {relatedItems.map((item) => {
-              const itemTitle = item.title || item.name || "Untitled";
-              const itemPoster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
-
-              return (
-                <Link key={item.id} href={`/details/${item.id}?type=${type}`} className="group">
-                  <GlassCard
-                    hoverEffect
-                    className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0c0c10]"
-                  >
-                    <div className="relative aspect-[2/3] w-full bg-zinc-950">
-                      {itemPoster ? (
-                        <Image
-                          src={itemPoster}
-                          alt={itemTitle}
-                          fill
-                          sizes="130px"
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-zinc-600 text-[10px]">
-                          No Poster
-                        </div>
-                      )}
-                      <div className="absolute top-1 right-1 flex items-center gap-0.5 bg-black/80 px-1 py-0.5 rounded text-[8px] text-zinc-200">
-                        <Star className="w-2 h-2 fill-white text-white" />
-                        {item.vote_average ? item.vote_average.toFixed(1) : "N/A"}
-                      </div>
-                    </div>
-                    <div className="p-1.5 bg-black/60">
-                      <h4 className="text-[10px] sm:text-[11px] font-semibold text-white truncate">{itemTitle}</h4>
-                    </div>
-                  </GlassCard>
-                </Link>
-              );
-            })}
-          </div>
+      {/* Failover Toast Notification */}
+      {failoverToast && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-2xl bg-white text-black text-xs font-bold shadow-glow flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>{failoverToast}</span>
         </div>
       )}
 
-      {/* Batch Download Modal */}
-      <BatchDownloadModal
-        isOpen={downloadModalOpen}
-        onClose={() => setDownloadModalOpen(false)}
-        tmdbId={id}
-        title={title}
-        type={type}
-        season={currentSeason}
-        episodes={episodes}
-        posterPath={details?.poster_path}
-      />
+      {/* Video Stream Embed */}
+      <div className="relative w-full h-full flex items-center justify-center bg-black">
+        {loading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-10 bg-black/90">
+            <RefreshCw className="w-6 h-6 animate-spin text-white" />
+            <span className="text-xs text-zinc-300 font-mono">
+              Connecting to {activeServer.region} ({activeServer.latency})...
+            </span>
+          </div>
+        )}
+
+        <iframe
+          ref={iframeRef}
+          src={streamUrl}
+          onLoad={handleIframeLoaded}
+          className="w-full h-full border-0"
+          allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
     </div>
   );
 }
