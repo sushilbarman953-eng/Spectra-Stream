@@ -33,7 +33,7 @@ class SoundFxEngine {
       osc.frequency.setValueAtTime(1200, now);
       osc.frequency.exponentialRampToValueAtTime(320, now + 0.028);
 
-      gain.gain.setValueAtTime(0.045, now);
+      gain.gain.setValueAtTime(0.08, now);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.028);
 
       osc.connect(gain);
@@ -44,7 +44,35 @@ class SoundFxEngine {
     } catch {}
   }
 
-  // Resonance Pop (Tab Swipe, Carousel switch)
+  // Distinct Mechanical Rotary Gear/Tick Sound
+  playTick() {
+    if (!this.enabled) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      // Sharp acoustic tooth snap (420Hz down to 120Hz mechanical pop)
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.exponentialRampToValueAtTime(110, now + 0.024);
+
+      // Higher, audible punchy gain
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.024);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.025);
+    } catch {}
+  }
+
+  // Resonance Pop (Tab Swipe)
   playTabShift() {
     if (!this.enabled) return;
     const ctx = this.initCtx();
@@ -56,10 +84,10 @@ class SoundFxEngine {
       const gain = ctx.createGain();
 
       osc.type = "triangle";
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.035);
+      osc.frequency.setValueAtTime(380, now);
+      osc.frequency.exponentialRampToValueAtTime(740, now + 0.035);
 
-      gain.gain.setValueAtTime(0.05, now);
+      gain.gain.setValueAtTime(0.12, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
 
       osc.connect(gain);
@@ -67,31 +95,6 @@ class SoundFxEngine {
 
       osc.start(now);
       osc.stop(now + 0.04);
-    } catch {}
-  }
-
-  // Scrub Tick (Slider seek, volume/brightness drag)
-  playTick() {
-    if (!this.enabled) return;
-    const ctx = this.initCtx();
-    if (!ctx) return;
-
-    try {
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(900, now);
-
-      gain.gain.setValueAtTime(0.02, now);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.015);
     } catch {}
   }
 }

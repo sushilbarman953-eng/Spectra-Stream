@@ -31,8 +31,8 @@ export const Navbar = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
 
-  const dragStartX = useRef<number | null>(null);
-  const lastTickIndex = useRef<number>(0);
+  const lastXRef = useRef<number | null>(null);
+  const accumulatedDistance = useRef<number>(0);
   const clickTimer = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,7 +48,6 @@ export const Navbar = () => {
   useEffect(() => {
     if (!isDragging) {
       setPreviewIndex(baseIndex);
-      lastTickIndex.current = baseIndex;
     }
   }, [baseIndex, isDragging]);
 
@@ -64,36 +63,49 @@ export const Navbar = () => {
     };
   });
 
-  // HIGH-SENSITIVITY DRAG HANDLERS (18px threshold per step)
+  // CONTINUOUS MECHANICAL ACCUMULATOR DRAG (Every 12px = 1 Mechanical Click)
+  const STEP_PIXELS = 12;
+
   const handleDragStart = (clientX: number) => {
     if (isUtilityPage) return;
     setIsDragging(true);
-    dragStartX.current = clientX;
-    lastTickIndex.current = baseIndex;
+    lastXRef.current = clientX;
+    accumulatedDistance.current = 0;
   };
 
   const handleDragMove = (clientX: number) => {
-    if (!isDragging || dragStartX.current === null) return;
-    const deltaX = clientX - dragStartX.current;
+    if (!isDragging || lastXRef.current === null) return;
+    const deltaX = clientX - lastXRef.current;
+    lastXRef.current = clientX;
 
-    // Ultra-responsive sensitivity: 18px equals 1 category step shift
-    const stepDelta = -Math.round(deltaX / 18);
-    const newIdx = (baseIndex + stepDelta) % N;
-    const normalized = newIdx < 0 ? newIdx + N : newIdx;
+    accumulatedDistance.current += deltaX;
 
-    if (normalized !== lastTickIndex.current) {
-      soundFx.playTick();
-      if (navigator.vibrate) navigator.vibrate(6);
-      lastTickIndex.current = normalized;
+    // Check if we crossed the step threshold in either direction
+    if (Math.abs(accumulatedDistance.current) >= STEP_PIXELS) {
+      const steps = Math.trunc(accumulatedDistance.current / STEP_PIXELS);
+      accumulatedDistance.current -= steps * STEP_PIXELS;
+
+      // Invert sign: dragging left (< 0) advances right (> 0)
+      const shift = -steps;
+
+      setPreviewIndex((prev) => {
+        const next = (prev + shift) % N;
+        const normalized = next < 0 ? next + N : next;
+        
+        // Fire punchy mechanical tick
+        soundFx.playTick();
+        if (navigator.vibrate) navigator.vibrate(6);
+
+        return normalized;
+      });
     }
-
-    setPreviewIndex(normalized);
   };
 
   const handleDragEnd = () => {
     if (!isDragging) return;
     setIsDragging(false);
-    dragStartX.current = null;
+    lastXRef.current = null;
+    accumulatedDistance.current = 0;
 
     const targetCategory = CATEGORIES[previewIndex];
     if (targetCategory && targetCategory.href !== pathname) {
@@ -181,12 +193,13 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* 2. Middle: High-Sensitivity Rotary Wheel */}
+          {/* 2. Middle: Ultra-Sensitive Rotary Dial with Continuous Mechanical Ticks */}
           <div
-            className="flex-1 max-w-[240px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing touch-pan-x"
+            className="flex-1 max-w-[240px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing touch-none select-none"
             onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
             onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
             onTouchEnd={handleDragEnd}
+            onTouchCancel={handleDragEnd}
             onMouseDown={(e) => handleDragStart(e.clientX)}
             onMouseMove={(e) => handleDragMove(e.clientX)}
             onMouseUp={handleDragEnd}
@@ -202,7 +215,7 @@ export const Navbar = () => {
                 </div>
               </div>
             ) : (
-              <div className="relative flex items-center justify-center">
+              <div className="relative flex items-center justify-center pointer-events-none">
                 <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[#08080c] to-transparent z-20 pointer-events-none" />
                 <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#08080c] to-transparent z-20 pointer-events-none" />
 
@@ -214,16 +227,10 @@ export const Navbar = () => {
                     return (
                       <div
                         key={`${item.label}-${index}`}
-                        onClick={() => {
-                          if (!isDragging) {
-                            soundFx.playGlassTap();
-                            router.push(item.href);
-                          }
-                        }}
-                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-[11px] sm:text-xs whitespace-nowrap transition-all duration-150 select-none ${
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1 rounded-full text-[11px] sm:text-xs whitespace-nowrap transition-all duration-100 select-none ${
                           isCenter
-                            ? "bg-white text-black border border-white shadow-[0_0_24px_rgba(255,255,255,0.8),inset_0_1px_1px_#ffffff] scale-100 z-10 font-black cursor-default"
-                            : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200 border border-white/[0.08] hover:border-white/20 shadow-[0_0_8px_rgba(255,255,255,0.03)] scale-90 opacity-60 hover:opacity-90"
+                            ? "bg-white text-black border border-white shadow-[0_0_24px_rgba(255,255,255,0.85),inset_0_1px_1px_#ffffff] scale-100 z-10 font-black cursor-default"
+                            : "bg-white/[0.04] text-zinc-400 border border-white/[0.08] shadow-[0_0_8px_rgba(255,255,255,0.03)] scale-90 opacity-60"
                         }`}
                       >
                         <CatIcon
@@ -240,7 +247,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* 3. Right: Dual-Trigger Search */}
+          {/* 3. Right: Search */}
           <div className="flex-none relative" ref={containerRef}>
             <div
               onClick={handleSearchAction}
@@ -257,7 +264,6 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* Mini Popover */}
             {smallGlassOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
