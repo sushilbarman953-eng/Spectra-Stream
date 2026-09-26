@@ -130,38 +130,37 @@ export default function DetailsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 pb-28 space-y-5">
       
-      {/* 1. CINEMATIC HERO SECTION: CRYSTAL CLEAR TOP, FROSTED GLASS BOTTOM */}
-      <div className="relative rounded-3xl overflow-hidden border border-white/20 bg-[#09090d] shadow-2xl">
-        
-        {/* Top Backdrop Banner: Clear, No Heavy Blur, High Contrast */}
-        <div className="relative w-full h-48 sm:h-64 bg-zinc-950">
-          {backdrop && (
-            <Image
-              src={backdrop}
-              alt={title}
-              fill
-              priority
-              className="object-cover object-top opacity-90 contrast-105"
-            />
-          )}
-          {/* Subtle gradient purely to transition smoothly into the glass base */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#09090d]/80 via-transparent to-transparent pointer-events-none" />
-        </div>
+      {/* 1. CINEMATIC HERO: FULL BACKDROP EXTENDING BEHIND POSTER & BUTTONS WITH FROSTED GLASS */}
+      <div className="relative rounded-3xl overflow-hidden border border-white/20 shadow-2xl bg-black">
+        {/* Full-bleed background image covering the entire container */}
+        {backdrop && (
+          <Image
+            src={backdrop}
+            alt={title}
+            fill
+            priority
+            className="object-cover object-top opacity-60 filter brightness-90 contrast-105"
+          />
+        )}
 
-        {/* Bottom Section: Pure Frosted Glass Panel Container */}
+        {/* Global Frosted Glass Vignette Overlay */}
         <div
-          className="relative px-4 sm:px-6 py-5 -mt-10 sm:-mt-14 z-10 space-y-4 border-t border-white/20 rounded-b-3xl"
+          className="absolute inset-0"
           style={{
-            background: "rgba(12, 12, 18, 0.78)",
-            backdropFilter: "blur(24px) saturate(180%)",
-            WebkitBackdropFilter: "blur(24px) saturate(180%)",
-            boxShadow: "inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 20px 40px rgba(0, 0, 0, 0.9)",
+            backdropFilter: "blur(14px) saturate(160%)",
+            WebkitBackdropFilter: "blur(14px) saturate(160%)",
+            background:
+              "linear-gradient(to bottom, rgba(10, 10, 14, 0.25) 0%, rgba(10, 10, 14, 0.70) 50%, rgba(8, 8, 12, 0.95) 100%)",
           }}
-        >
-          {/* Top Row: Left Poster & Right Title with Tags */}
-          <div className="flex items-end gap-3.5 sm:gap-5">
-            {/* Left: Poster */}
-            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/30 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.95)] flex-none">
+        />
+
+        {/* Hero Content Container */}
+        <div className="relative z-10 p-4 sm:p-6 space-y-4">
+          
+          {/* TOP ROW: Left Poster & Right Title with Tags */}
+          <div className="flex items-end gap-3.5 sm:gap-5 pt-1">
+            {/* Left: Foreground Poster */}
+            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/30 bg-zinc-950/80 shadow-[0_12px_35px_rgba(0,0,0,0.95)] flex-none">
               {poster ? (
                 <Image src={poster} alt={title} fill priority className="object-cover" />
               ) : (
@@ -179,14 +178,14 @@ export default function DetailsPage() {
 
             {/* Right: Title & Tags */}
             <div className="flex-1 min-w-0 space-y-1.5 pb-1">
-              <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-semibold">
-                <span className="px-2 py-0.5 rounded-md bg-white/10 text-white uppercase text-[9px] font-bold border border-white/15">
+              <div className="flex items-center gap-1.5 text-[10px] text-zinc-300 font-semibold drop-shadow-sm">
+                <span className="px-2 py-0.5 rounded-md bg-white/15 text-white uppercase text-[9px] font-bold border border-white/20 backdrop-blur-md">
                   {type === "tv" ? "Series" : "Movie"}
                 </span>
                 {year && <span>• {year}</span>}
               </div>
 
-              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-tight line-clamp-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+              <h1 className="text-lg sm:text-2xl font-extrabold text-white leading-tight line-clamp-2 drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
                 {title}
               </h1>
 
@@ -195,7 +194,7 @@ export default function DetailsPage() {
                 {details.genres?.slice(0, 3).map((g: any) => (
                   <span
                     key={g.id}
-                    className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-white/10 border border-white/15 text-zinc-200"
+                    className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-white/10 backdrop-blur-md border border-white/15 text-zinc-200"
                   >
                     {g.name}
                   </span>
@@ -204,7 +203,7 @@ export default function DetailsPage() {
             </div>
           </div>
 
-          {/* Action Buttons: Full-width Play + [+] on top, Download directly underneath */}
+          {/* BENEATH ROW: Full-Width Actions (Play + [+] on top, Download directly underneath) */}
           <div className="space-y-2 pt-1 w-full">
             <div className="flex items-center gap-2 w-full">
               {/* Play Button */}
@@ -225,7 +224,7 @@ export default function DetailsPage() {
                 className={`p-2.5 rounded-xl border transition flex items-center justify-center flex-none ${
                   isSaved
                     ? "bg-white text-black border-white shadow-glow"
-                    : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                    : "bg-white/10 text-white border-white/20 hover:bg-white/20 backdrop-blur-md"
                 }`}
               >
                 {isSaved ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
@@ -235,7 +234,7 @@ export default function DetailsPage() {
             {/* Download Button */}
             <button
               onClick={() => setDownloadModalOpen(true)}
-              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-white/10 text-zinc-200 border border-white/15 hover:bg-white/20 hover:text-white transition"
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold bg-white/10 backdrop-blur-md text-zinc-200 border border-white/15 hover:bg-white/20 hover:text-white transition shadow-sm"
             >
               <Download className="w-3.5 h-3.5 text-zinc-300" />
               <span>Download</span>
