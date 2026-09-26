@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Film, Tv, Download, User } from "lucide-react";
+import { Home, Film, Tv, Download, User } from "lucide-react";
 import { downloadManager } from "@/lib/downloadManager";
 
 export const MobileBottomNav = () => {
@@ -22,7 +22,7 @@ export const MobileBottomNav = () => {
   }, []);
 
   const navItems = [
-    { label: "Home", href: "/", icon: Compass },
+    { label: "Home", href: "/", icon: Home },
     { label: "Movies", href: "/movies", icon: Film },
     { label: "Series", href: "/series", icon: Tv },
     { label: "Downloads", href: "/downloads", icon: Download, badge: downloadCount },
@@ -65,7 +65,6 @@ export const MobileBottomNav = () => {
                       : "text-white stroke-[2] drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
                   }`}
                 />
-                {/* Active downloads badge */}
                 {Boolean(item.badge && item.badge > 0) && (
                   <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-white text-black font-extrabold text-[8px] flex items-center justify-center border border-black shadow-glow">
                     {item.badge}

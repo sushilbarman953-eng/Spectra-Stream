@@ -131,29 +131,37 @@ export default function DetailsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 pb-28 space-y-5">
       
-      {/* 1. CINEMATIC HERO SECTION */}
-      <div className="relative rounded-3xl overflow-hidden border border-white/15 bg-[#09090c] shadow-2xl">
-        {/* Backdrop Banner */}
-        <div className="relative w-full h-36 sm:h-52 bg-zinc-950">
+      {/* 1. CINEMATIC HERO SECTION (Brightened with Frosted Glass Effect) */}
+      <div className="relative rounded-3xl overflow-hidden border border-white/20 bg-[#0c0c12] shadow-2xl">
+        {/* Brightened Backdrop Banner */}
+        <div className="relative w-full h-44 sm:h-56 bg-zinc-950 overflow-hidden">
           {backdrop && (
             <Image
               src={backdrop}
               alt={title}
               fill
               priority
-              className="object-cover object-top opacity-35"
+              className="object-cover object-top opacity-70 filter brightness-105 contrast-105"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#09090c] via-[#09090c]/80 to-transparent" />
+          {/* Frosted Glass blur sheen over the banner */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backdropFilter: "blur(2px) saturate(140%)",
+              WebkitBackdropFilter: "blur(2px) saturate(140%)",
+              background: "linear-gradient(to top, rgba(12, 12, 18, 0.95) 0%, rgba(12, 12, 18, 0.35) 60%, rgba(0, 0, 0, 0.15) 100%)",
+            }}
+          />
         </div>
 
         {/* Content Container */}
-        <div className="relative px-4 sm:px-6 pb-5 -mt-16 sm:-mt-24 z-10 space-y-4">
+        <div className="relative px-4 sm:px-6 pb-5 -mt-20 sm:-mt-24 z-10 space-y-4">
           
           {/* TOP ROW: Left Poster & Right Title with Tags */}
           <div className="flex items-end gap-3.5 sm:gap-5">
             {/* Left: Poster */}
-            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/20 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.9)] flex-none">
+            <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-2xl overflow-hidden border-2 border-white/25 bg-zinc-950 shadow-[0_12px_35px_rgba(0,0,0,0.9)] flex-none">
               {poster ? (
                 <Image src={poster} alt={title} fill priority className="object-cover" />
               ) : (
@@ -187,7 +195,7 @@ export default function DetailsPage() {
                 {details.genres?.slice(0, 3).map((g: any) => (
                   <span
                     key={g.id}
-                    className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-white/5 border border-white/10 text-zinc-300"
+                    className="px-2 py-0.5 rounded-md text-[9px] font-medium bg-white/10 border border-white/15 text-zinc-200"
                   >
                     {g.name}
                   </span>
@@ -271,7 +279,7 @@ export default function DetailsPage() {
               ))}
             </div>
 
-            {/* View Switcher: Carousel vs List */}
+            {/* View Switcher */}
             <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/15">
               <button
                 onClick={() => setPeopleView("grid")}
@@ -400,7 +408,7 @@ export default function DetailsPage() {
                       </div>
                     </div>
                     <div className="p-1.5 bg-black/60">
-                      <h4 className="text-[10px] font-semibold text-white truncate">{itemTitle}</h4>
+                      <h4 className="text-[10px] sm:text-[11px] font-semibold text-white truncate">{itemTitle}</h4>
                     </div>
                   </GlassCard>
                 </Link>

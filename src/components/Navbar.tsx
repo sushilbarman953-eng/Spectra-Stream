@@ -6,10 +6,10 @@ import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Search,
+  Home,
   Film,
   Tv,
   PlaySquare,
-  Compass,
   Radio,
   Download,
   X,
@@ -121,7 +121,7 @@ export const Navbar = () => {
         setIsListening(true);
         setIsOpen(true);
       } catch {
-        // Speech API initialization
+        // Speech API
       }
     }
   };
@@ -185,7 +185,7 @@ export const Navbar = () => {
   };
 
   const navItems = [
-    { label: "Home", href: "/", icon: Compass },
+    { label: "Home", href: "/", icon: Home },
     { label: "Movies", href: "/movies", icon: Film },
     { label: "Series", href: "/series", icon: Tv },
     { label: "Anime", href: "/anime", icon: PlaySquare },
@@ -235,7 +235,7 @@ export const Navbar = () => {
           })}
         </nav>
 
-        {/* Right Section: Search & Me Avatar Capsule */}
+        {/* Search & Me */}
         <div className="flex items-center gap-2">
           <div ref={searchRef} className="relative flex items-center">
             <input
@@ -261,9 +261,7 @@ export const Navbar = () => {
               <button
                 onClick={toggleVoiceSearch}
                 className={`p-1 rounded-full transition ${
-                  isListening
-                    ? "bg-red-500 text-white animate-pulse"
-                    : "text-zinc-400 hover:text-white"
+                  isListening ? "bg-red-500 text-white animate-pulse" : "text-zinc-400 hover:text-white"
                 }`}
               >
                 {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
@@ -283,7 +281,6 @@ export const Navbar = () => {
               )}
             </div>
 
-            {/* Search Dropdown */}
             {isOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-88 max-h-[85vh] overflow-y-auto no-scrollbar rounded-2xl border border-white/20 p-3 shadow-[0_16px_40px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.3)] flex flex-col gap-3 z-50 animate-in fade-in zoom-in-95 duration-150"
@@ -402,7 +399,6 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* Top-Right Me Capsule */}
           <Link
             href="/me"
             className={`p-1.5 rounded-full border transition duration-200 flex items-center justify-center ${
