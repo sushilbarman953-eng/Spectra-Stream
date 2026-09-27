@@ -47,8 +47,8 @@ export default function WatchPage() {
   // Player state
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [currentTime, setCurrentTime] = useState<number>(260); // 04:20
-  const [duration, setDuration] = useState<number>(2700); // 45:00
+  const [currentTime, setCurrentTime] = useState<number>(260);
+  const [duration, setDuration] = useState<number>(2700);
   const [isHudVisible, setIsHudVisible] = useState<boolean>(true);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
@@ -136,7 +136,9 @@ export default function WatchPage() {
       lastWatched: Date.now(),
     });
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [id, type, selectedSeason, episode]);
 
   const formatTime = (secs: number) => {
@@ -156,16 +158,18 @@ export default function WatchPage() {
     }
   };
 
-  const title = details?.title || details?.name || "The Lost World";
+  const title = details?.title || details?.name || "Now Playing";
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-4">
       {/* 1. Top Header Bar */}
       <div className="flex items-center justify-between">
-        <Link
-          href={`/details/${id}?type=${type}`}
-          onClick={() => soundFx.playCinematicPop()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white backdrop-blur-xl transition"
+        <button
+          onClick={() => {
+            soundFx.playCinematicPop();
+            router.back();
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white backdrop-blur-xl transition active:scale-95"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Details</span>
@@ -186,7 +190,7 @@ export default function WatchPage() {
               sizeBytes: 1024 * 1024 * 480,
             });
           }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white backdrop-blur-xl transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white backdrop-blur-xl transition active:scale-95"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Download</span>
@@ -242,15 +246,15 @@ export default function WatchPage() {
             {/* Controls Row */}
             <div className="flex items-center justify-between text-white text-xs">
               <div className="flex items-center gap-3">
-                <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-emerald-400 transition">
+                <button onClick={() => setIsPlaying(!isPlaying)} className="hover:text-red-400 transition">
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 </button>
 
-                <button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} className="hover:text-emerald-400 transition">
+                <button onClick={() => setCurrentTime(Math.max(0, currentTime - 10))} className="hover:text-red-400 transition">
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
 
-                <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))} className="hover:text-emerald-400 transition">
+                <button onClick={() => setCurrentTime(Math.min(duration, currentTime + 10))} className="hover:text-red-400 transition">
                   <RotateCw className="w-3.5 h-3.5" />
                 </button>
 
@@ -260,14 +264,14 @@ export default function WatchPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <button onClick={() => setIsMuted(!isMuted)} className="hover:text-emerald-400 transition">
+                <button onClick={() => setIsMuted(!isMuted)} className="hover:text-red-400 transition">
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                 </button>
 
                 <div className="relative">
                   <button
                     onClick={() => setShowSettingsModal(!showSettingsModal)}
-                    className="hover:text-emerald-400 transition"
+                    className="hover:text-red-400 transition"
                   >
                     <Settings className="w-4 h-4" />
                   </button>
@@ -310,7 +314,7 @@ export default function WatchPage() {
                             className="w-full text-left px-1.5 py-1 rounded hover:bg-white/10 flex items-center justify-between text-[10px]"
                           >
                             <span>{q}</span>
-                            {streamQuality === q && <Check className="w-3 h-3 text-emerald-400" />}
+                            {streamQuality === q && <Check className="w-3 h-3 text-red-500" />}
                           </button>
                         ))}
                       </div>
@@ -318,7 +322,7 @@ export default function WatchPage() {
                   )}
                 </div>
 
-                <button onClick={toggleFullscreen} className="hover:text-emerald-400 transition">
+                <button onClick={toggleFullscreen} className="hover:text-red-400 transition">
                   {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </button>
               </div>
@@ -362,7 +366,7 @@ export default function WatchPage() {
           )}
         </div>
 
-        {/* Server Failover Buttons (Frosted Glass default under the hood) */}
+        {/* Server Failover Buttons */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pt-1">
           {FAILOVER_SERVERS.map((srv) => {
             const isSelected = activeServerKey === srv.key;
@@ -386,12 +390,12 @@ export default function WatchPage() {
         </div>
       </div>
 
-      {/* 4. Episodes Shelf with Small Thumbnail Grid & Itemized List Switcher */}
+      {/* 4. Episodes Shelf */}
       {type === "tv" && (
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <Sparkles className="w-4 h-4 text-red-500" />
               <h3 className="text-sm font-bold text-white">Episodes ({episodes.length || 22})</h3>
               <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-zinc-300">
                 <span>Season {selectedSeason}</span>
@@ -436,7 +440,7 @@ export default function WatchPage() {
                     onClick={() => soundFx.playCinematicSwell()}
                     className={`group rounded-xl overflow-hidden border transition relative bg-[#0c0c14]/80 shadow-md ${
                       isCurrent
-                        ? "border-emerald-400 ring-1 ring-emerald-400"
+                        ? "border-red-500 ring-1 ring-red-500"
                         : "border-white/10 hover:border-white/25"
                     }`}
                   >
@@ -459,11 +463,11 @@ export default function WatchPage() {
                       </span>
                     </div>
                     <div className="p-1.5">
-                      <h5 className="text-[10px] font-bold text-white truncate group-hover:text-emerald-300 transition">
+                      <h5 className="text-[10px] font-bold text-white truncate group-hover:text-red-300 transition">
                         {ep.name || `Episode ${ep.episode_number}`}
                       </h5>
                     </div>
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -483,7 +487,7 @@ export default function WatchPage() {
                     onClick={() => soundFx.playCinematicSwell()}
                     className={`p-2.5 rounded-2xl border transition flex items-center gap-3 bg-[#0c0c14]/80 ${
                       isCurrent
-                        ? "border-emerald-400 ring-1 ring-emerald-400"
+                        ? "border-red-500 ring-1 ring-red-500"
                         : "border-white/10 hover:border-white/25"
                     }`}
                   >
@@ -507,7 +511,7 @@ export default function WatchPage() {
                         {ep.overview || "High-speed multi-audio stream."}
                       </p>
                     </div>
-                  </button>
+                  </Link>
                 );
               })}
             </div>
