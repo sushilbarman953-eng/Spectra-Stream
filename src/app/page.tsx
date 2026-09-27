@@ -38,24 +38,22 @@ export default function HomePage() {
     const history = playbackHistory.getAll();
     setContinueWatching(history.slice(0, 4));
 
-    // 3. Formulate "As you played [Title], you might like..."
+    // 3. Personalized recommendation calculation
     if (history.length > 0 && history[0].title) {
       setLastWatchedTitle(history[0].title);
-      // Filter out the active item to recommend alternative titles
       const recs = BACKUP_HINDI_MOVIES.filter(
         (m) => (m.title || m.name)?.toLowerCase() !== history[0].title?.toLowerCase()
       );
       setPersonalizedRecs(recs);
     } else {
-      // Default recommendation shelf if history is empty
       setPersonalizedRecs(BACKUP_HINDI_MOVIES);
     }
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#08080c] text-white pt-12 pb-28 px-3 sm:px-6 space-y-7 max-w-7xl mx-auto">
-      {/* 1. Dynamic Hero Carousel */}
-      <section className="pt-0">
+    <div className="min-h-screen bg-[#08080c] text-white pt-11 pb-28 px-3 sm:px-6 flex flex-col gap-6 max-w-7xl mx-auto">
+      {/* 1. Dynamic Hero Carousel immediately beneath top navbar */}
+      <section className="w-full m-0 p-0">
         <HeroCarousel items={heroItems} />
       </section>
 
@@ -112,8 +110,8 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 3. DYNAMIC "AS YOU PLAYED THIS, YOU MIGHT LIKE" RECOMMENDATION SHELF */}
-      <section className="space-y-3 pt-1">
+      {/* 3. Personalized Recommendation Shelf */}
+      <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Compass className="w-4 h-4 text-red-500" />
@@ -135,7 +133,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Horizontal Posters Shelf */}
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
           {personalizedRecs.map((item, idx) => {
             const poster = item.poster_path
@@ -167,7 +164,6 @@ export default function HomePage() {
                     </div>
                   )}
 
-                  {/* Red Frosted Multi Audio Badge */}
                   <div className="absolute top-1.5 left-1.5 z-10">
                     <span className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
                       MULTI
@@ -194,7 +190,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. Top 10 in India Today */}
+      {/* 4. Top 10 In India Today */}
       <section className="space-y-3">
         <OttShelf
           title="Top 10 In India Today"
