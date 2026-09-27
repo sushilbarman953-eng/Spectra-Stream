@@ -418,3 +418,112 @@ export const tmdb = {
 // Backward compatibility exports for page imports
 export const BACKUP_HINDI_MOVIES = EXTENDED_MOVIES_CATALOG;
 export const BACKUP_HINDI_SERIES = EXTENDED_SERIES_CATALOG;
+
+// Categorized OTT Hub Catalogs
+export const BOLLYWOOD_CATALOG: MediaItem[] = [
+  {
+    id: 976573,
+    title: "Jawan",
+    overview: "A personal vendetta to rectify society's wrongs.",
+    poster_path: "/jMwA3pM9FzK6d9G6jO0b1q4x7.jpg",
+    backdrop_path: "/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
+    media_type: "movie",
+    vote_average: 8.1,
+    release_date: "2023",
+    audioLanguages: ["Hindi", "Tamil"],
+  },
+  {
+    id: 1072790,
+    title: "Animal",
+    overview: "Obsessive filial love spiraling into vengeance.",
+    poster_path: "/hrN4B11R0Vqg1t7YgA5Q1G4m6sR.jpg",
+    backdrop_path: "/b0PlSFdDwbyK0cf5RxwDpaOJQvQ.jpg",
+    media_type: "movie",
+    vote_average: 7.9,
+    release_date: "2023",
+    audioLanguages: ["Hindi"],
+  },
+  {
+    id: 872585,
+    title: "Dunki",
+    overview: "Friends embark on an unorthodox journey back home.",
+    poster_path: "/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+    backdrop_path: "/nb3xI8XI3w4pMVZ38VijbsyBqP4.jpg",
+    media_type: "movie",
+    vote_average: 7.4,
+    release_date: "2023",
+    audioLanguages: ["Hindi"],
+  },
+];
+
+export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
+  {
+    id: 579974,
+    title: "RRR",
+    overview: "Two revolutionaries unite against colonial oppressors.",
+    poster_path: "/nEufeZlyAOLqO2brrs0yeMu1QXO.jpg",
+    backdrop_path: "/70AV2Xx5FQYj20xlp09Q5h0sw6a.jpg",
+    media_type: "movie",
+    vote_average: 8.6,
+    release_date: "2022",
+    audioLanguages: ["Telugu", "Hindi"],
+  },
+  {
+    id: 822119,
+    title: "Kalki 2898 AD",
+    overview: "A modern avatar of Vishnu descends to protect the world.",
+    poster_path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+    backdrop_path: "/xOMo8BRK7PfcJv9JCnx7s520fff.jpg",
+    media_type: "movie",
+    vote_average: 8.0,
+    release_date: "2024",
+    audioLanguages: ["Telugu", "Hindi"],
+  },
+  {
+    id: 926393,
+    title: "Salaar: Part 1 – Ceasefire",
+    overview: "A gang leader strives to keep a promise made to a dying friend.",
+    poster_path: "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+    backdrop_path: "/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
+    media_type: "movie",
+    vote_average: 7.7,
+    release_date: "2023",
+    audioLanguages: ["Telugu", "Hindi"],
+  },
+];
+
+export const HOLLYWOOD_CATALOG: MediaItem[] = [
+  {
+    id: 693134,
+    title: "Dune: Part Two",
+    overview: "Paul Atreides unites with Chani and the Fremen.",
+    poster_path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+    backdrop_path: "/xOMo8BRK7PfcJv9JCnx7s520fff.jpg",
+    media_type: "movie",
+    vote_average: 8.3,
+    release_date: "2024",
+    audioLanguages: ["English", "Hindi"],
+  },
+  {
+    id: 533535,
+    title: "Deadpool & Wolverine",
+    overview: "Wade Wilson teams up with Wolverine on a survival mission.",
+    poster_path: "/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg",
+    backdrop_path: "/yDHYTjA3R0jFYba16jBB1jv8vpH.jpg",
+    media_type: "movie",
+    vote_average: 7.8,
+    release_date: "2024",
+    audioLanguages: ["English", "Hindi"],
+  },
+  {
+    id: 157336,
+    title: "Interstellar",
+    overview: "Explorers travel through a wormhole in search of a new home.",
+    poster_path: "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+    backdrop_path: "/xJHokMbljvjADYdit5fK5VQsXEG.jpg",
+    media_type: "movie",
+    vote_average: 8.4,
+    release_date: "2014",
+    audioLanguages: ["English", "Hindi"],
+  },
+];
