@@ -203,12 +203,12 @@ export default function DetailsPage() {
   const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.9";
   const runtime = details?.runtime ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m` : "3h 00m";
 
-  // Natural scroll parallax: transforms with document scroll and fades out as user reaches storyline
+  // Smooth Parallax Transformations
   const parallaxTranslate = scrollY > 0 ? scrollY * 0.45 : 0;
   const parallaxScale = scrollY < 0 ? 1 + Math.abs(scrollY) * 0.003 : 1;
   const backdropOpacity = Math.max(0, 1 - scrollY / 320);
 
-  // Filter Credits
+  // Cast, Director, Producer grouping
   const directors = crew.filter(
     (c: any) =>
       c.job?.toLowerCase() === "director" ||
@@ -229,8 +229,8 @@ export default function DetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#08080c] relative select-none overflow-x-hidden">
-      {/* 1. PARALLAX HERO BACKDROP (Presents hero at top, fades away on scroll) */}
-      <div className="relative w-full h-[52vh] sm:h-[60vh] overflow-hidden bg-black">
+      {/* 1. FULL-BRIGHTNESS PARALLAX HERO BACKDROP WITH BOTTOM BLUR */}
+      <div className="relative w-full h-[54vh] sm:h-[62vh] overflow-hidden bg-black">
         {backdropUrl && (
           <div
             className="absolute inset-0 w-full h-full will-change-transform"
@@ -240,22 +240,23 @@ export default function DetailsPage() {
               opacity: backdropOpacity,
             }}
           >
+            {/* Background poster at full, natural brightness */}
             <img
               src={backdropUrl}
               alt=""
-              className="w-full h-full object-cover object-top brightness-110 contrast-[1.05]"
+              className="w-full h-full object-cover object-top brightness-100 contrast-100"
             />
           </div>
         )}
 
-        {/* Seamless bottom fade so lower sections never bleed */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-[#08080c]/30 to-transparent pointer-events-none" />
+        {/* Bottom Frost Blur Effect Layer */}
+        <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-[#08080c] via-[#08080c]/50 to-transparent backdrop-blur-md pointer-events-none" />
 
         {/* Top Floating Glass Back Button */}
         <div className="absolute top-4 left-4 z-30">
           <button
             onClick={handleGoBack}
-            className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 border border-white/25 text-white backdrop-blur-xl flex items-center justify-center transition active:scale-90 shadow-2xl"
+            className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 text-white backdrop-blur-xl flex items-center justify-center transition active:scale-90 shadow-2xl"
             aria-label="Back to Catalog"
           >
             <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
@@ -263,13 +264,14 @@ export default function DetailsPage() {
         </div>
       </div>
 
-      {/* 2. OVERLAPPING TRANSLUCENT FROSTED GLASS CARD */}
+      {/* 2. OVERLAPPING ULTRA-SHEER FROSTED GLASS DOSSIER CARD */}
       <div className="max-w-md mx-auto px-3.5 -mt-36 relative z-20 pb-28 space-y-5">
-        <div className="rounded-3xl p-4 sm:p-5 border border-white/20 bg-[#0e0e14]/75 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] space-y-4">
+        <div className="rounded-3xl p-4 sm:p-5 border border-white/20 bg-white/[0.04] backdrop-blur-2xl shadow-[0_12px_40px_0_rgba(0,0,0,0.45)] space-y-4">
           
-          {/* Metadata & Poster: Larger typography and balanced tags to fill vertical height */}
+          {/* Metadata & Poster Layout */}
           <div className="flex gap-4 items-stretch">
-            <div className="relative w-28 sm:w-32 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/20 flex-none shadow-2xl">
+            {/* Poster Thumbnail */}
+            <div className="relative w-28 sm:w-32 aspect-[2/3] rounded-2xl overflow-hidden bg-black/40 border border-white/20 flex-none shadow-2xl">
               {posterUrl ? (
                 <img src={posterUrl} alt={title} className="w-full h-full object-cover" />
               ) : (
@@ -277,58 +279,58 @@ export default function DetailsPage() {
                   Poster
                 </div>
               )}
-              <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] font-black text-white border border-white/20 shadow-md">
-                <Star className="w-3 h-3 fill-white text-white" />
+              <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[9px] font-black text-white border border-white/20 shadow-md">
+                <Star className="w-2.5 h-2.5 fill-white text-white" />
                 <span>{rating}</span>
               </div>
             </div>
 
-            {/* Info Column — Fills the entire vertical space */}
-            <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
-              {/* Type, Year & Runtime badges */}
+            {/* Information Column */}
+            <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+              {/* Upper Small Tags */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-mono font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-white/10 text-white border border-white/20 backdrop-blur-md">
+                <span className="text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-zinc-200 border border-white/15 backdrop-blur-md">
                   {source === "anime" ? "ANIME" : type === "tv" ? "SERIES" : "MOVIE"}
                 </span>
-                <span className="text-[10px] font-mono font-bold text-zinc-300 px-2 py-1 rounded-lg bg-white/5 border border-white/10">
+                <span className="text-[9px] font-mono font-bold text-zinc-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
                   {releaseYear}
                 </span>
-                <span className="text-[10px] font-mono font-bold text-zinc-300 px-2 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-1">
+                <span className="text-[9px] font-mono font-bold text-zinc-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 flex items-center gap-1">
                   <Clock className="w-2.5 h-2.5" />
                   {runtime}
                 </span>
               </div>
 
-              {/* Prominent Large Title */}
-              <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)] line-clamp-2 my-1">
+              {/* Big, Prominent Movie Title */}
+              <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-[1.1] drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] line-clamp-2 my-1.5">
                 {title}
               </h1>
 
-              {/* Enlarged Genre & Audio Pills filling the bottom gap */}
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                <span className="px-2.5 py-1 rounded-lg bg-red-600/30 border border-red-500/40 text-[10px] font-black text-red-200 uppercase tracking-wider backdrop-blur-md shadow-[0_0_8px_rgba(239,68,68,0.4)]">
+              {/* Lower Small Tags */}
+              <div className="flex flex-wrap gap-1">
+                <span className="px-2 py-0.5 rounded-md bg-red-600/30 border border-red-500/40 text-[9px] font-black text-red-200 uppercase tracking-wider backdrop-blur-md shadow-[0_0_8px_rgba(239,68,68,0.4)]">
                   MULTI AUDIO
                 </span>
                 {details?.genres?.length ? (
                   details.genres.slice(0, 2).map((g: any) => (
                     <span
                       key={g.name}
-                      className="px-2.5 py-1 rounded-lg bg-white/[0.08] border border-white/15 text-[10px] text-zinc-200 font-semibold backdrop-blur-md"
+                      className="px-2 py-0.5 rounded-md bg-white/[0.08] border border-white/15 text-[9px] text-zinc-200 font-semibold backdrop-blur-md"
                     >
                       {g.name}
                     </span>
                   ))
                 ) : (
                   <>
-                    <span className="px-2.5 py-1 rounded-lg bg-white/[0.08] border border-white/15 text-[10px] text-zinc-200 font-semibold backdrop-blur-md">Action</span>
-                    <span className="px-2.5 py-1 rounded-lg bg-white/[0.08] border border-white/15 text-[10px] text-zinc-200 font-semibold backdrop-blur-md">Drama</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/[0.08] border border-white/15 text-[9px] text-zinc-200 font-semibold backdrop-blur-md">Action</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/[0.08] border border-white/15 text-[9px] text-zinc-200 font-semibold backdrop-blur-md">Drama</span>
                   </>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Action Buttons: Row 1 Play + List, Row 2 Download */}
+          {/* Action Buttons: Row 1 Play + Add to List, Row 2 Download */}
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-2">
               <Link
@@ -368,7 +370,7 @@ export default function DetailsPage() {
           </div>
         </div>
 
-        {/* 3. SOLID BLACK WRAPPER FOR LOWER SECTIONS (Prevents background image bleed-through) */}
+        {/* 3. SOLID SECTION WRAPPER FOR STORYLINE & BELOW */}
         <div className="bg-[#08080c] rounded-3xl p-1 space-y-5">
           {/* Storyline */}
           <div className="space-y-1.5 px-1">
