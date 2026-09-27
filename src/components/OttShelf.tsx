@@ -43,7 +43,7 @@ export const OttShelf: React.FC<OttShelfProps> = ({
       <div className="flex items-center justify-between px-1">
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
-            {Icon && <Icon className="w-3.5 h-3.5 text-emerald-400 flex-none" />}
+            {Icon && <Icon className="w-3.5 h-3.5 text-red-500 flex-none" />}
             <h3 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
               {title}
             </h3>
@@ -86,6 +86,25 @@ export const OttShelf: React.FC<OttShelfProps> = ({
           const audioTags = item.audioLanguages || ["HIN", "ENG"];
           const rank = idx + 1;
 
+          // Determine language label
+          let displayLanguage = badgeLabel;
+          if (!displayLanguage) {
+            if (audioTags.length > 1) {
+              displayLanguage = "MULTI";
+            } else {
+              const single = (audioTags[0] || "").toUpperCase();
+              displayLanguage =
+                single === "HIN" ? "HINDI" :
+                single === "TAM" ? "TAMIL" :
+                single === "TEL" ? "TELUGU" :
+                single === "MAL" ? "MALAYALAM" :
+                single === "KAN" ? "KANNADA" :
+                single === "BEN" ? "BENGALI" :
+                single === "ENG" ? "ENGLISH" :
+                single === "JAP" ? "JAPANESE" : single;
+            }
+          }
+
           return (
             <Link
               key={`shelf-${item.id}-${idx}`}
@@ -97,7 +116,7 @@ export const OttShelf: React.FC<OttShelfProps> = ({
             >
               {/* Overlapping Number for Top 10 */}
               {isRanked && (
-                <span className="absolute -left-1 bottom-6 text-5xl sm:text-6xl font-black italic tracking-tighter text-zinc-600/60 select-none group-hover:text-emerald-400/80 transition-colors z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                <span className="absolute -left-1 bottom-6 text-5xl sm:text-6xl font-black italic tracking-tighter text-zinc-600/60 select-none group-hover:text-red-500/80 transition-colors z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
                   {rank}
                 </span>
               )}
@@ -117,21 +136,16 @@ export const OttShelf: React.FC<OttShelfProps> = ({
                   </div>
                 )}
 
-                {/* Regional Audio Tag */}
-                <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 max-w-[85%] overflow-hidden">
-                  <span className="bg-emerald-400 text-black px-1 py-0.5 rounded text-[7px] font-black uppercase shadow-glow truncate">
-                    {badgeLabel || audioTags[0]}
+                {/* Red Frosted Glass Audio Tag */}
+                <div className="absolute top-1.5 left-1.5 flex items-center max-w-[85%] overflow-hidden z-10">
+                  <span className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)] truncate">
+                    {displayLanguage}
                   </span>
-                  {audioTags.length > 1 && !badgeLabel && (
-                    <span className="bg-black/70 backdrop-blur-md text-[7px] font-bold text-zinc-200 px-1 py-0.5 rounded border border-white/15">
-                      +{audioTags.length - 1}
-                    </span>
-                  )}
                 </div>
 
                 {/* Star Rating */}
                 {item.vote_average ? (
-                  <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                  <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
                     <Star className="w-2 h-2 fill-white text-white" />
                     {item.vote_average.toFixed(1)}
                   </div>
@@ -139,7 +153,7 @@ export const OttShelf: React.FC<OttShelfProps> = ({
               </div>
 
               {/* Title & Language summary */}
-              <h4 className="text-[11px] font-bold text-white truncate mt-1 group-hover:text-emerald-300 transition-colors">
+              <h4 className="text-[11px] font-bold text-white truncate mt-1 group-hover:text-red-300 transition-colors">
                 {item.title || item.name}
               </h4>
               <p className="text-[9px] text-zinc-400 font-mono truncate">

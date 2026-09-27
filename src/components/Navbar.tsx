@@ -231,7 +231,6 @@ export const Navbar = () => {
             {isSubPage || isUtilityPage ? (
               <div className="flex justify-center">
                 <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/[0.08] border border-white/20 backdrop-blur-xl shadow-glow">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
                   <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-widest">
                     {getPageTitle()}
                   </span>

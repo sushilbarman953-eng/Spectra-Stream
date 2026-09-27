@@ -66,7 +66,7 @@ export default function HomePage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-              <History className="w-3.5 h-3.5 text-emerald-400" />
+              <History className="w-3.5 h-3.5 text-red-500" />
               <span>Continue Watching</span>
             </h3>
             <Link href="/me" onClick={() => soundFx.playCinematicPop()} className="text-[10px] text-zinc-400 hover:text-white flex items-center gap-0.5 font-bold">
@@ -99,7 +99,7 @@ export default function HomePage() {
                   <h4 className="text-xs font-bold text-white truncate">{item.title}</h4>
                   <div className="space-y-0.5">
                     <div className="w-full h-1 bg-white/15 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${item.progressPercent || 35}%` }} />
+                      <div className="h-full bg-red-500 rounded-full" style={{ width: `${item.progressPercent || 35}%` }} />
                     </div>
                     <span className="text-[9px] text-zinc-400 font-mono block">{item.progressPercent || 35}% completed</span>
                   </div>
