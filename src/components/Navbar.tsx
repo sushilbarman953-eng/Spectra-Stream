@@ -27,7 +27,6 @@ export const Navbar = () => {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Wheel Drag State
   const [isDragging, setIsDragging] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
 
@@ -37,6 +36,9 @@ export const Navbar = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const isDetails = pathname.startsWith("/details");
+  const isWatch = pathname.startsWith("/watch");
+  const isDetailsOrWatch = isDetails || isWatch;
   const isUtilityPage = pathname === "/downloads" || pathname === "/me" || pathname === "/explore";
 
   const activeIdx = CATEGORIES.findIndex((c) => c.href === pathname);
@@ -63,11 +65,10 @@ export const Navbar = () => {
     };
   });
 
-  // MECHANICAL ACCUMULATOR (Every 12px produces a physical tooth click)
   const STEP_PIXELS = 12;
 
   const handleDragStart = (clientX: number) => {
-    if (isUtilityPage) return;
+    if (isUtilityPage || isDetailsOrWatch) return;
     setIsDragging(true);
     lastXRef.current = clientX;
     accumulatedDistance.current = 0;
@@ -89,11 +90,8 @@ export const Navbar = () => {
       setPreviewIndex((prev) => {
         const next = (prev + shift) % N;
         const normalized = next < 0 ? next + N : next;
-        
-        // FIRING MECHANICAL GEAR TICK
         soundFx.playMechanicalTick();
         if (navigator.vibrate) navigator.vibrate(6);
-
         return normalized;
       });
     }
@@ -170,11 +168,16 @@ export const Navbar = () => {
   };
 
   const getPageTitle = () => {
+    if (isWatch) return "SPECTRA PLAYER";
+    if (isDetails) return "DOSSIER VIEW";
     if (pathname === "/downloads") return "DOWNLOADS";
     if (pathname === "/me") return "PROFILE";
     if (pathname === "/explore") return "EXPLORE";
     return CATEGORIES.find((cat) => cat.href === pathname)?.label.toUpperCase() || "HOME";
   };
+
+  // Completely hidden on watch page to preserve custom player HUD
+  if (isWatch) return null;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#08080c]/85 backdrop-blur-2xl border-b border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.8)] py-2 transition-all select-none">
@@ -192,7 +195,7 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* Middle: Continuous Mechanical Wheel */}
+          {/* Middle: Either the Rotary Wheel OR the Context Header for details/utility */}
           <div
             className="flex-1 max-w-[240px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing touch-none select-none"
             onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
@@ -204,9 +207,9 @@ export const Navbar = () => {
             onMouseUp={handleDragEnd}
             onMouseLeave={handleDragEnd}
           >
-            {isUtilityPage ? (
+            {isDetailsOrWatch || isUtilityPage ? (
               <div className="flex justify-center">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.08] border border-white/25 backdrop-blur-xl shadow-[0_0_16px_rgba(255,255,255,0.15)]">
+                <div className="flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/[0.08] border border-white/20 backdrop-blur-xl shadow-glow">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
                   <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-widest">
                     {getPageTitle()}
@@ -263,7 +266,6 @@ export const Navbar = () => {
               <Mic className={`w-3 h-3 ${smallGlassOpen ? "text-black" : "text-zinc-500"}`} />
             </div>
 
-            {/* Mini Popover */}
             {smallGlassOpen && (
               <div
                 className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
