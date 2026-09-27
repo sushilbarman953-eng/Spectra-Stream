@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
@@ -51,14 +51,11 @@ export default function DetailsPage() {
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
+    const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Remember the catalog tab where the user entered from
   useEffect(() => {
     if (typeof window !== "undefined") {
       const ref = document.referrer;
@@ -207,7 +204,7 @@ export default function DetailsPage() {
   // Dynamic Parallax Transformations
   const parallaxTranslate = scrollY > 0 ? scrollY * 0.42 : 0;
   const parallaxScale = scrollY < 0 ? 1 + Math.abs(scrollY) * 0.0025 : 1;
-  const backdropOpacity = Math.max(0.15, 1 - scrollY / 420);
+  const backdropOpacity = Math.max(0.4, 1 - scrollY / 500);
 
   // Cast, Director, Producer grouping
   const directors = crew.filter(
@@ -230,8 +227,8 @@ export default function DetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#08080c] relative select-none">
-      {/* 1. SMOOTH PARALLAX HERO BACKDROP */}
-      <div className="relative w-full h-[52vh] sm:h-[60vh] overflow-hidden bg-black">
+      {/* 1. BRIGHT PARALLAX HERO BACKDROP */}
+      <div className="relative w-full h-[54vh] sm:h-[62vh] overflow-hidden bg-black">
         {backdropUrl && (
           <div
             className="absolute inset-0 w-full h-full will-change-transform transition-transform duration-75 ease-out"
@@ -244,20 +241,19 @@ export default function DetailsPage() {
             <img
               src={backdropUrl}
               alt=""
-              className="w-full h-full object-cover object-top"
+              className="w-full h-full object-cover object-top brightness-110 contrast-[1.05]"
             />
           </div>
         )}
 
-        {/* Ambient Vignette Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-[#08080c]/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent" />
+        {/* Soft feather gradient at the very bottom edge */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-[#08080c]/25 to-transparent pointer-events-none" />
 
         {/* Top Floating Glass Back Button */}
         <div className="absolute top-4 left-4 z-30">
           <button
             onClick={handleGoBack}
-            className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 text-white backdrop-blur-2xl flex items-center justify-center transition active:scale-90 shadow-2xl"
+            className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/25 text-white backdrop-blur-xl flex items-center justify-center transition active:scale-90 shadow-2xl"
             aria-label="Back to Catalog"
           >
             <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
@@ -265,12 +261,12 @@ export default function DetailsPage() {
         </div>
       </div>
 
-      {/* 2. OVERLAPPING FROSTED GLASS DOSSIER CARD */}
-      <div className="max-w-md mx-auto px-3.5 -mt-28 relative z-20 pb-28 space-y-4">
-        <div className="rounded-3xl p-4 sm:p-5 border border-white/15 bg-[#0e0e14]/85 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] space-y-4">
-          {/* Poster & Metadata info */}
+      {/* 2. OVERLAPPING TRANSPARENT FROSTED GLASS DOSSIER CARD */}
+      <div className="max-w-md mx-auto px-3.5 -mt-32 relative z-20 pb-28 space-y-4">
+        <div className="rounded-3xl p-4 sm:p-5 border border-white/20 bg-black/45 backdrop-blur-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] space-y-4">
+          {/* Poster & Title with Frosted Glass Effect */}
           <div className="flex gap-4 items-start">
-            <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 flex-none shadow-2xl">
+            <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/20 flex-none shadow-2xl">
               {posterUrl ? (
                 <img src={posterUrl} alt={title} className="w-full h-full object-cover" />
               ) : (
@@ -278,7 +274,7 @@ export default function DetailsPage() {
                   Poster
                 </div>
               )}
-              <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/85 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white border border-white/20 shadow-md">
+              <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white border border-white/20 shadow-md">
                 <Star className="w-2.5 h-2.5 fill-white text-white" />
                 <span>{rating}</span>
               </div>
@@ -289,24 +285,27 @@ export default function DetailsPage() {
                 {source === "anime" ? "ANIME" : type === "tv" ? "SERIES" : "MOVIE"} • {releaseYear}
               </span>
 
-              <h1 className="text-xl font-black text-white tracking-tight leading-tight">
-                {title}
-              </h1>
+              {/* Title with Frosted Glass & Transparency */}
+              <div className="p-2 -ml-2 rounded-2xl bg-white/[0.07] backdrop-blur-xl border border-white/15 shadow-sm inline-block max-w-full">
+                <h1 className="text-xl font-black text-white tracking-tight leading-tight drop-shadow-md truncate">
+                  {title}
+                </h1>
+              </div>
 
               <div className="flex flex-wrap gap-1 pt-0.5">
                 {details?.genres?.length ? (
                   details.genres.map((g: any) => (
                     <span
                       key={g.name}
-                      className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[9px] text-zinc-300 font-medium"
+                      className="px-2 py-0.5 rounded-md bg-white/[0.08] border border-white/15 text-[9px] text-zinc-200 font-medium backdrop-blur-md"
                     >
                       {g.name}
                     </span>
                   ))
                 ) : (
                   <>
-                    <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[9px] text-zinc-300 font-medium">Action & Adventure</span>
-                    <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[9px] text-zinc-300 font-medium">Drama</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/[0.08] border border-white/15 text-[9px] text-zinc-200 font-medium backdrop-blur-md">Action & Adventure</span>
+                    <span className="px-2 py-0.5 rounded-md bg-white/[0.08] border border-white/15 text-[9px] text-zinc-200 font-medium backdrop-blur-md">Drama</span>
                   </>
                 )}
               </div>
@@ -346,7 +345,7 @@ export default function DetailsPage() {
               className={`w-full py-2.5 px-4 rounded-2xl border text-xs font-bold transition flex items-center justify-center gap-2 active:scale-[0.98] ${
                 downloaded
                   ? "bg-white/20 border-white/30 text-white font-black"
-                  : "bg-white/5 hover:bg-white/10 border-white/15 text-zinc-300"
+                  : "bg-white/10 hover:bg-white/15 border-white/20 text-zinc-200 backdrop-blur-xl"
               }`}
             >
               <Download className="w-3.5 h-3.5" />
