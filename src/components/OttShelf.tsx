@@ -81,7 +81,14 @@ export const OttShelf: React.FC<OttShelfProps> = ({
         style={{ WebkitOverflowScrolling: "touch" }}
       >
         {items.map((item, idx) => {
-          const poster = item.poster_path ? `${IMAGE_BASE}/w185${item.poster_path}` : null;
+          // Resolve both absolute URLs (Anime/MAL) and relative paths (TMDB)
+          const rawPoster = item.poster_path;
+          const poster = rawPoster
+            ? rawPoster.startsWith("http")
+              ? rawPoster
+              : `${IMAGE_BASE}/w342${rawPoster}`
+            : null;
+
           const mediaType = item.media_type || type;
           const audioTags = item.audioLanguages || ["HIN", "ENG"];
           const rank = idx + 1;
@@ -108,7 +115,11 @@ export const OttShelf: React.FC<OttShelfProps> = ({
           return (
             <Link
               key={`shelf-${item.id}-${idx}`}
-              href={`/details/${item.id}?type=${mediaType}`}
+              href={
+                mediaType === "tv" && String(item.id).length < 6
+                  ? `/details/${item.id}?type=tv&source=anime`
+                  : `/details/${item.id}?type=${mediaType}`
+              }
               onClick={() => soundFx.playCinematicPop()}
               className={`flex-none snap-start group relative ${
                 isRanked ? "w-36 sm:w-40 pl-6" : "w-28 sm:w-32"
