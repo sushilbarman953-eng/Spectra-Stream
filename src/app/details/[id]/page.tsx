@@ -201,10 +201,9 @@ export default function DetailsPage() {
 
   const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.1";
 
-  // Smooth Parallax Calculations
-  const parallaxTranslate = scrollY > 0 ? scrollY * 0.42 : 0;
+  // Parallax calculations
+  const parallaxTranslate = scrollY > 0 ? scrollY * 0.38 : 0;
   const parallaxScale = scrollY < 0 ? 1 + Math.abs(scrollY) * 0.0025 : 1;
-  const backdropOpacity = Math.max(0.5, 1 - scrollY / 550);
 
   // Filter Credits
   const directors = crew.filter(
@@ -227,47 +226,45 @@ export default function DetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#08080c] relative select-none">
-      {/* 1. BRIGHT PARALLAX HERO BACKDROP */}
-      <div className="relative w-full h-[55vh] sm:h-[64vh] overflow-hidden bg-black">
+      {/* 1. PARALLAX HERO BACKDROP (Pinned, fully visible, high brightness) */}
+      <div className="fixed top-0 left-0 right-0 h-[68vh] overflow-hidden pointer-events-none z-0">
         {backdropUrl && (
           <div
-            className="absolute inset-0 w-full h-full will-change-transform transition-transform duration-75 ease-out"
+            className="w-full h-full will-change-transform transition-transform duration-75 ease-out"
             style={{
               transform: `translate3d(0, ${parallaxTranslate}px, 0) scale(${parallaxScale})`,
               transformOrigin: "center top",
-              opacity: backdropOpacity,
             }}
           >
             <img
               src={backdropUrl}
               alt=""
-              className="w-full h-full object-cover object-top brightness-110 contrast-[1.05]"
+              className="w-full h-full object-cover object-top brightness-115 contrast-[1.08]"
             />
           </div>
         )}
-
-        {/* Minimal Bottom Fade into Page */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-[#08080c]/15 to-transparent pointer-events-none" />
-
-        {/* Top Floating Glass Back Button */}
-        <div className="absolute top-4 left-4 z-30">
-          <button
-            onClick={handleGoBack}
-            className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/25 text-white backdrop-blur-xl flex items-center justify-center transition active:scale-90 shadow-2xl"
-            aria-label="Back to Catalog"
-          >
-            <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
-          </button>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-transparent to-black/25 pointer-events-none" />
       </div>
 
-      {/* 2. ULTRA-TRANSPARENT FROSTED GLASS DOSSIER CARD */}
-      <div className="max-w-md mx-auto px-3.5 -mt-36 relative z-20 pb-28 space-y-4">
-        <div className="rounded-3xl p-4 sm:p-5 border border-white/20 bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-4">
+      {/* Top Floating Glass Back Button */}
+      <div className="fixed top-3 left-4 z-40">
+        <button
+          onClick={handleGoBack}
+          className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/25 text-white backdrop-blur-xl flex items-center justify-center transition active:scale-90 shadow-2xl"
+          aria-label="Back to Catalog"
+        >
+          <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+        </button>
+      </div>
+
+      {/* 2. FOREGROUND CONTENT (Scrolls over the fixed backdrop) */}
+      <div className="relative z-10 pt-[38vh] max-w-md mx-auto px-3.5 pb-28 space-y-4">
+        {/* COMPACT FROSTED GLASS DOSSIER CARD (No empty gap, crystal transparent) */}
+        <div className="rounded-3xl p-4 border border-white/20 bg-white/[0.05] backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.4)] space-y-3">
           
-          {/* Poster & Normal Title over Transparent Glass */}
-          <div className="flex gap-4 items-start">
-            <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-black/60 border border-white/20 flex-none shadow-2xl">
+          {/* Metadata & Poster Row */}
+          <div className="flex gap-3.5 items-center">
+            <div className="relative w-24 aspect-[2/3] rounded-2xl overflow-hidden bg-black/40 border border-white/25 flex-none shadow-2xl">
               {posterUrl ? (
                 <img src={posterUrl} alt={title} className="w-full h-full object-cover" />
               ) : (
@@ -275,25 +272,24 @@ export default function DetailsPage() {
                   Poster
                 </div>
               )}
-              <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white border border-white/20 shadow-md">
+              <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white border border-white/20 shadow-md">
                 <Star className="w-2.5 h-2.5 fill-white text-white" />
                 <span>{rating}</span>
               </div>
             </div>
 
-            <div className="flex-1 space-y-2 py-0.5">
-              <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-zinc-200 border border-white/15 backdrop-blur-md">
+            <div className="flex-1 min-w-0 space-y-1.5">
+              <span className="inline-block text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-zinc-200 border border-white/15 backdrop-blur-md">
                 {source === "anime" ? "ANIME" : type === "tv" ? "SERIES" : "MOVIE"} • {releaseYear}
               </span>
 
-              {/* Title restored to normal styling directly on glass */}
-              <h1 className="text-xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+              <h1 className="text-lg font-black text-white tracking-tight leading-snug drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] line-clamp-2">
                 {title}
               </h1>
 
-              <div className="flex flex-wrap gap-1 pt-0.5">
+              <div className="flex flex-wrap gap-1">
                 {details?.genres?.length ? (
-                  details.genres.map((g: any) => (
+                  details.genres.slice(0, 3).map((g: any) => (
                     <span
                       key={g.name}
                       className="px-2 py-0.5 rounded-md bg-white/[0.08] border border-white/15 text-[9px] text-zinc-200 font-medium backdrop-blur-md"
@@ -311,9 +307,8 @@ export default function DetailsPage() {
             </div>
           </div>
 
-          {/* 3. BUTTON HIERARCHY */}
-          <div className="space-y-2 pt-1">
-            {/* ROW 1: ► Play + Add to List icon */}
+          {/* Action Buttons: Play + Add to List, and Download */}
+          <div className="space-y-2 pt-0.5">
             <div className="flex items-center gap-2">
               <Link
                 href={type === "tv" ? `/watch/${id}?type=tv&season=1&episode=1` : `/watch/${id}?type=movie`}
@@ -338,7 +333,6 @@ export default function DetailsPage() {
               </button>
             </div>
 
-            {/* ROW 2: Beneath — Download button */}
             <button
               onClick={handleDownload}
               className={`w-full py-2.5 px-4 rounded-2xl border text-xs font-bold transition flex items-center justify-center gap-2 active:scale-[0.98] ${
@@ -353,7 +347,7 @@ export default function DetailsPage() {
           </div>
         </div>
 
-        {/* 4. STORYLINE */}
+        {/* 3. STORYLINE */}
         <div className="space-y-1 px-1">
           <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
           <p className="text-xs text-zinc-300 leading-relaxed font-normal">
@@ -361,7 +355,7 @@ export default function DetailsPage() {
           </p>
         </div>
 
-        {/* 5. CAST & CREW MATRIX */}
+        {/* 4. CAST & CREW MATRIX */}
         <div className="space-y-3 px-1">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <div className="flex items-center gap-1.5">
@@ -494,7 +488,7 @@ export default function DetailsPage() {
           )}
         </div>
 
-        {/* 6. "MORE LIKE THIS" — 2 HORIZONTAL ROWS */}
+        {/* 5. "MORE LIKE THIS" — 2 HORIZONTAL ROWS */}
         <div className="space-y-2.5 pt-2 border-t border-white/10">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1.5">
