@@ -1,6 +1,6 @@
 export interface WatchProgressItem {
-  id: string; // tmdbId or composite
-  tmdbId: string;
+  id: string;
+  tmdbId: string | number;
   type: "movie" | "tv";
   title: string;
   season?: number;
@@ -8,8 +8,8 @@ export interface WatchProgressItem {
   currentTime: number;
   duration: number;
   progressPercent: number;
-  posterPath?: string;
-  backdropPath?: string;
+  posterPath?: string | null;
+  backdropPath?: string | null;
   updatedAt: number;
 }
 
@@ -26,30 +26,49 @@ export const playbackHistory = {
     }
   },
 
-  saveProgress: (item: Omit<WatchProgressItem, "updatedAt" | "progressPercent">) => {
-    if (typeof window === "undefined" || !item.duration || item.duration <= 0) return;
+  save: (item: {
+    id: string;
+    tmdbId: string | number;
+    title: string;
+    type: "movie" | "tv";
+    season?: number;
+    episode?: number;
+    currentTime?: number;
+    duration?: number;
+    progressPercent?: number;
+    posterPath?: string | null;
+    backdropPath?: string | null;
+    lastWatched?: number;
+  }): void => {
+    if (typeof window === "undefined") return;
     try {
-      const percent = Math.min(100, Math.round((item.currentTime / item.duration) * 100));
-      // Don't save if watched less than 1% or already 95%+ (considered finished)
-      if (percent < 1) return;
-
       const current = playbackHistory.getAll();
-      const filtered = current.filter((p) => p.id !== item.id);
+      const filtered = current.filter(
+        (p) => p.id !== item.id && String(p.tmdbId) !== String(item.tmdbId)
+      );
 
-      // If finished (>95%), remove from Continue Watching
-      if (percent >= 95) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-        window.dispatchEvent(new Event("spectra_playback_updated"));
-        return;
-      }
+      const duration = item.duration || 3600;
+      const currentTime = item.currentTime || 0;
+      const progressPercent =
+        item.progressPercent ??
+        Math.min(100, Math.round((currentTime / duration) * 100));
 
       const updatedItem: WatchProgressItem = {
-        ...item,
-        progressPercent: percent,
-        updatedAt: Date.now(),
+        id: item.id,
+        tmdbId: item.tmdbId,
+        type: item.type,
+        title: item.title,
+        season: item.season,
+        episode: item.episode,
+        currentTime,
+        duration,
+        progressPercent,
+        posterPath: item.posterPath || null,
+        backdropPath: item.backdropPath || null,
+        updatedAt: item.lastWatched || Date.now(),
       };
 
-      const updatedList = [updatedItem, ...filtered].slice(0, 20); // Keep last 20
+      const updatedList = [updatedItem, ...filtered].slice(0, 20);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
       window.dispatchEvent(new Event("spectra_playback_updated"));
     } catch (e) {
@@ -57,15 +76,42 @@ export const playbackHistory = {
     }
   },
 
-  removeItem: (id: string) => {
+  saveProgress: (item: {
+    id: string;
+    tmdbId: string | number;
+    type: "movie" | "tv";
+    title: string;
+    season?: number;
+    episode?: number;
+    currentTime: number;
+    duration: number;
+    posterPath?: string | null;
+    backdropPath?: string | null;
+  }) => {
+    playbackHistory.save(item);
+  },
+
+  removeItem: (id: string | number) => {
     if (typeof window === "undefined") return;
     try {
       const current = playbackHistory.getAll();
-      const updated = current.filter((p) => p.id !== id);
+      const updated = current.filter(
+        (p) => p.id !== id && String(p.tmdbId) !== String(id)
+      );
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       window.dispatchEvent(new Event("spectra_playback_updated"));
     } catch (e) {
       console.error(e);
     }
+  },
+
+  remove: (id: string | number) => {
+    playbackHistory.removeItem(id);
+  },
+
+  clearAll: () => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("spectra_playback_updated"));
   },
 };
