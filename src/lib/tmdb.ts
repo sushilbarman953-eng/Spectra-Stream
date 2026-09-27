@@ -414,3 +414,7 @@ export const tmdb = {
     return { results: EXTENDED_MOVIES_CATALOG };
   },
 };
+
+// Backward compatibility exports for page imports
+export const BACKUP_HINDI_MOVIES = EXTENDED_MOVIES_CATALOG;
+export const BACKUP_HINDI_SERIES = EXTENDED_SERIES_CATALOG;
