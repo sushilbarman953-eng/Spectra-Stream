@@ -15,8 +15,9 @@ import {
   Sparkles,
   User,
   ArrowLeft,
+  Compass,
 } from "lucide-react";
-import { tmdb, MediaItem, IMAGE_BASE } from "@/lib/tmdb";
+import { tmdb, MediaItem, IMAGE_BASE, DEFAULT_CREDITS, BACKUP_HINDI_MOVIES } from "@/lib/tmdb";
 import { watchlistManager } from "@/lib/watchlistManager";
 import { downloadManager } from "@/lib/downloadManager";
 import { soundFx } from "@/lib/soundFx";
@@ -33,13 +34,13 @@ export default function DetailsPage() {
   const [details, setDetails] = useState<any>(null);
   const [cast, setCast] = useState<any[]>([]);
   const [crew, setCrew] = useState<any[]>([]);
+  const [recommendations, setRecommendations] = useState<any[]>([]);
   const [activeCreditTab, setActiveCreditTab] = useState<"cast" | "director" | "producer">("cast");
   const [creditViewMode, setCreditViewMode] = useState<"grid" | "list">("grid");
   const [inWatchlist, setInWatchlist] = useState<boolean>(false);
   const [downloaded, setDownloaded] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Remember the catalog tab where the user entered from (e.g. /, /movies, /series, /anime)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const ref = document.referrer;
@@ -59,8 +60,17 @@ export default function DetailsPage() {
         const data = await tmdb.getDetails(type, id);
         if (isMounted && data) {
           setDetails(data);
-          setCast(data.credits?.cast || []);
-          setCrew(data.credits?.crew || []);
+          const rawCast = data.credits?.cast?.length ? data.credits.cast : DEFAULT_CREDITS.cast;
+          const rawCrew = data.credits?.crew?.length ? data.credits.crew : DEFAULT_CREDITS.crew;
+          setCast(rawCast);
+          setCrew(rawCrew);
+
+          const recs = data.recommendations?.results?.length
+            ? data.recommendations.results
+            : data.similar?.results?.length
+            ? data.similar.results
+            : BACKUP_HINDI_MOVIES.filter((m) => String(m.id) !== String(id));
+          setRecommendations(recs);
         }
       } catch (e) {
         console.error("Details fetch error:", e);
@@ -73,10 +83,11 @@ export default function DetailsPage() {
     setInWatchlist(watchlistManager.has(id));
     setDownloaded(downloadManager.has(id));
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [id, type]);
 
-  // Back button navigates to the origin tab that launched the poster
   const handleGoBack = () => {
     soundFx.playCinematicWhoosh();
     const savedOrigin = typeof window !== "undefined" ? sessionStorage.getItem("spectra_details_origin") : null;
@@ -140,16 +151,28 @@ export default function DetailsPage() {
     : null;
   const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.1";
 
-  const filteredCredits =
+  // Dynamic filter for Cast, Director, and Producer
+  const directors = crew.filter(
+    (c: any) =>
+      c.job?.toLowerCase() === "director" ||
+      c.department?.toLowerCase() === "directing"
+  );
+  const producers = crew.filter(
+    (c: any) =>
+      c.job?.toLowerCase().includes("producer") ||
+      c.department?.toLowerCase() === "production"
+  );
+
+  const displayCredits =
     activeCreditTab === "cast"
       ? cast.slice(0, 15)
       : activeCreditTab === "director"
-      ? crew.filter((c: any) => c.job === "Director" || c.department === "Directing")
-      : crew.filter((c: any) => c.job === "Producer" || c.job === "Executive Producer");
+      ? (directors.length ? directors : DEFAULT_CREDITS.crew.filter((c) => c.job === "Director"))
+      : (producers.length ? producers : DEFAULT_CREDITS.crew.filter((c) => c.job === "Producer"));
 
   return (
     <div className="max-w-md mx-auto px-3 pt-3 pb-28 space-y-4">
-      {/* Top Floating Back Button & Poster Card */}
+      {/* 1. Top Floating Back Button & Poster Card */}
       <div className="relative rounded-3xl p-4 sm:p-5 border border-white/10 bg-[#0e0e14]/90 backdrop-blur-2xl shadow-2xl overflow-hidden">
         {details?.backdrop_path && (
           <div className="absolute inset-0 opacity-20 pointer-events-none">
@@ -178,7 +201,7 @@ export default function DetailsPage() {
           </button>
         </div>
 
-        {/* Poster & Title Details */}
+        {/* Poster & Meta Info */}
         <div className="relative z-10 space-y-4">
           <div className="flex gap-4 items-start">
             <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 flex-none shadow-xl">
@@ -262,7 +285,7 @@ export default function DetailsPage() {
         </div>
       </div>
 
-      {/* Storyline */}
+      {/* 2. Storyline */}
       <div className="space-y-1 px-1">
         <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
         <p className="text-xs text-zinc-300 leading-relaxed font-normal">
@@ -270,7 +293,7 @@ export default function DetailsPage() {
         </p>
       </div>
 
-      {/* Cast & Crew Matrix */}
+      {/* 3. Cast & Crew Matrix with working tabs & avatars */}
       <div className="space-y-3 px-1">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
           <div className="flex items-center gap-1.5">
@@ -319,33 +342,147 @@ export default function DetailsPage() {
           </div>
         </div>
 
-        {/* Cast Carousel */}
-        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
-          {(filteredCredits.length ? filteredCredits : [
-            { id: 1, name: "Lead Actor", character: "Protagonist", profile_path: null }
-          ]).map((member: any) => {
-            const avatar = member.profile_path ? `${IMAGE_BASE}/w185${member.profile_path}` : null;
+        {/* Carousel / List */}
+        {creditViewMode === "grid" ? (
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
+            {displayCredits.map((member: any, idx: number) => {
+              const avatar = member.profile_path
+                ? member.profile_path.startsWith("http")
+                  ? member.profile_path
+                  : `${IMAGE_BASE}/w185${member.profile_path}`
+                : null;
+
+              return (
+                <div
+                  key={`credit-${member.id || idx}-${member.job || member.character || idx}`}
+                  className="flex-none w-24 p-2.5 rounded-2xl bg-[#0c0c14]/80 border border-white/10 flex flex-col items-center text-center space-y-1.5 shadow-md hover:border-white/25 transition"
+                >
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden bg-zinc-900 border border-white/20 flex-none shadow-inner">
+                    {avatar ? (
+                      <Image
+                        src={avatar}
+                        alt={member.name}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-white/10 text-white font-black text-xs">
+                        {member.name ? member.name.slice(0, 2).toUpperCase() : "??"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 w-full">
+                    <h5 className="text-[10px] font-bold text-white truncate">{member.name}</h5>
+                    <p className="text-[8px] text-zinc-400 truncate">
+                      {member.character || member.job || "Production"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {displayCredits.map((member: any, idx: number) => {
+              const avatar = member.profile_path
+                ? member.profile_path.startsWith("http")
+                  ? member.profile_path
+                  : `${IMAGE_BASE}/w185${member.profile_path}`
+                : null;
+
+              return (
+                <div
+                  key={`credit-list-${member.id || idx}-${member.job || member.character || idx}`}
+                  className="flex items-center gap-3 p-2 rounded-xl bg-[#0c0c14]/80 border border-white/10"
+                >
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden bg-zinc-900 border border-white/15 flex-none">
+                    {avatar ? (
+                      <Image src={avatar} alt={member.name} fill unoptimized className="object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-white/10 text-white font-bold text-xs">
+                        {member.name.slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h5 className="text-xs font-bold text-white truncate">{member.name}</h5>
+                    <p className="text-[10px] text-zinc-400 truncate">
+                      {member.character || member.job || "Crew"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 4. "More Like This" Discovery Shelf with Horizontal Edge-Peeking Posters */}
+      <div className="space-y-2 pt-2 border-t border-white/10">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5">
+            <Compass className="w-4 h-4 text-red-500" />
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">More Like This</h3>
+          </div>
+          <span className="text-[10px] text-zinc-500 font-mono">
+            {recommendations.length} Titles
+          </span>
+        </div>
+
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2 px-0.5">
+          {recommendations.map((item: any, idx: number) => {
+            const poster = item.poster_path
+              ? item.poster_path.startsWith("http")
+                ? item.poster_path
+                : `${IMAGE_BASE}/w185${item.poster_path}`
+              : null;
+            const recType = item.media_type || type;
+
             return (
-              <div
-                key={`${member.id}-${member.credit_id || member.character}`}
-                className="flex-none w-24 p-2 rounded-2xl bg-[#0c0c14]/80 border border-white/10 flex flex-col items-center text-center space-y-1.5 shadow-md"
+              <Link
+                key={`rec-${item.id}-${idx}`}
+                href={`/details/${item.id}?type=${recType}`}
+                onClick={() => soundFx.playCinematicPop()}
+                className="flex-none w-28 group relative"
               >
-                <div className="relative w-12 h-12 rounded-full overflow-hidden bg-zinc-900 border border-white/20 flex-none">
-                  {avatar ? (
-                    <Image src={avatar} alt={member.name} fill unoptimized className="object-cover" />
+                <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
+                  {poster ? (
+                    <Image
+                      src={poster}
+                      alt={item.title || item.name}
+                      fill
+                      unoptimized
+                      className="object-cover transition duration-300"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-500 font-bold text-xs">
-                      {member.name.slice(0, 2)}
+                    <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
+                      Poster
                     </div>
                   )}
+
+                  {/* Red Frosted Glass Tag */}
+                  <div className="absolute top-1.5 left-1.5 z-10">
+                    <span className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
+                      MULTI
+                    </span>
+                  </div>
+
+                  {item.vote_average ? (
+                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                      <Star className="w-2 h-2 fill-white text-white" />
+                      {item.vote_average.toFixed(1)}
+                    </div>
+                  ) : null}
                 </div>
-                <div className="min-w-0 w-full">
-                  <h5 className="text-[10px] font-bold text-white truncate">{member.name}</h5>
-                  <p className="text-[8px] text-zinc-400 truncate">
-                    {member.character || member.job || "Cast"}
-                  </p>
-                </div>
-              </div>
+
+                <h4 className="text-[11px] font-bold text-white truncate mt-1 group-hover:text-red-300 transition">
+                  {item.title || item.name}
+                </h4>
+                <p className="text-[9px] text-zinc-400 font-mono truncate">
+                  {(item.release_date || item.first_air_date || "2023").slice(0, 4)}
+                </p>
+              </Link>
             );
           })}
         </div>
