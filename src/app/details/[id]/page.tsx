@@ -14,11 +14,9 @@ import {
   List,
   Sparkles,
   User,
-  Search,
-  Mic,
   ArrowLeft,
 } from "lucide-react";
-import { tmdb, MediaItem, IMAGE_BASE, BACKUP_HINDI_MOVIES, BACKUP_HINDI_SERIES } from "@/lib/tmdb";
+import { tmdb, MediaItem, IMAGE_BASE } from "@/lib/tmdb";
 import { watchlistManager } from "@/lib/watchlistManager";
 import { downloadManager } from "@/lib/downloadManager";
 import { soundFx } from "@/lib/soundFx";
@@ -64,6 +62,16 @@ export default function DetailsPage() {
     return () => { isMounted = false; };
   }, [id, type]);
 
+  // Safe navigation back to Home or previous non-player page
+  const handleGoBack = () => {
+    soundFx.playCinematicWhoosh();
+    if (window.history.length > 2) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
+
   const toggleWatchlist = () => {
     soundFx.playCinematicPop();
     if (!details) return;
@@ -104,14 +112,14 @@ export default function DetailsPage() {
     );
   }
 
-  const title = details?.title || details?.name || "The Lost World";
-  const releaseYear = (details?.release_date || details?.first_air_date || "1999").slice(0, 4);
+  const title = details?.title || details?.name || "Oppenheimer";
+  const releaseYear = (details?.release_date || details?.first_air_date || "2023").slice(0, 4);
   const posterUrl = details?.poster_path
     ? details.poster_path.startsWith("http")
       ? details.poster_path
       : `${IMAGE_BASE}/w342${details.poster_path}`
     : null;
-  const rating = details?.vote_average ? details.vote_average.toFixed(1) : "7.2";
+  const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.9";
 
   const filteredCredits =
     activeCreditTab === "cast"
@@ -121,43 +129,12 @@ export default function DetailsPage() {
       : crew.filter((c: any) => c.job === "Producer" || c.job === "Executive Producer");
 
   return (
-    <div className="max-w-md mx-auto px-4 py-2 pb-28 space-y-4">
-      {/* Top Header */}
-      <div className="flex items-center justify-between pt-1 gap-2">
-        <button
-          onClick={() => {
-            soundFx.playCinematicWhoosh();
-            router.back();
-          }}
-          className="p-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-white backdrop-blur-xl transition active:scale-95"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-
-        <span className="text-base font-black tracking-widest uppercase text-white">
-          SPECTRA
-        </span>
-
-        <div className="flex items-center gap-1.5">
-          <Link
-            href="/explore?search=true"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-400"
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span className="text-[11px] hidden sm:inline">Search...</span>
-            <Mic className="w-3.5 h-3.5 ml-1 text-zinc-500" />
-          </Link>
-          <Link
-            href="/me"
-            className="w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-zinc-300"
-          >
-            <User className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Dossier Card Matching Screenshot 1 */}
-      <div className="relative rounded-3xl p-5 border border-white/10 bg-[#0e0e14]/90 backdrop-blur-2xl shadow-2xl overflow-hidden">
+    <div className="max-w-md mx-auto px-3 pt-3 pb-28 space-y-4">
+      
+      {/* Floating Back Button & Top Poster Card (Fills Top View) */}
+      <div className="relative rounded-3xl p-4 sm:p-5 border border-white/10 bg-[#0e0e14]/90 backdrop-blur-2xl shadow-2xl overflow-hidden">
+        
+        {/* Subtle Backdrop Ambient Glow */}
         {details?.backdrop_path && (
           <div className="absolute inset-0 opacity-20 pointer-events-none">
             <Image
@@ -174,8 +151,21 @@ export default function DetailsPage() {
           </div>
         )}
 
+        {/* Floating Back Button directly in the top-left */}
+        <div className="relative z-20 flex items-center justify-between pb-3">
+          <button
+            onClick={handleGoBack}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-2xl flex items-center justify-center transition active:scale-90 shadow-md"
+            aria-label="Back"
+          >
+            <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+          </button>
+        </div>
+
+        {/* Poster + Meta Info Block */}
         <div className="relative z-10 space-y-4">
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-start">
+            
             {/* Left Poster with Top-Right Rating Badge */}
             <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 flex-none shadow-xl">
               {posterUrl ? (
@@ -185,7 +175,7 @@ export default function DetailsPage() {
                   Poster
                 </div>
               )}
-              <div className="absolute top-2 right-2 flex items-center gap-1 bg-black/85 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white border border-white/20 shadow-md">
+              <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/85 backdrop-blur-md px-1.5 py-0.5 rounded-full text-[9px] font-bold text-white border border-white/20 shadow-md">
                 <Star className="w-2.5 h-2.5 fill-white text-white" />
                 <span>{rating}</span>
               </div>
@@ -221,7 +211,7 @@ export default function DetailsPage() {
             </div>
           </div>
 
-          {/* Action Buttons: ► Play + Watchlist Toggle */}
+          {/* Action Buttons: ► Play (white) + Watchlist Toggle */}
           <div className="flex items-center gap-2 pt-1">
             <Link
               href={type === "tv" ? `/watch/${id}?type=tv&season=1&episode=1` : `/watch/${id}?type=movie`}
@@ -263,7 +253,7 @@ export default function DetailsPage() {
       <div className="space-y-1 px-1">
         <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
         <p className="text-xs text-zinc-300 leading-relaxed font-normal">
-          {details?.overview || "Early 20th-century adventurers find themselves fighting for survival after their hot-air balloon crashes into a remote part of the Amazon, stranding them on a prehistoric plateau."}
+          {details?.overview || "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during World War II."}
         </p>
       </div>
 
@@ -319,9 +309,9 @@ export default function DetailsPage() {
         {/* Cast Carousel */}
         <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
           {(filteredCredits.length ? filteredCredits : [
-            { id: 1, name: "Peter McCauley", character: "Professor George ...", profile_path: null },
-            { id: 2, name: "Rachel Blakely", character: "Marguerite Krux", profile_path: null },
-            { id: 3, name: "William Snow", character: "Lord John Roxton", profile_path: null }
+            { id: 1, name: "Cillian Murphy", character: "J. Robert Oppenheimer", profile_path: null },
+            { id: 2, name: "Emily Blunt", character: "Katherine Oppenheimer", profile_path: null },
+            { id: 3, name: "Matt Damon", character: "Leslie Groves", profile_path: null }
           ]).map((member: any) => {
             const avatar = member.profile_path ? `${IMAGE_BASE}/w185${member.profile_path}` : null;
             return (
