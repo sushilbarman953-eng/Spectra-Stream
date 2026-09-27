@@ -87,7 +87,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* 1. Full-Bleed Backdrop Banner at Full Brightness */}
+      {/* 1. Backdrop Banner */}
       <Link
         href={`/details/${currentItem.id}?type=${itemType}`}
         onClick={() => soundFx.playCinematicWhoosh()}
@@ -104,18 +104,18 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none" />
       </Link>
 
-      {/* 2. Overlapping Capsule with Tall Out-of-Bounds Poster */}
+      {/* 2. Capsule with Large Dominant Poster */}
       <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:bottom-3 sm:left-3 sm:right-3 z-20">
-        <div className="rounded-2xl p-2.5 bg-black/60 backdrop-blur-2xl border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.8)] flex items-end gap-3">
+        <div className="rounded-2xl p-2.5 sm:p-3 bg-black/60 backdrop-blur-2xl border border-white/20 shadow-[0_10px_35px_rgba(0,0,0,0.85)] flex items-end gap-3.5">
           
-          {/* Left Side: Tall Poster reaching upward above capsule border */}
+          {/* Prominent Large Poster Thumbnail */}
           <Link
             href={`/details/${currentItem.id}?type=${itemType}`}
             onClick={() => soundFx.playCinematicPop()}
-            className="relative w-16 sm:w-20 aspect-[2/3] -mt-7 sm:-mt-9 rounded-xl overflow-hidden bg-zinc-950 border border-white/30 flex-none shadow-2xl hover:scale-105 transition"
+            className="relative w-20 sm:w-24 aspect-[2/3] -mt-10 sm:-mt-14 rounded-2xl overflow-hidden bg-zinc-950 border-2 border-white/35 flex-none shadow-[0_8px_24px_rgba(0,0,0,0.9)] hover:scale-105 transition"
           >
             {posterUrl ? (
               <Image
@@ -126,26 +126,26 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                 className="object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-500">
+              <div className="w-full h-full flex items-center justify-center text-[9px] text-zinc-500">
                 Poster
               </div>
             )}
           </Link>
 
-          {/* Right Side: Title + Tags (Top) & Action Controls + Dots (Bottom) */}
+          {/* Right Section: Title, Badges, and Action Strip */}
           <div className="flex-1 min-w-0 flex flex-col justify-between gap-1.5 pb-0.5">
-            {/* Title & Metadata Strip */}
+            {/* Title & Metadata */}
             <div className="min-w-0">
               <Link
                 href={`/details/${currentItem.id}?type=${itemType}`}
                 onClick={() => soundFx.playCinematicPop()}
                 className="block truncate"
               >
-                <h3 className="text-xs sm:text-sm font-black text-white truncate hover:text-red-300 transition">
-                  {title} <span className="text-[10px] text-zinc-400 font-medium">[Hindi]</span>
+                <h3 className="text-sm sm:text-base font-black text-white truncate hover:text-red-300 transition">
+                  {title} <span className="text-[11px] text-zinc-400 font-medium">[Hindi]</span>
                 </h3>
               </Link>
-              <div className="flex items-center gap-1.5 text-[9px] font-mono text-zinc-300 pt-0.5">
+              <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-mono text-zinc-300 pt-0.5">
                 <span>{releaseYear}</span>
                 <span className="text-zinc-600">•</span>
                 <span className="px-1.5 py-0.2 rounded bg-white/10 text-white font-medium border border-white/10">
@@ -154,7 +154,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
               </div>
             </div>
 
-            {/* Bottom Controls: Play Button, Add to List, Progress Dots */}
+            {/* Bottom Controls Shifted to the Right */}
             <div className="flex items-center justify-between pt-0.5">
               <div className="flex items-center gap-1.5">
                 <Link
@@ -164,7 +164,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                       : `/watch/${currentItem.id}?type=movie`
                   }
                   onClick={() => soundFx.playCinematicSwell()}
-                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.15] hover:bg-white/[0.25] border border-white/30 backdrop-blur-xl text-white font-black text-[11px] transition active:scale-95 shadow-md"
+                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.16] hover:bg-white/[0.26] border border-white/30 backdrop-blur-xl text-white font-black text-[11px] transition active:scale-95 shadow-md"
                 >
                   <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center">
                     <Play className="w-2 h-2 fill-black text-black ml-0.5" />
@@ -183,14 +183,14 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                   aria-label="Add to List"
                 >
                   {inWatchlist ? (
-                    <Check className="w-3 h-3 stroke-[3]" />
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
                   ) : (
-                    <Plus className="w-3 h-3 stroke-[2.5]" />
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                   )}
                 </button>
               </div>
 
-              {/* 10 Carousel Indicators */}
+              {/* Progress Indicators */}
               <div className="flex items-center gap-1 pr-1">
                 {carouselItems.map((_, idx) => (
                   <button
