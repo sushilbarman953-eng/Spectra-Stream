@@ -2,59 +2,73 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import {
-  Sparkles,
-  Play,
-  Flame,
-  Trophy,
-  Tv,
-  Compass,
-  ArrowRight,
-  Star,
-} from "lucide-react";
+import { Play, Compass, ArrowRight } from "lucide-react";
 import {
   MediaItem,
-  IMAGE_BASE,
   BACKUP_HINDI_MOVIES,
   BACKUP_HINDI_SERIES,
+  EXTENDED_MOVIES_CATALOG,
+  EXTENDED_SERIES_CATALOG,
 } from "@/lib/tmdb";
 import { playbackHistory, PlaybackProgressItem } from "@/lib/playbackHistory";
 import { HeroCarousel } from "@/components/HeroCarousel";
-import { OttShelf } from "@/components/OttShelf";
+import { FilterableRankedShelf } from "@/components/FilterableRankedShelf";
 import { soundFx } from "@/lib/soundFx";
 
 export default function HomePage() {
   const [heroItems, setHeroItems] = useState<MediaItem[]>([]);
   const [continueWatching, setContinueWatching] = useState<PlaybackProgressItem[]>([]);
   const [lastWatchedTitle, setLastWatchedTitle] = useState<string | null>(null);
-  const [personalizedRecs, setPersonalizedRecs] = useState<MediaItem[]>([]);
 
   useEffect(() => {
-    setHeroItems(BACKUP_HINDI_MOVIES.slice(0, 10));
-
+    setHeroItems(BACKUP_HINDI_MOVIES.slice(0, 8));
     const history = playbackHistory.getAll();
     setContinueWatching(history.slice(0, 4));
-
     if (history.length > 0 && history[0].title) {
       setLastWatchedTitle(history[0].title);
-      const recs = BACKUP_HINDI_MOVIES.filter(
-        (m) => (m.title || m.name)?.toLowerCase() !== history[0].title?.toLowerCase()
-      );
-      setPersonalizedRecs(recs);
-    } else {
-      setPersonalizedRecs(BACKUP_HINDI_MOVIES);
     }
   }, []);
 
+  // Filter dataset for "Trending Movies"
+  const movieTabs = [
+    { id: "top", label: "TOP Movies" },
+    { id: "cinema", label: "Cinema" },
+    { id: "bollywood", label: "Bollywood" },
+    { id: "south", label: "South Indian" },
+    { id: "hollywood", label: "Hollywood" },
+  ];
+
+  const movieItemsByTab: Record<string, MediaItem[]> = {
+    top: EXTENDED_MOVIES_CATALOG.slice(0, 10),
+    cinema: [...EXTENDED_MOVIES_CATALOG].reverse().slice(0, 10),
+    bollywood: EXTENDED_MOVIES_CATALOG.filter((m) => m.audioLanguages?.includes("HIN")),
+    south: EXTENDED_MOVIES_CATALOG.filter((m) => m.audioLanguages?.some((l) => ["TAM", "TEL"].includes(l))),
+    hollywood: EXTENDED_MOVIES_CATALOG.filter((m) => m.audioLanguages?.includes("ENG")),
+  };
+
+  // Filter dataset for "Trending TV Series"
+  const seriesTabs = [
+    { id: "top_series", label: "Top Series" },
+    { id: "indian_drama", label: "Indian Drama" },
+    { id: "reality_tv", label: "Reality-TV" },
+    { id: "hollywood_series", label: "International" },
+  ];
+
+  const seriesItemsByTab: Record<string, MediaItem[]> = {
+    top_series: EXTENDED_SERIES_CATALOG.slice(0, 10),
+    indian_drama: EXTENDED_SERIES_CATALOG.filter((s) => s.audioLanguages?.includes("HIN")),
+    reality_tv: [...EXTENDED_SERIES_CATALOG].reverse().slice(0, 6),
+    hollywood_series: EXTENDED_SERIES_CATALOG.filter((s) => s.audioLanguages?.includes("ENG")),
+  };
+
   return (
-    <div className="min-h-screen bg-[#08080c] text-white pt-0 pb-28 px-3 sm:px-6 flex flex-col gap-5 max-w-7xl mx-auto -mt-1">
-      {/* 1. Dynamic Hero Carousel starting immediately below the top nav */}
-      <section className="w-full pt-1 sm:pt-2">
+    <div className="min-h-screen bg-[#08080c] text-white pt-11 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
+      {/* 1. Hero Carousel */}
+      <section className="w-full m-0 p-0">
         <HeroCarousel items={heroItems} />
       </section>
 
-      {/* 2. Continue Watching Shelf */}
+      {/* 2. Continue Watching (if exists) */}
       {continueWatching.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">
@@ -107,105 +121,24 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 3. Personalized Recommendation Shelf */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-red-500" />
-            <div>
-              <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white">
-                {lastWatchedTitle ? (
-                  <>
-                    Because You Played{" "}
-                    <span className="text-red-400">&ldquo;{lastWatchedTitle}&rdquo;</span>
-                  </>
-                ) : (
-                  "As You Explore, You Might Like"
-                )}
-              </h2>
-              <p className="text-[10px] text-zinc-400 font-medium">
-                Personalized recommendations matching your recent watch habits
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-          {personalizedRecs.map((item, idx) => {
-            const poster = item.poster_path
-              ? item.poster_path.startsWith("http")
-                ? item.poster_path
-                : `${IMAGE_BASE}/w342${item.poster_path}`
-              : null;
-            const itemType = item.media_type || "movie";
-
-            return (
-              <Link
-                key={`rec-${item.id}-${idx}`}
-                href={`/details/${item.id}?type=${itemType}`}
-                onClick={() => soundFx.playCinematicPop()}
-                className="flex-none w-28 sm:w-32 group relative"
-              >
-                <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                  {poster ? (
-                    <Image
-                      src={poster}
-                      alt={item.title || item.name || "Recommendation"}
-                      fill
-                      unoptimized
-                      className="object-cover transition duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
-                      Poster
-                    </div>
-                  )}
-
-                  <div className="absolute top-1.5 left-1.5 z-10">
-                    <span className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
-                      MULTI
-                    </span>
-                  </div>
-
-                  {item.vote_average ? (
-                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
-                      <Star className="w-2 h-2 fill-white text-white" />
-                      {item.vote_average.toFixed(1)}
-                    </div>
-                  ) : null}
-                </div>
-
-                <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
-                  {item.title || item.name}
-                </h4>
-                <p className="text-[9px] text-zinc-400 font-mono truncate">
-                  {(item.release_date || item.first_air_date || "2024").slice(0, 4)}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 4. Top 10 In India Today */}
-      <section className="space-y-3">
-        <OttShelf
-          title="Top 10 In India Today"
-          icon={Trophy}
-          subtitle="Ranked by active streams & viewership"
-          items={BACKUP_HINDI_MOVIES}
-          badgePrefix="TOP"
-          showRank={true}
+      {/* 3. Filterable Ranked Shelf: Trending Movies */}
+      <section>
+        <FilterableRankedShelf
+          title="Trending Movies"
+          tabs={movieTabs}
+          itemsByTab={movieItemsByTab}
+          allLinkHref="/movies"
+          defaultType="movie"
         />
       </section>
 
-      {/* 5. Trending Web Series */}
-      <section className="space-y-3">
-        <OttShelf
-          title="Binge-Worthy Series"
-          icon={Tv}
-          subtitle="Top rated multi-season television"
-          items={BACKUP_HINDI_SERIES}
+      {/* 4. Filterable Ranked Shelf: Trending TV Series */}
+      <section>
+        <FilterableRankedShelf
+          title="Trending TV Series"
+          tabs={seriesTabs}
+          itemsByTab={seriesItemsByTab}
+          allLinkHref="/series"
           defaultType="tv"
         />
       </section>
