@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
@@ -47,6 +47,18 @@ export default function DetailsPage() {
   const [downloaded, setDownloaded] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Parallax smooth scroll state
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Remember the catalog tab where the user entered from
   useEffect(() => {
     if (typeof window !== "undefined") {
       const ref = document.referrer;
@@ -71,7 +83,6 @@ export default function DetailsPage() {
           setCast(rawCast);
           setCrew(rawCrew);
 
-          // Build large catalog pool for 2-row discovery
           let recs: any[] = [];
           if (source === "anime") {
             recs = HINDI_DUBBED_ANIME_CATALOG.filter((a) => String(a.mal_id) !== String(id)).map((a) => ({
@@ -91,11 +102,10 @@ export default function DetailsPage() {
               : EXTENDED_MOVIES_CATALOG.filter((m) => String(m.id) !== String(id));
           }
 
-          // Ensure at least 10-16 titles to populate 2 rows nicely
-          if (recs.length < 10) {
-            const fallbackFill = type === "tv" ? EXTENDED_SERIES_CATALOG : EXTENDED_MOVIES_CATALOG;
+          if (recs.length < 12) {
+            const fallbackPool = type === "tv" ? EXTENDED_SERIES_CATALOG : EXTENDED_MOVIES_CATALOG;
             const existingIds = new Set(recs.map((r) => String(r.id)));
-            fallbackFill.forEach((item) => {
+            fallbackPool.forEach((item) => {
               if (!existingIds.has(String(item.id)) && String(item.id) !== String(id)) {
                 recs.push(item);
                 existingIds.add(String(item.id));
@@ -176,15 +186,30 @@ export default function DetailsPage() {
   }
 
   const title = details?.title || details?.name || "Media Title";
-  const releaseYear = (details?.release_date || details?.first_air_date || "2023").slice(0, 4);
-  const posterUrl = details?.poster_path
-    ? details.poster_path.startsWith("http")
-      ? details.poster_path
-      : `${IMAGE_BASE}/w342${details.poster_path}`
+  const releaseYear = (details?.release_date || details?.first_air_date || "2024").slice(0, 4);
+
+  const rawBackdrop = details?.backdrop_path || details?.poster_path;
+  const backdropUrl = rawBackdrop
+    ? rawBackdrop.startsWith("http")
+      ? rawBackdrop
+      : `${IMAGE_BASE}/w1280${rawBackdrop}`
     : null;
+
+  const rawPoster = details?.poster_path;
+  const posterUrl = rawPoster
+    ? rawPoster.startsWith("http")
+      ? rawPoster
+      : `${IMAGE_BASE}/w342${rawPoster}`
+    : null;
+
   const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.1";
 
-  // Filter Credits for Cast, Director, Producer
+  // Dynamic Parallax Transformations
+  const parallaxTranslate = scrollY > 0 ? scrollY * 0.42 : 0;
+  const parallaxScale = scrollY < 0 ? 1 + Math.abs(scrollY) * 0.0025 : 1;
+  const backdropOpacity = Math.max(0.15, 1 - scrollY / 420);
+
+  // Cast, Director, Producer grouping
   const directors = crew.filter(
     (c: any) =>
       c.job?.toLowerCase() === "director" ||
@@ -204,38 +229,48 @@ export default function DetailsPage() {
       : (producers.length ? producers : DEFAULT_CREDITS.crew.filter((c) => c.job === "Producer"));
 
   return (
-    <div className="max-w-md mx-auto px-3 pt-3 pb-28 space-y-4">
-      {/* 1. Top Floating Back Button & Poster Card */}
-      <div className="relative rounded-3xl p-4 sm:p-5 border border-white/10 bg-[#0e0e14]/90 backdrop-blur-2xl shadow-2xl overflow-hidden">
-        {details?.backdrop_path && (
-          <div className="absolute inset-0 opacity-20 pointer-events-none">
+    <div className="min-h-screen bg-[#08080c] relative select-none">
+      {/* 1. SMOOTH PARALLAX HERO BACKDROP */}
+      <div className="relative w-full h-[52vh] sm:h-[60vh] overflow-hidden bg-black">
+        {backdropUrl && (
+          <div
+            className="absolute inset-0 w-full h-full will-change-transform transition-transform duration-75 ease-out"
+            style={{
+              transform: `translate3d(0, ${parallaxTranslate}px, 0) scale(${parallaxScale})`,
+              transformOrigin: "center top",
+              opacity: backdropOpacity,
+            }}
+          >
             <img
-              src={
-                details.backdrop_path.startsWith("http")
-                  ? details.backdrop_path
-                  : `${IMAGE_BASE}/w780${details.backdrop_path}`
-              }
+              src={backdropUrl}
               alt=""
-              className="w-full h-full object-cover blur-2xl"
+              className="w-full h-full object-cover object-top"
             />
           </div>
         )}
 
-        {/* Floating Back Button */}
-        <div className="relative z-20 flex items-center justify-between pb-3">
+        {/* Ambient Vignette Gradients */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-[#08080c]/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent" />
+
+        {/* Top Floating Glass Back Button */}
+        <div className="absolute top-4 left-4 z-30">
           <button
             onClick={handleGoBack}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-2xl flex items-center justify-center transition active:scale-90 shadow-md"
+            className="w-10 h-10 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 text-white backdrop-blur-2xl flex items-center justify-center transition active:scale-90 shadow-2xl"
             aria-label="Back to Catalog"
           >
             <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
+      </div>
 
-        {/* Poster & Meta Info */}
-        <div className="relative z-10 space-y-4">
+      {/* 2. OVERLAPPING FROSTED GLASS DOSSIER CARD */}
+      <div className="max-w-md mx-auto px-3.5 -mt-28 relative z-20 pb-28 space-y-4">
+        <div className="rounded-3xl p-4 sm:p-5 border border-white/15 bg-[#0e0e14]/85 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.85)] space-y-4">
+          {/* Poster & Metadata info */}
           <div className="flex gap-4 items-start">
-            <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 flex-none shadow-xl">
+            <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 flex-none shadow-2xl">
               {posterUrl ? (
                 <img src={posterUrl} alt={title} className="w-full h-full object-cover" />
               ) : (
@@ -278,257 +313,261 @@ export default function DetailsPage() {
             </div>
           </div>
 
-          {/* Action Buttons: ► Play + Watchlist Toggle */}
-          <div className="flex items-center gap-2 pt-1">
-            <Link
-              href={type === "tv" ? `/watch/${id}?type=tv&season=1&episode=1` : `/watch/${id}?type=movie`}
-              onClick={() => soundFx.playCinematicSwell()}
-              className="flex-1 py-2.5 px-4 rounded-2xl bg-white text-black font-extrabold text-xs shadow-glow hover:bg-zinc-200 active:scale-[0.98] transition flex items-center justify-center gap-2"
-            >
-              <Play className="w-3.5 h-3.5 fill-black text-black" />
-              <span>Play</span>
-            </Link>
+          {/* 3. BUTTON HIERARCHY */}
+          <div className="space-y-2 pt-1">
+            {/* ROW 1: ► Play + Add to List icon */}
+            <div className="flex items-center gap-2">
+              <Link
+                href={type === "tv" ? `/watch/${id}?type=tv&season=1&episode=1` : `/watch/${id}?type=movie`}
+                onClick={() => soundFx.playCinematicSwell()}
+                className="flex-1 py-2.5 px-4 rounded-2xl bg-white text-black font-black text-xs shadow-glow hover:bg-zinc-200 active:scale-[0.98] transition flex items-center justify-center gap-2"
+              >
+                <Play className="w-3.5 h-3.5 fill-black text-black" />
+                <span>Play</span>
+              </Link>
 
+              <button
+                onClick={toggleWatchlist}
+                className={`p-2.5 rounded-2xl border transition active:scale-95 ${
+                  inWatchlist
+                    ? "bg-red-500/20 text-red-400 border-red-500/40 font-bold"
+                    : "bg-white/10 hover:bg-white/20 border-white/15 text-white"
+                }`}
+                title={inWatchlist ? "Remove from List" : "Add to List"}
+                aria-label="Add to List"
+              >
+                {inWatchlist ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
+              </button>
+            </div>
+
+            {/* ROW 2: Beneath — Download button */}
             <button
-              onClick={toggleWatchlist}
-              className={`p-2.5 rounded-2xl border transition active:scale-95 ${
-                inWatchlist
-                  ? "bg-red-500/20 text-red-400 border-red-500/40 font-bold"
-                  : "bg-white/10 hover:bg-white/20 border-white/15 text-white"
+              onClick={handleDownload}
+              className={`w-full py-2.5 px-4 rounded-2xl border text-xs font-bold transition flex items-center justify-center gap-2 active:scale-[0.98] ${
+                downloaded
+                  ? "bg-white/20 border-white/30 text-white font-black"
+                  : "bg-white/5 hover:bg-white/10 border-white/15 text-zinc-300"
               }`}
             >
-              {inWatchlist ? <Check className="w-4 h-4 stroke-[3]" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
+              <Download className="w-3.5 h-3.5" />
+              <span>{downloaded ? "Downloaded" : "Download"}</span>
             </button>
           </div>
-
-          {/* Full-width Download Button */}
-          <button
-            onClick={handleDownload}
-            className={`w-full py-2 px-4 rounded-2xl border text-xs font-bold transition flex items-center justify-center gap-2 active:scale-[0.98] ${
-              downloaded
-                ? "bg-white/20 border-white/30 text-white font-black"
-                : "bg-white/5 hover:bg-white/10 border-white/15 text-zinc-300"
-            }`}
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>{downloaded ? "Downloaded" : "Download"}</span>
-          </button>
         </div>
-      </div>
 
-      {/* 2. Storyline */}
-      <div className="space-y-1 px-1">
-        <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
-        <p className="text-xs text-zinc-300 leading-relaxed font-normal">
-          {details?.overview || "A high-octane spectacle streaming in full definition."}
-        </p>
-      </div>
+        {/* 4. STORYLINE */}
+        <div className="space-y-1 px-1">
+          <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
+          <p className="text-xs text-zinc-300 leading-relaxed font-normal">
+            {details?.overview || "A high-octane spectacle streaming in full definition."}
+          </p>
+        </div>
 
-      {/* 3. Cast & Crew with working photos */}
-      <div className="space-y-3 px-1">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <div className="flex items-center gap-1.5">
-            <User className="w-4 h-4 text-zinc-400" />
-            <h3 className="text-sm font-bold text-white">Cast & Crew</h3>
-          </div>
+        {/* 5. CAST & CREW MATRIX */}
+        <div className="space-y-3 px-1">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <div className="flex items-center gap-1.5">
+              <User className="w-4 h-4 text-zinc-400" />
+              <h3 className="text-sm font-bold text-white">Cast & Crew</h3>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/10 text-[10px]">
-              {(["cast", "director", "producer"] as const).map((tab) => (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/10 text-[10px]">
+                {(["cast", "director", "producer"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      soundFx.playMechanicalTick();
+                      setActiveCreditTab(tab);
+                    }}
+                    className={`px-2 py-0.5 rounded-lg capitalize transition font-bold ${
+                      activeCreditTab === tab
+                        ? "bg-white text-black shadow-sm font-black"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/10">
                 <button
-                  key={tab}
-                  onClick={() => {
-                    soundFx.playMechanicalTick();
-                    setActiveCreditTab(tab);
-                  }}
-                  className={`px-2 py-0.5 rounded-lg capitalize transition font-bold ${
-                    activeCreditTab === tab
-                      ? "bg-white text-black shadow-sm font-black"
-                      : "text-zinc-400 hover:text-white"
+                  onClick={() => setCreditViewMode("grid")}
+                  className={`p-1 rounded-lg transition ${
+                    creditViewMode === "grid" ? "bg-white text-black" : "text-zinc-400 hover:text-white"
                   }`}
                 >
-                  {tab}
+                  <LayoutGrid className="w-3 h-3" />
                 </button>
-              ))}
-            </div>
-
-            <div className="flex items-center p-0.5 rounded-xl bg-white/5 border border-white/10">
-              <button
-                onClick={() => setCreditViewMode("grid")}
-                className={`p-1 rounded-lg transition ${
-                  creditViewMode === "grid" ? "bg-white text-black" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <LayoutGrid className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => setCreditViewMode("list")}
-                className={`p-1 rounded-lg transition ${
-                  creditViewMode === "list" ? "bg-white text-black" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                <List className="w-3 h-3" />
-              </button>
+                <button
+                  onClick={() => setCreditViewMode("list")}
+                  className={`p-1 rounded-lg transition ${
+                    creditViewMode === "list" ? "bg-white text-black" : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <List className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Cast Cards */}
+          {creditViewMode === "grid" ? (
+            <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
+              {displayCredits.map((member: any, idx: number) => {
+                const avatar = member.profile_path
+                  ? member.profile_path.startsWith("http")
+                    ? member.profile_path
+                    : `${IMAGE_BASE}/w185${member.profile_path}`
+                  : null;
+
+                return (
+                  <div
+                    key={`credit-${member.id || idx}-${member.job || member.character || idx}`}
+                    className="flex-none w-24 p-2.5 rounded-2xl bg-[#0c0c14]/80 border border-white/10 flex flex-col items-center text-center space-y-1.5 shadow-md hover:border-white/25 transition"
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 border border-white/20 flex-none shadow-inner flex items-center justify-center relative">
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <span className="text-white font-black text-xs tracking-wider">
+                          {member.name ? member.name.slice(0, 2).toUpperCase() : "??"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 w-full">
+                      <h5 className="text-[10px] font-bold text-white truncate">{member.name}</h5>
+                      <p className="text-[8px] text-zinc-400 truncate">
+                        {member.character || member.job || "Production"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {displayCredits.map((member: any, idx: number) => {
+                const avatar = member.profile_path
+                  ? member.profile_path.startsWith("http")
+                    ? member.profile_path
+                    : `${IMAGE_BASE}/w185${member.profile_path}`
+                  : null;
+
+                return (
+                  <div
+                    key={`credit-list-${member.id || idx}-${member.job || member.character || idx}`}
+                    className="flex items-center gap-3 p-2 rounded-xl bg-[#0c0c14]/80 border border-white/10"
+                  >
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 border border-white/15 flex-none flex items-center justify-center">
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <span className="text-white font-bold text-xs">
+                          {member.name ? member.name.slice(0, 2).toUpperCase() : "??"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h5 className="text-xs font-bold text-white truncate">{member.name}</h5>
+                      <p className="text-[10px] text-zinc-400 truncate">
+                        {member.character || member.job || "Crew"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Carousel / List */}
-        {creditViewMode === "grid" ? (
-          <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
-            {displayCredits.map((member: any, idx: number) => {
-              const avatar = member.profile_path
-                ? member.profile_path.startsWith("http")
-                  ? member.profile_path
-                  : `${IMAGE_BASE}/w185${member.profile_path}`
+        {/* 6. "MORE LIKE THIS" — 2 HORIZONTAL ROWS */}
+        <div className="space-y-2.5 pt-2 border-t border-white/10">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5">
+              <Compass className="w-4 h-4 text-red-500" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">More Like This</h3>
+            </div>
+            <span className="text-[10px] text-zinc-500 font-mono">
+              {recommendations.length} Titles
+            </span>
+          </div>
+
+          <div className="grid grid-rows-2 grid-flow-col auto-cols-[110px] sm:auto-cols-[125px] gap-2.5 overflow-x-auto no-scrollbar pb-3 px-0.5">
+            {recommendations.map((item: any, idx: number) => {
+              const poster = item.poster_path
+                ? item.poster_path.startsWith("http")
+                  ? item.poster_path
+                  : `${IMAGE_BASE}/w185${item.poster_path}`
                 : null;
+              const recType = item.media_type || type;
 
               return (
-                <div
-                  key={`credit-${member.id || idx}-${member.job || member.character || idx}`}
-                  className="flex-none w-24 p-2.5 rounded-2xl bg-[#0c0c14]/80 border border-white/10 flex flex-col items-center text-center space-y-1.5 shadow-md hover:border-white/25 transition"
+                <Link
+                  key={`rec-row-${item.id}-${idx}`}
+                  href={
+                    item.source === "anime" || (recType === "tv" && String(item.id).length < 6)
+                      ? `/details/${item.id}?type=tv&source=anime`
+                      : `/details/${item.id}?type=${recType}`
+                  }
+                  onClick={() => soundFx.playCinematicPop()}
+                  className="group relative flex flex-col"
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 border border-white/20 flex-none shadow-inner flex items-center justify-center relative">
-                    {avatar ? (
+                  <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
+                    {poster ? (
                       <img
-                        src={avatar}
+                        src={poster}
                         alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
-                        }}
+                        className="w-full h-full object-cover transition duration-300"
                       />
                     ) : (
-                      <span className="text-white font-black text-xs tracking-wider">
-                        {member.name ? member.name.slice(0, 2).toUpperCase() : "??"}
-                      </span>
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 p-2 text-center">
+                        <span className="text-[10px] font-bold text-zinc-400 truncate max-w-full">
+                          {item.title || item.name}
+                        </span>
+                      </div>
                     )}
+
+                    {/* Red Frosted Glass Tag */}
+                    <div className="absolute top-1.5 left-1.5 z-10">
+                      <span className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
+                        MULTI
+                      </span>
+                    </div>
+
+                    {item.vote_average ? (
+                      <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                        <Star className="w-2 h-2 fill-white text-white" />
+                        {item.vote_average.toFixed(1)}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="min-w-0 w-full">
-                    <h5 className="text-[10px] font-bold text-white truncate">{member.name}</h5>
-                    <p className="text-[8px] text-zinc-400 truncate">
-                      {member.character || member.job || "Production"}
-                    </p>
-                  </div>
-                </div>
+
+                  <h4 className="text-[10px] font-bold text-white truncate mt-1 group-hover:text-red-300 transition">
+                    {item.title || item.name}
+                  </h4>
+                  <p className="text-[8px] text-zinc-400 font-mono truncate">
+                    {(item.release_date || item.first_air_date || "2024").slice(0, 4)}
+                  </p>
+                </Link>
               );
             })}
           </div>
-        ) : (
-          <div className="flex flex-col gap-1.5">
-            {displayCredits.map((member: any, idx: number) => {
-              const avatar = member.profile_path
-                ? member.profile_path.startsWith("http")
-                  ? member.profile_path
-                  : `${IMAGE_BASE}/w185${member.profile_path}`
-                : null;
-
-              return (
-                <div
-                  key={`credit-list-${member.id || idx}-${member.job || member.character || idx}`}
-                  className="flex items-center gap-3 p-2 rounded-xl bg-[#0c0c14]/80 border border-white/10"
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 border border-white/15 flex-none flex items-center justify-center">
-                    {avatar ? (
-                      <img
-                        src={avatar}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <span className="text-white font-bold text-xs">
-                        {member.name ? member.name.slice(0, 2).toUpperCase() : "??"}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h5 className="text-xs font-bold text-white truncate">{member.name}</h5>
-                    <p className="text-[10px] text-zinc-400 truncate">
-                      {member.character || member.job || "Crew"}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 4. "More Like This" — 2 Horizontal Rows with multiple posters */}
-      <div className="space-y-2.5 pt-2 border-t border-white/10">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5">
-            <Compass className="w-4 h-4 text-red-500" />
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider">More Like This</h3>
-          </div>
-          <span className="text-[10px] text-zinc-500 font-mono">
-            {recommendations.length} Titles
-          </span>
-        </div>
-
-        {/* 2-ROW HORIZONTAL SCROLL MATRIX */}
-        <div className="grid grid-rows-2 grid-flow-col auto-cols-[110px] sm:auto-cols-[125px] gap-2.5 overflow-x-auto no-scrollbar pb-3 px-0.5">
-          {recommendations.map((item: any, idx: number) => {
-            const poster = item.poster_path
-              ? item.poster_path.startsWith("http")
-                ? item.poster_path
-                : `${IMAGE_BASE}/w185${item.poster_path}`
-              : null;
-            const recType = item.media_type || type;
-
-            return (
-              <Link
-                key={`rec-row-${item.id}-${idx}`}
-                href={
-                  item.source === "anime" || (recType === "tv" && String(item.id).length < 6)
-                    ? `/details/${item.id}?type=tv&source=anime`
-                    : `/details/${item.id}?type=${recType}`
-                }
-                onClick={() => soundFx.playCinematicPop()}
-                className="group relative flex flex-col"
-              >
-                <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                  {poster ? (
-                    <img
-                      src={poster}
-                      alt=""
-                      className="w-full h-full object-cover transition duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 p-2 text-center">
-                      <span className="text-[10px] font-bold text-zinc-400 truncate max-w-full">
-                        {item.title || item.name}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Red Frosted Glass Multi Badge */}
-                  <div className="absolute top-1.5 left-1.5 z-10">
-                    <span className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
-                      MULTI
-                    </span>
-                  </div>
-
-                  {item.vote_average ? (
-                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
-                      <Star className="w-2 h-2 fill-white text-white" />
-                      {item.vote_average.toFixed(1)}
-                    </div>
-                  ) : null}
-                </div>
-
-                <h4 className="text-[10px] font-bold text-white truncate mt-1 group-hover:text-red-300 transition">
-                  {item.title || item.name}
-                </h4>
-                <p className="text-[8px] text-zinc-400 font-mono truncate">
-                  {(item.release_date || item.first_air_date || "2024").slice(0, 4)}
-                </p>
-              </Link>
-            );
-          })}
         </div>
       </div>
     </div>
