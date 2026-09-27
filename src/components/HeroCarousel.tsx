@@ -18,6 +18,10 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Touch swipe coordinates
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
   const carouselItems = items.slice(0, 10);
   const currentItem = carouselItems[activeIndex] || carouselItems[0];
 
@@ -26,6 +30,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
     setInWatchlist(watchlistManager.has(currentItem.id));
   }, [currentItem]);
 
+  // Automatic 10-second rotation interval
   useEffect(() => {
     if (isPaused || carouselItems.length <= 1) return;
 
@@ -37,6 +42,50 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isPaused, carouselItems.length]);
+
+  // Touch Swipe Handlers (Prevents tab changing and cycles posters)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsPaused(true);
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const diffX = touchStartX.current - e.touches[0].clientX;
+    const diffY = touchStartY.current - e.touches[0].clientY;
+
+    // If horizontal swipe is dominant, stop event propagation so global tabs don't change
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      e.stopPropagation();
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    setIsPaused(false);
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+    const diffX = touchStartX.current - endX;
+    const diffY = touchStartY.current - endY;
+
+    // Horizontal swipe threshold: 40px
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      e.stopPropagation();
+      soundFx.playMechanicalTick();
+      if (diffX > 0) {
+        // Swiped Left -> Next poster
+        setActiveIndex((prev) => (prev + 1) % carouselItems.length);
+      } else {
+        // Swiped Right -> Previous poster
+        setActiveIndex((prev) => (prev - 1 + carouselItems.length) % carouselItems.length);
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   if (!currentItem) return null;
 
@@ -81,11 +130,12 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
 
   return (
     <div
-      className="relative w-full rounded-3xl bg-black select-none border border-white/10 shadow-2xl pt-2"
+      className="relative w-full rounded-3xl bg-black select-none border border-white/10 shadow-2xl pt-2 touch-pan-y"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       {/* 1. Backdrop Banner */}
       <Link
