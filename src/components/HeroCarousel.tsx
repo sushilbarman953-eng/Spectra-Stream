@@ -81,7 +81,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
 
   return (
     <div
-      className="relative w-full rounded-3xl overflow-hidden bg-black select-none border border-white/10 shadow-2xl"
+      className="relative w-full rounded-3xl bg-black select-none border border-white/10 shadow-2xl pt-2"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -91,7 +91,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
       <Link
         href={`/details/${currentItem.id}?type=${itemType}`}
         onClick={() => soundFx.playCinematicWhoosh()}
-        className="block relative aspect-[16/10] sm:aspect-[21/9] w-full"
+        className="block relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-2xl overflow-hidden"
       >
         {backdropUrl && (
           <Image
@@ -107,15 +107,15 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent pointer-events-none" />
       </Link>
 
-      {/* 2. Compact Bottom Floating Capsule */}
+      {/* 2. Overlapping Capsule with Tall Out-of-Bounds Poster */}
       <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:bottom-3 sm:left-3 sm:right-3 z-20">
-        <div className="rounded-2xl p-2.5 bg-black/55 backdrop-blur-2xl border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.7)] flex items-center gap-3">
+        <div className="rounded-2xl p-2.5 bg-black/60 backdrop-blur-2xl border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.8)] flex items-end gap-3">
           
-          {/* Left Side: Movie Poster Thumbnail */}
+          {/* Left Side: Tall Poster reaching upward above capsule border */}
           <Link
             href={`/details/${currentItem.id}?type=${itemType}`}
             onClick={() => soundFx.playCinematicPop()}
-            className="relative w-12 sm:w-14 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 border border-white/25 flex-none shadow-md"
+            className="relative w-16 sm:w-20 aspect-[2/3] -mt-7 sm:-mt-9 rounded-xl overflow-hidden bg-zinc-950 border border-white/30 flex-none shadow-2xl hover:scale-105 transition"
           >
             {posterUrl ? (
               <Image
@@ -132,9 +132,9 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
             )}
           </Link>
 
-          {/* Right Side: Title & Tags (Top), Buttons & Dots (Bottom) */}
-          <div className="flex-1 min-w-0 flex flex-col justify-between h-full gap-1.5">
-            {/* Top: Title & Tags */}
+          {/* Right Side: Title + Tags (Top) & Action Controls + Dots (Bottom) */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between gap-1.5 pb-0.5">
+            {/* Title & Metadata Strip */}
             <div className="min-w-0">
               <Link
                 href={`/details/${currentItem.id}?type=${itemType}`}
@@ -154,7 +154,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
               </div>
             </div>
 
-            {/* Bottom: Play + Add to List + 10 Dots */}
+            {/* Bottom Controls: Play Button, Add to List, Progress Dots */}
             <div className="flex items-center justify-between pt-0.5">
               <div className="flex items-center gap-1.5">
                 <Link
@@ -164,7 +164,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                       : `/watch/${currentItem.id}?type=movie`
                   }
                   onClick={() => soundFx.playCinematicSwell()}
-                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.15] hover:bg-white/[0.25] border border-white/30 backdrop-blur-xl text-white font-black text-[11px] transition active:scale-95 shadow-md"
+                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.15] hover:bg-white/[0.25] border border-white/30 backdrop-blur-xl text-white font-black text-[11px] transition active:scale-95 shadow-md"
                 >
                   <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center">
                     <Play className="w-2 h-2 fill-black text-black ml-0.5" />
@@ -190,7 +190,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                 </button>
               </div>
 
-              {/* 10 Dots Indicators */}
+              {/* 10 Carousel Indicators */}
               <div className="flex items-center gap-1 pr-1">
                 {carouselItems.map((_, idx) => (
                   <button
