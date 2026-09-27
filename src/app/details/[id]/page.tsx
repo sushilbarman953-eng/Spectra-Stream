@@ -201,12 +201,12 @@ export default function DetailsPage() {
 
   const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.1";
 
-  // Dynamic Parallax Transformations
+  // Smooth Parallax Calculations
   const parallaxTranslate = scrollY > 0 ? scrollY * 0.42 : 0;
   const parallaxScale = scrollY < 0 ? 1 + Math.abs(scrollY) * 0.0025 : 1;
-  const backdropOpacity = Math.max(0.4, 1 - scrollY / 500);
+  const backdropOpacity = Math.max(0.5, 1 - scrollY / 550);
 
-  // Cast, Director, Producer grouping
+  // Filter Credits
   const directors = crew.filter(
     (c: any) =>
       c.job?.toLowerCase() === "director" ||
@@ -228,7 +228,7 @@ export default function DetailsPage() {
   return (
     <div className="min-h-screen bg-[#08080c] relative select-none">
       {/* 1. BRIGHT PARALLAX HERO BACKDROP */}
-      <div className="relative w-full h-[54vh] sm:h-[62vh] overflow-hidden bg-black">
+      <div className="relative w-full h-[55vh] sm:h-[64vh] overflow-hidden bg-black">
         {backdropUrl && (
           <div
             className="absolute inset-0 w-full h-full will-change-transform transition-transform duration-75 ease-out"
@@ -246,8 +246,8 @@ export default function DetailsPage() {
           </div>
         )}
 
-        {/* Soft feather gradient at the very bottom edge */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-[#08080c]/25 to-transparent pointer-events-none" />
+        {/* Minimal Bottom Fade into Page */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-[#08080c]/15 to-transparent pointer-events-none" />
 
         {/* Top Floating Glass Back Button */}
         <div className="absolute top-4 left-4 z-30">
@@ -261,12 +261,13 @@ export default function DetailsPage() {
         </div>
       </div>
 
-      {/* 2. OVERLAPPING TRANSPARENT FROSTED GLASS DOSSIER CARD */}
-      <div className="max-w-md mx-auto px-3.5 -mt-32 relative z-20 pb-28 space-y-4">
-        <div className="rounded-3xl p-4 sm:p-5 border border-white/20 bg-black/45 backdrop-blur-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] space-y-4">
-          {/* Poster & Title with Frosted Glass Effect */}
+      {/* 2. ULTRA-TRANSPARENT FROSTED GLASS DOSSIER CARD */}
+      <div className="max-w-md mx-auto px-3.5 -mt-36 relative z-20 pb-28 space-y-4">
+        <div className="rounded-3xl p-4 sm:p-5 border border-white/20 bg-white/[0.04] backdrop-blur-xl shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] space-y-4">
+          
+          {/* Poster & Normal Title over Transparent Glass */}
           <div className="flex gap-4 items-start">
-            <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/20 flex-none shadow-2xl">
+            <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-black/60 border border-white/20 flex-none shadow-2xl">
               {posterUrl ? (
                 <img src={posterUrl} alt={title} className="w-full h-full object-cover" />
               ) : (
@@ -281,16 +282,14 @@ export default function DetailsPage() {
             </div>
 
             <div className="flex-1 space-y-2 py-0.5">
-              <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-zinc-300 border border-white/15">
+              <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-zinc-200 border border-white/15 backdrop-blur-md">
                 {source === "anime" ? "ANIME" : type === "tv" ? "SERIES" : "MOVIE"} • {releaseYear}
               </span>
 
-              {/* Title with Frosted Glass & Transparency */}
-              <div className="p-2 -ml-2 rounded-2xl bg-white/[0.07] backdrop-blur-xl border border-white/15 shadow-sm inline-block max-w-full">
-                <h1 className="text-xl font-black text-white tracking-tight leading-tight drop-shadow-md truncate">
-                  {title}
-                </h1>
-              </div>
+              {/* Title restored to normal styling directly on glass */}
+              <h1 className="text-xl font-black text-white tracking-tight leading-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+                {title}
+              </h1>
 
               <div className="flex flex-wrap gap-1 pt-0.5">
                 {details?.genres?.length ? (
@@ -330,7 +329,7 @@ export default function DetailsPage() {
                 className={`p-2.5 rounded-2xl border transition active:scale-95 ${
                   inWatchlist
                     ? "bg-red-500/20 text-red-400 border-red-500/40 font-bold"
-                    : "bg-white/10 hover:bg-white/20 border-white/15 text-white"
+                    : "bg-white/10 hover:bg-white/20 border-white/15 text-white backdrop-blur-md"
                 }`}
                 title={inWatchlist ? "Remove from List" : "Add to List"}
                 aria-label="Add to List"
@@ -345,7 +344,7 @@ export default function DetailsPage() {
               className={`w-full py-2.5 px-4 rounded-2xl border text-xs font-bold transition flex items-center justify-center gap-2 active:scale-[0.98] ${
                 downloaded
                   ? "bg-white/20 border-white/30 text-white font-black"
-                  : "bg-white/10 hover:bg-white/15 border-white/20 text-zinc-200 backdrop-blur-xl"
+                  : "bg-white/10 hover:bg-white/15 border-white/20 text-zinc-200 backdrop-blur-md"
               }`}
             >
               <Download className="w-3.5 h-3.5" />
