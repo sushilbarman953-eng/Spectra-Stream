@@ -28,6 +28,7 @@ export default function DetailsPage() {
 
   const id = params?.id as string;
   const type = (searchParams.get("type") as "movie" | "tv") || "movie";
+  const source = searchParams.get("source");
 
   const [details, setDetails] = useState<any>(null);
   const [cast, setCast] = useState<any[]>([]);
@@ -37,6 +38,19 @@ export default function DetailsPage() {
   const [inWatchlist, setInWatchlist] = useState<boolean>(false);
   const [downloaded, setDownloaded] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Remember the catalog tab where the user entered from (e.g. /, /movies, /series, /anime)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ref = document.referrer;
+      if (ref && !ref.includes("/watch/") && !ref.includes("/details/")) {
+        try {
+          const originPath = new URL(ref).pathname;
+          sessionStorage.setItem("spectra_details_origin", originPath);
+        } catch {}
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -62,11 +76,16 @@ export default function DetailsPage() {
     return () => { isMounted = false; };
   }, [id, type]);
 
-  // Safe navigation back to Home or previous non-player page
+  // Back button navigates to the origin tab that launched the poster
   const handleGoBack = () => {
     soundFx.playCinematicWhoosh();
-    if (window.history.length > 2) {
-      router.back();
+    const savedOrigin = typeof window !== "undefined" ? sessionStorage.getItem("spectra_details_origin") : null;
+    if (savedOrigin && !savedOrigin.includes("/watch/") && !savedOrigin.includes("/details/")) {
+      router.push(savedOrigin);
+    } else if (source === "anime") {
+      router.push("/anime");
+    } else if (type === "tv") {
+      router.push("/series");
     } else {
       router.push("/");
     }
@@ -112,14 +131,14 @@ export default function DetailsPage() {
     );
   }
 
-  const title = details?.title || details?.name || "Oppenheimer";
+  const title = details?.title || details?.name || "Media Title";
   const releaseYear = (details?.release_date || details?.first_air_date || "2023").slice(0, 4);
   const posterUrl = details?.poster_path
     ? details.poster_path.startsWith("http")
       ? details.poster_path
       : `${IMAGE_BASE}/w342${details.poster_path}`
     : null;
-  const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.9";
+  const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.1";
 
   const filteredCredits =
     activeCreditTab === "cast"
@@ -130,11 +149,8 @@ export default function DetailsPage() {
 
   return (
     <div className="max-w-md mx-auto px-3 pt-3 pb-28 space-y-4">
-      
-      {/* Floating Back Button & Top Poster Card (Fills Top View) */}
+      {/* Top Floating Back Button & Poster Card */}
       <div className="relative rounded-3xl p-4 sm:p-5 border border-white/10 bg-[#0e0e14]/90 backdrop-blur-2xl shadow-2xl overflow-hidden">
-        
-        {/* Subtle Backdrop Ambient Glow */}
         {details?.backdrop_path && (
           <div className="absolute inset-0 opacity-20 pointer-events-none">
             <Image
@@ -151,22 +167,20 @@ export default function DetailsPage() {
           </div>
         )}
 
-        {/* Floating Back Button directly in the top-left */}
+        {/* Back Button */}
         <div className="relative z-20 flex items-center justify-between pb-3">
           <button
             onClick={handleGoBack}
             className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-2xl flex items-center justify-center transition active:scale-90 shadow-md"
-            aria-label="Back"
+            aria-label="Back to Catalog"
           >
             <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 
-        {/* Poster + Meta Info Block */}
+        {/* Poster & Title Details */}
         <div className="relative z-10 space-y-4">
           <div className="flex gap-4 items-start">
-            
-            {/* Left Poster with Top-Right Rating Badge */}
             <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 flex-none shadow-xl">
               {posterUrl ? (
                 <Image src={posterUrl} alt={title} fill unoptimized className="object-cover" />
@@ -181,7 +195,6 @@ export default function DetailsPage() {
               </div>
             </div>
 
-            {/* Right Meta Info */}
             <div className="flex-1 space-y-2 py-0.5">
               <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-zinc-300 border border-white/15">
                 {type === "tv" ? "SERIES" : "MOVIE"} • {releaseYear}
@@ -211,7 +224,7 @@ export default function DetailsPage() {
             </div>
           </div>
 
-          {/* Action Buttons: ► Play (white) + Watchlist Toggle */}
+          {/* Action Buttons: ► Play + Watchlist Toggle */}
           <div className="flex items-center gap-2 pt-1">
             <Link
               href={type === "tv" ? `/watch/${id}?type=tv&season=1&episode=1` : `/watch/${id}?type=movie`}
@@ -226,7 +239,7 @@ export default function DetailsPage() {
               onClick={toggleWatchlist}
               className={`p-2.5 rounded-2xl border transition active:scale-95 ${
                 inWatchlist
-                  ? "bg-emerald-400 text-black border-emerald-400 font-bold"
+                  ? "bg-red-500/20 text-red-400 border-red-500/40 font-bold"
                   : "bg-white/10 hover:bg-white/20 border-white/15 text-white"
               }`}
             >
@@ -253,7 +266,7 @@ export default function DetailsPage() {
       <div className="space-y-1 px-1">
         <h3 className="text-sm font-bold text-white tracking-wide">Storyline</h3>
         <p className="text-xs text-zinc-300 leading-relaxed font-normal">
-          {details?.overview || "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during World War II."}
+          {details?.overview || "A high-octane spectacle streaming in full definition."}
         </p>
       </div>
 
@@ -309,9 +322,7 @@ export default function DetailsPage() {
         {/* Cast Carousel */}
         <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
           {(filteredCredits.length ? filteredCredits : [
-            { id: 1, name: "Cillian Murphy", character: "J. Robert Oppenheimer", profile_path: null },
-            { id: 2, name: "Emily Blunt", character: "Katherine Oppenheimer", profile_path: null },
-            { id: 3, name: "Matt Damon", character: "Leslie Groves", profile_path: null }
+            { id: 1, name: "Lead Actor", character: "Protagonist", profile_path: null }
           ]).map((member: any) => {
             const avatar = member.profile_path ? `${IMAGE_BASE}/w185${member.profile_path}` : null;
             return (

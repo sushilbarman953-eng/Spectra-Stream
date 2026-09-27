@@ -169,7 +169,7 @@ export default function WatchPage() {
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Details</span>
-        </Link>
+        </button>
 
         <span className="text-xs font-bold text-white truncate max-w-[200px] text-center">
           {title}
@@ -463,7 +463,7 @@ export default function WatchPage() {
                         {ep.name || `Episode ${ep.episode_number}`}
                       </h5>
                     </div>
-                  </Link>
+                  </button>
                 );
               })}
             </div>
@@ -507,7 +507,7 @@ export default function WatchPage() {
                         {ep.overview || "High-speed multi-audio stream."}
                       </p>
                     </div>
-                  </Link>
+                  </button>
                 );
               })}
             </div>
