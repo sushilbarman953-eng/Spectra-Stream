@@ -29,9 +29,12 @@ export const CategorySwipeProvider = ({ children }: { children: React.ReactNode 
       if (
         target.tagName === "HEADER" ||
         target.classList.contains("no-scrollbar") ||
+        target.getAttribute("data-no-swipe") === "true" ||
         target.getAttribute("data-prevent-swipe") === "true" ||
+        target.closest("[data-carousel='true']") ||
         target.tagName === "INPUT" ||
-        target.tagName === "VIDEO"
+        target.tagName === "VIDEO" ||
+        target.tagName === "BUTTON"
       ) {
         isInsideExcludedArea = true;
         break;

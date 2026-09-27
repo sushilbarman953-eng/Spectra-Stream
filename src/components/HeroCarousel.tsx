@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, Plus, Check, Star } from "lucide-react";
@@ -23,6 +23,9 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
   const slides = items.slice(0, 10);
   const current = slides[currentIdx] || items[0];
 
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
   useEffect(() => {
     if (slides.length <= 1 || isPaused) return;
     const timer = setInterval(() => {
@@ -35,6 +38,42 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
 
   const mediaType = current.media_type || defaultType;
   const inWatchlist = watchlistManager.has(current.id);
+
+  const nextSlide = () => {
+    soundFx.playMechanicalTick();
+    setCurrentIdx((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    soundFx.playMechanicalTick();
+    setCurrentIdx((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsPaused(true);
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    setIsPaused(false);
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const diffX = e.changedTouches[0].clientX - touchStartX.current;
+    const diffY = e.changedTouches[0].clientY - touchStartY.current;
+
+    // Trigger only if horizontal swipe is intentional
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
+      if (diffX < 0) {
+        nextSlide();
+      } else {
+        prevSlide();
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
 
   const handleToggleWatchlist = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -53,21 +92,23 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
     }
   };
 
-  const backdropSrc = current.backdrop_path || current.poster_path;
-  const posterUrl = backdropSrc
-    ? backdropSrc.startsWith("http")
-      ? backdropSrc
-      : `${IMAGE_BASE}/w1280${backdropSrc}`
+  const rawBackdrop = current.backdrop_path || current.poster_path;
+  const posterUrl = rawBackdrop
+    ? rawBackdrop.startsWith("http")
+      ? rawBackdrop
+      : `${IMAGE_BASE}/w1280${rawBackdrop}`
     : null;
 
   return (
     <div
+      data-carousel="true"
       data-no-swipe="true"
+      data-prevent-swipe="true"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
-      className="relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl overflow-hidden border border-white/15 bg-black shadow-2xl select-none group"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl overflow-hidden border border-white/15 bg-black shadow-2xl select-none group touch-pan-y"
     >
       {posterUrl ? (
         <Image
@@ -86,7 +127,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
       <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-black/40 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent hidden sm:block" />
 
-      {/* Clean Minimal Overlay */}
+      {/* Overlay Content */}
       <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-7 max-w-xl space-y-2 z-10">
         <div className="flex items-center gap-2">
           <span className="px-2 py-0.5 rounded-full bg-white text-black font-black text-[9px] uppercase tracking-wider">
@@ -108,7 +149,7 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
           {current.overview || "Stream now in ultra high definition."}
         </p>
 
-        {/* Buttons: ► Play (Navigates to Details Page) & + Add to List */}
+        {/* Buttons: ► Play & + Add to List */}
         <div className="flex items-center gap-2 pt-1">
           <Link
             href={`/details/${current.id}?type=${mediaType}`}
