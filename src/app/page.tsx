@@ -53,9 +53,9 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#08080c] text-white pt-16 pb-28 px-3 sm:px-6 space-y-7 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#08080c] text-white pt-12 pb-28 px-3 sm:px-6 space-y-7 max-w-7xl mx-auto">
       {/* 1. Dynamic Hero Carousel */}
-      <section className="pt-2">
+      <section className="pt-0">
         <HeroCarousel items={heroItems} />
       </section>
 
