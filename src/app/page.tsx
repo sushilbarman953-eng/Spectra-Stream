@@ -31,14 +31,11 @@ export default function HomePage() {
   const [personalizedRecs, setPersonalizedRecs] = useState<MediaItem[]>([]);
 
   useEffect(() => {
-    // 1. Load Hero Carousel items
-    setHeroItems(BACKUP_HINDI_MOVIES.slice(0, 8));
+    setHeroItems(BACKUP_HINDI_MOVIES.slice(0, 10));
 
-    // 2. Load Continue Watching items
     const history = playbackHistory.getAll();
     setContinueWatching(history.slice(0, 4));
 
-    // 3. Personalized recommendation calculation
     if (history.length > 0 && history[0].title) {
       setLastWatchedTitle(history[0].title);
       const recs = BACKUP_HINDI_MOVIES.filter(
@@ -51,13 +48,13 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#08080c] text-white pt-11 pb-28 px-3 sm:px-6 flex flex-col gap-6 max-w-7xl mx-auto">
-      {/* 1. Dynamic Hero Carousel immediately beneath top navbar */}
-      <section className="w-full m-0 p-0">
+    <div className="min-h-screen bg-[#08080c] text-white pt-0 pb-28 px-3 sm:px-6 flex flex-col gap-5 max-w-7xl mx-auto -mt-1">
+      {/* 1. Dynamic Hero Carousel starting immediately below the top nav */}
+      <section className="w-full pt-1 sm:pt-2">
         <HeroCarousel items={heroItems} />
       </section>
 
-      {/* 2. Continue Watching Shelf (if active history exists) */}
+      {/* 2. Continue Watching Shelf */}
       {continueWatching.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center justify-between">

@@ -18,7 +18,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Restrict to max 10 posters as requested
   const carouselItems = items.slice(0, 10);
   const currentItem = carouselItems[activeIndex] || carouselItems[0];
 
@@ -27,7 +26,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
     setInWatchlist(watchlistManager.has(currentItem.id));
   }, [currentItem]);
 
-  // Automatic 10-second rotation interval
   useEffect(() => {
     if (isPaused || carouselItems.length <= 1) return;
 
@@ -106,106 +104,112 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
           />
         )}
 
-        {/* Ambient bottom vignette transition */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-transparent pointer-events-none" />
       </Link>
 
-      {/* 2. Bottom Floating Quick Play Strip */}
-      <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 z-20">
-        <div className="relative rounded-2xl p-2.5 sm:p-3 bg-black/50 backdrop-blur-2xl border border-white/20 shadow-[0_12px_36px_rgba(0,0,0,0.7)] flex flex-col gap-2">
+      {/* 2. Compact Bottom Floating Capsule */}
+      <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:bottom-3 sm:left-3 sm:right-3 z-20">
+        <div className="rounded-2xl p-2.5 bg-black/55 backdrop-blur-2xl border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.7)] flex items-center gap-3">
           
-          <div className="flex items-center justify-between gap-3">
-            {/* Left: Medium poster thumbnail + Metadata */}
-            <Link
-              href={`/details/${currentItem.id}?type=${itemType}`}
-              onClick={() => soundFx.playCinematicPop()}
-              className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 group"
-            >
-              {/* Medium Poster Thumbnail */}
-              <div className="relative w-12 sm:w-14 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 border border-white/25 flex-none shadow-md">
-                {posterUrl ? (
-                  <Image
-                    src={posterUrl}
-                    alt={title}
-                    fill
-                    unoptimized
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[9px] text-zinc-500">
-                    Poster
-                  </div>
-                )}
+          {/* Left Side: Movie Poster Thumbnail */}
+          <Link
+            href={`/details/${currentItem.id}?type=${itemType}`}
+            onClick={() => soundFx.playCinematicPop()}
+            className="relative w-12 sm:w-14 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 border border-white/25 flex-none shadow-md"
+          >
+            {posterUrl ? (
+              <Image
+                src={posterUrl}
+                alt={title}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[8px] text-zinc-500">
+                Poster
               </div>
+            )}
+          </Link>
 
-              {/* Title, Year, Genre Metadata */}
-              <div className="min-w-0 flex-1">
-                <h3 className="text-xs sm:text-sm font-black text-white truncate group-hover:text-red-300 transition">
+          {/* Right Side: Title & Tags (Top), Buttons & Dots (Bottom) */}
+          <div className="flex-1 min-w-0 flex flex-col justify-between h-full gap-1.5">
+            {/* Top: Title & Tags */}
+            <div className="min-w-0">
+              <Link
+                href={`/details/${currentItem.id}?type=${itemType}`}
+                onClick={() => soundFx.playCinematicPop()}
+                className="block truncate"
+              >
+                <h3 className="text-xs sm:text-sm font-black text-white truncate hover:text-red-300 transition">
                   {title} <span className="text-[10px] text-zinc-400 font-medium">[Hindi]</span>
                 </h3>
-                <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-mono text-zinc-300 pt-0.5">
-                  <span>{releaseYear}</span>
-                  <span className="text-zinc-600">•</span>
-                  <span className="px-1.5 py-0.2 rounded bg-white/10 text-white font-medium border border-white/10">
-                    Action
-                  </span>
-                </div>
-              </div>
-            </Link>
-
-            {/* Action Buttons: Play + Add to List */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-none">
-              <Link
-                href={
-                  itemType === "tv"
-                    ? `/watch/${currentItem.id}?type=tv&season=1&episode=1`
-                    : `/watch/${currentItem.id}?type=movie`
-                }
-                onClick={() => soundFx.playCinematicSwell()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.12] hover:bg-white/[0.22] border border-white/30 backdrop-blur-xl text-white font-black text-[11px] sm:text-xs transition active:scale-95 shadow-md"
-              >
-                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
-                  <Play className="w-2.5 h-2.5 fill-black text-black ml-0.5" />
-                </div>
-                <span>Play</span>
               </Link>
-
-              <button
-                onClick={toggleWatchlist}
-                className={`p-2 rounded-full border transition active:scale-95 backdrop-blur-xl ${
-                  inWatchlist
-                    ? "bg-red-500/25 border-red-500/50 text-red-300"
-                    : "bg-white/10 hover:bg-white/20 border-white/25 text-white"
-                }`}
-                title={inWatchlist ? "Remove from List" : "Add to List"}
-                aria-label="Add to List"
-              >
-                {inWatchlist ? (
-                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                ) : (
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                )}
-              </button>
+              <div className="flex items-center gap-1.5 text-[9px] font-mono text-zinc-300 pt-0.5">
+                <span>{releaseYear}</span>
+                <span className="text-zinc-600">•</span>
+                <span className="px-1.5 py-0.2 rounded bg-white/10 text-white font-medium border border-white/10">
+                  Action
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Right Bottom: 10 Carousel Indicators */}
-          <div className="flex items-center justify-end gap-1 pt-0.5 pr-0.5">
-            {carouselItems.map((_, idx) => (
-              <button
-                key={`dot-${idx}`}
-                onClick={() => {
-                  soundFx.playMechanicalTick();
-                  setActiveIndex(idx);
-                }}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  activeIndex === idx
-                    ? "w-4 bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]"
-                    : "w-1 bg-white/25 hover:bg-white/50"
-                }`}
-                aria-label={`Slide ${idx + 1}`}
-              />
-            ))}
+            {/* Bottom: Play + Add to List + 10 Dots */}
+            <div className="flex items-center justify-between pt-0.5">
+              <div className="flex items-center gap-1.5">
+                <Link
+                  href={
+                    itemType === "tv"
+                      ? `/watch/${currentItem.id}?type=tv&season=1&episode=1`
+                      : `/watch/${currentItem.id}?type=movie`
+                  }
+                  onClick={() => soundFx.playCinematicSwell()}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.15] hover:bg-white/[0.25] border border-white/30 backdrop-blur-xl text-white font-black text-[11px] transition active:scale-95 shadow-md"
+                >
+                  <div className="w-4 h-4 rounded-full bg-white flex items-center justify-center">
+                    <Play className="w-2 h-2 fill-black text-black ml-0.5" />
+                  </div>
+                  <span>Play</span>
+                </Link>
+
+                <button
+                  onClick={toggleWatchlist}
+                  className={`p-1.5 rounded-full border transition active:scale-95 backdrop-blur-xl ${
+                    inWatchlist
+                      ? "bg-red-500/25 border-red-500/50 text-red-300"
+                      : "bg-white/10 hover:bg-white/20 border-white/25 text-white"
+                  }`}
+                  title={inWatchlist ? "Remove from List" : "Add to List"}
+                  aria-label="Add to List"
+                >
+                  {inWatchlist ? (
+                    <Check className="w-3 h-3 stroke-[3]" />
+                  ) : (
+                    <Plus className="w-3 h-3 stroke-[2.5]" />
+                  )}
+                </button>
+              </div>
+
+              {/* 10 Dots Indicators */}
+              <div className="flex items-center gap-1 pr-1">
+                {carouselItems.map((_, idx) => (
+                  <button
+                    key={`dot-${idx}`}
+                    onClick={() => {
+                      soundFx.playMechanicalTick();
+                      setActiveIndex(idx);
+                    }}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      activeIndex === idx
+                        ? "w-3.5 bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]"
+                        : "w-1 bg-white/25 hover:bg-white/50"
+                    }`}
+                    aria-label={`Slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
           </div>
 
         </div>
