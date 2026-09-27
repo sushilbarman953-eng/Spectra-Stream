@@ -3,189 +3,213 @@
 import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, Plus, Check, Star } from "lucide-react";
+import { Play, Plus, Check } from "lucide-react";
 import { MediaItem, IMAGE_BASE } from "@/lib/tmdb";
 import { watchlistManager } from "@/lib/watchlistManager";
 import { soundFx } from "@/lib/soundFx";
 
 interface HeroCarouselProps {
   items: MediaItem[];
-  defaultType?: "movie" | "tv";
-  badgePrefix?: string;
 }
 
-export const HeroCarousel: React.FC<HeroCarouselProps> = ({
-  items,
-  defaultType = "movie",
-}) => {
-  const [currentIdx, setCurrentIdx] = useState(0);
+export function HeroCarousel({ items }: HeroCarouselProps) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [inWatchlist, setInWatchlist] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const slides = items.slice(0, 10);
-  const current = slides[currentIdx] || items[0];
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
+  // Restrict to max 10 posters as requested
+  const carouselItems = items.slice(0, 10);
+  const currentItem = carouselItems[activeIndex] || carouselItems[0];
 
   useEffect(() => {
-    if (slides.length <= 1 || isPaused) return;
-    const timer = setInterval(() => {
-      setCurrentIdx((prev) => (prev + 1) % slides.length);
+    if (!currentItem) return;
+    setInWatchlist(watchlistManager.has(currentItem.id));
+  }, [currentItem]);
+
+  // Automatic 10-second rotation interval
+  useEffect(() => {
+    if (isPaused || carouselItems.length <= 1) return;
+
+    timerRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % carouselItems.length);
     }, 10000);
-    return () => clearInterval(timer);
-  }, [slides.length, isPaused]);
 
-  if (!current) return null;
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isPaused, carouselItems.length]);
 
-  const mediaType = current.media_type || defaultType;
-  const inWatchlist = watchlistManager.has(current.id);
+  if (!currentItem) return null;
 
-  const nextSlide = () => {
-    soundFx.playMechanicalTick();
-    setCurrentIdx((prev) => (prev + 1) % slides.length);
-  };
-
-  const prevSlide = () => {
-    soundFx.playMechanicalTick();
-    setCurrentIdx((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsPaused(true);
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    setIsPaused(false);
-    if (touchStartX.current === null || touchStartY.current === null) return;
-
-    const diffX = e.changedTouches[0].clientX - touchStartX.current;
-    const diffY = e.changedTouches[0].clientY - touchStartY.current;
-
-    // Trigger only if horizontal swipe is intentional
-    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.4) {
-      if (diffX < 0) {
-        nextSlide();
-      } else {
-        prevSlide();
-      }
-    }
-
-    touchStartX.current = null;
-    touchStartY.current = null;
-  };
-
-  const handleToggleWatchlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    soundFx.playCinematicPop();
-    if (inWatchlist) {
-      watchlistManager.remove(current.id);
-    } else {
-      watchlistManager.add({
-        id: String(current.id),
-        title: current.title || current.name || "Title",
-        type: mediaType,
-        posterPath: current.poster_path,
-        voteAverage: current.vote_average,
-        addedAt: Date.now(),
-      });
-    }
-  };
-
-  const rawBackdrop = current.backdrop_path || current.poster_path;
-  const posterUrl = rawBackdrop
+  const rawBackdrop = currentItem.backdrop_path || currentItem.poster_path;
+  const backdropUrl = rawBackdrop
     ? rawBackdrop.startsWith("http")
       ? rawBackdrop
       : `${IMAGE_BASE}/w1280${rawBackdrop}`
     : null;
 
+  const rawPoster = currentItem.poster_path;
+  const posterUrl = rawPoster
+    ? rawPoster.startsWith("http")
+      ? rawPoster
+      : `${IMAGE_BASE}/w342${rawPoster}`
+    : null;
+
+  const itemType = currentItem.media_type || "movie";
+  const title = currentItem.title || currentItem.name || "Featured Title";
+  const releaseYear = (currentItem.release_date || currentItem.first_air_date || "2026").slice(0, 4);
+
+  const toggleWatchlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    soundFx.playCinematicPop();
+
+    if (inWatchlist) {
+      watchlistManager.remove(currentItem.id);
+      setInWatchlist(false);
+    } else {
+      watchlistManager.add({
+        id: String(currentItem.id),
+        title,
+        type: itemType,
+        posterPath: currentItem.poster_path,
+        voteAverage: currentItem.vote_average,
+        addedAt: Date.now(),
+      });
+      setInWatchlist(true);
+    }
+  };
+
   return (
     <div
-      data-carousel="true"
-      data-no-swipe="true"
-      data-prevent-swipe="true"
+      className="relative w-full rounded-3xl overflow-hidden bg-black select-none border border-white/10 shadow-2xl"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      className="relative aspect-[16/10] sm:aspect-[21/9] w-full rounded-3xl overflow-hidden border border-white/15 bg-black shadow-2xl select-none group touch-pan-y"
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
     >
-      {posterUrl ? (
-        <Image
-          src={posterUrl}
-          alt={current.title || current.name || "Hero"}
-          fill
-          priority
-          unoptimized
-          className="object-cover object-top transition-all duration-700 ease-out"
-        />
-      ) : (
-        <div className="w-full h-full bg-zinc-900" />
-      )}
-
-      {/* Dark Vignettes */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#08080c] via-black/40 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-transparent to-transparent hidden sm:block" />
-
-      {/* Overlay Content */}
-      <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-7 max-w-xl space-y-2 z-10">
-        <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 rounded-full bg-white text-black font-black text-[9px] uppercase tracking-wider">
-            TOP #{currentIdx + 1}
-          </span>
-          {current.vote_average ? (
-            <span className="px-1.5 py-0.5 rounded-full bg-black/60 text-white font-bold text-[9px] border border-white/15 flex items-center gap-0.5">
-              <Star className="w-2.5 h-2.5 fill-white text-white" />
-              <span>{current.vote_average.toFixed(1)}</span>
-            </span>
-          ) : null}
-        </div>
-
-        <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight drop-shadow truncate">
-          {current.title || current.name}
-        </h1>
-
-        <p className="text-xs text-zinc-300 line-clamp-2 leading-relaxed max-w-md">
-          {current.overview || "Stream now in ultra high definition."}
-        </p>
-
-        {/* Buttons: ► Play & + Add to List */}
-        <div className="flex items-center gap-2 pt-1">
-          <Link
-            href={`/details/${current.id}?type=${mediaType}`}
-            onClick={() => soundFx.playCinematicSwell()}
-            className="px-5 py-2 rounded-xl bg-white text-black font-black text-xs shadow-glow hover:bg-zinc-200 active:scale-95 transition flex items-center gap-1.5"
-          >
-            <Play className="w-3.5 h-3.5 fill-black text-black" />
-            <span>Play</span>
-          </Link>
-
-          <button
-            onClick={handleToggleWatchlist}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-xs backdrop-blur-xl active:scale-95 transition flex items-center gap-1.5"
-          >
-            {inWatchlist ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : <Plus className="w-3.5 h-3.5" />}
-            <span>{inWatchlist ? "In List" : "Add to List"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Slide Indicators on Bottom Right */}
-      <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-7 flex items-center gap-1.5 z-20">
-        {slides.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => {
-              soundFx.playMechanicalTick();
-              setCurrentIdx(idx);
-            }}
-            className={`h-1 rounded-full transition-all ${
-              currentIdx === idx ? "w-5 bg-white shadow-glow" : "w-1.5 bg-white/30 hover:bg-white/60"
-            }`}
-            aria-label={`Slide ${idx + 1}`}
+      {/* 1. Full-Bleed Backdrop Banner at Full Brightness */}
+      <Link
+        href={`/details/${currentItem.id}?type=${itemType}`}
+        onClick={() => soundFx.playCinematicWhoosh()}
+        className="block relative aspect-[16/10] sm:aspect-[21/9] w-full"
+      >
+        {backdropUrl && (
+          <Image
+            src={backdropUrl}
+            alt={title}
+            fill
+            priority
+            unoptimized
+            className="object-cover object-top transition-all duration-700 brightness-100 contrast-100"
           />
-        ))}
+        )}
+
+        {/* Ambient bottom vignette transition */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
+      </Link>
+
+      {/* 2. Bottom Floating Quick Play Strip */}
+      <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 z-20">
+        <div className="relative rounded-2xl p-2.5 sm:p-3 bg-black/50 backdrop-blur-2xl border border-white/20 shadow-[0_12px_36px_rgba(0,0,0,0.7)] flex flex-col gap-2">
+          
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: Medium poster thumbnail + Metadata */}
+            <Link
+              href={`/details/${currentItem.id}?type=${itemType}`}
+              onClick={() => soundFx.playCinematicPop()}
+              className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 group"
+            >
+              {/* Medium Poster Thumbnail */}
+              <div className="relative w-12 sm:w-14 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-950 border border-white/25 flex-none shadow-md">
+                {posterUrl ? (
+                  <Image
+                    src={posterUrl}
+                    alt={title}
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[9px] text-zinc-500">
+                    Poster
+                  </div>
+                )}
+              </div>
+
+              {/* Title, Year, Genre Metadata */}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-xs sm:text-sm font-black text-white truncate group-hover:text-red-300 transition">
+                  {title} <span className="text-[10px] text-zinc-400 font-medium">[Hindi]</span>
+                </h3>
+                <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-mono text-zinc-300 pt-0.5">
+                  <span>{releaseYear}</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="px-1.5 py-0.2 rounded bg-white/10 text-white font-medium border border-white/10">
+                    Action
+                  </span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Action Buttons: Play + Add to List */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-none">
+              <Link
+                href={
+                  itemType === "tv"
+                    ? `/watch/${currentItem.id}?type=tv&season=1&episode=1`
+                    : `/watch/${currentItem.id}?type=movie`
+                }
+                onClick={() => soundFx.playCinematicSwell()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/[0.12] hover:bg-white/[0.22] border border-white/30 backdrop-blur-xl text-white font-black text-[11px] sm:text-xs transition active:scale-95 shadow-md"
+              >
+                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                  <Play className="w-2.5 h-2.5 fill-black text-black ml-0.5" />
+                </div>
+                <span>Play</span>
+              </Link>
+
+              <button
+                onClick={toggleWatchlist}
+                className={`p-2 rounded-full border transition active:scale-95 backdrop-blur-xl ${
+                  inWatchlist
+                    ? "bg-red-500/25 border-red-500/50 text-red-300"
+                    : "bg-white/10 hover:bg-white/20 border-white/25 text-white"
+                }`}
+                title={inWatchlist ? "Remove from List" : "Add to List"}
+                aria-label="Add to List"
+              >
+                {inWatchlist ? (
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                ) : (
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Bottom: 10 Carousel Indicators */}
+          <div className="flex items-center justify-end gap-1 pt-0.5 pr-0.5">
+            {carouselItems.map((_, idx) => (
+              <button
+                key={`dot-${idx}`}
+                onClick={() => {
+                  soundFx.playMechanicalTick();
+                  setActiveIndex(idx);
+                }}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  activeIndex === idx
+                    ? "w-4 bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]"
+                    : "w-1 bg-white/25 hover:bg-white/50"
+                }`}
+                aria-label={`Slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+
+        </div>
       </div>
     </div>
   );
-};
+}
