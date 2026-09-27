@@ -15,7 +15,6 @@ import {
   User,
   ArrowLeft,
   Compass,
-  Clock,
 } from "lucide-react";
 import {
   tmdb,
@@ -229,7 +228,7 @@ export default function DetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#08080c] relative select-none overflow-x-hidden">
-      {/* 1. FULL-BRIGHTNESS PARALLAX HERO BACKDROP WITH BOTTOM BLUR */}
+      {/* 1. HERO BACKDROP */}
       <div className="relative w-full h-[54vh] sm:h-[62vh] overflow-hidden bg-black">
         {backdropUrl && (
           <div
@@ -240,7 +239,6 @@ export default function DetailsPage() {
               opacity: backdropOpacity,
             }}
           >
-            {/* Background poster at full, natural brightness */}
             <img
               src={backdropUrl}
               alt=""
@@ -249,7 +247,7 @@ export default function DetailsPage() {
           </div>
         )}
 
-        {/* Bottom Frost Blur Effect Layer */}
+        {/* Soft bottom blur fade */}
         <div className="absolute bottom-0 left-0 right-0 h-28 bg-gradient-to-t from-[#08080c] via-[#08080c]/50 to-transparent backdrop-blur-md pointer-events-none" />
 
         {/* Top Floating Glass Back Button */}
@@ -264,11 +262,10 @@ export default function DetailsPage() {
         </div>
       </div>
 
-      {/* 2. OVERLAPPING ULTRA-SHEER FROSTED GLASS DOSSIER CARD */}
+      {/* 2. FROSTED GLASS DOSSIER CARD WITH CINEMATIC METADATA STRIP */}
       <div className="max-w-md mx-auto px-3.5 -mt-36 relative z-20 pb-28 space-y-5">
         <div className="rounded-3xl p-4 sm:p-5 border border-white/20 bg-white/[0.04] backdrop-blur-2xl shadow-[0_12px_40px_0_rgba(0,0,0,0.45)] space-y-4">
           
-          {/* Metadata & Poster Layout */}
           <div className="flex gap-4 items-stretch">
             {/* Poster Thumbnail */}
             <div className="relative w-28 sm:w-32 aspect-[2/3] rounded-2xl overflow-hidden bg-black/40 border border-white/20 flex-none shadow-2xl">
@@ -285,29 +282,26 @@ export default function DetailsPage() {
               </div>
             </div>
 
-            {/* Information Column */}
-            <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
-              {/* Upper Small Tags */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[9px] font-mono font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-zinc-200 border border-white/15 backdrop-blur-md">
+            {/* Information Column with Cinematic Layout */}
+            <div className="flex-1 flex flex-col justify-between py-1 min-w-0">
+              {/* Cinematic Dot-Separated Header Strip */}
+              <div className="flex items-center flex-wrap gap-1.5 text-[10px] font-mono text-zinc-300">
+                <span className="font-black text-white px-2 py-0.5 rounded bg-white/10 border border-white/15">
                   {source === "anime" ? "ANIME" : type === "tv" ? "SERIES" : "MOVIE"}
                 </span>
-                <span className="text-[9px] font-mono font-bold text-zinc-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-                  {releaseYear}
-                </span>
-                <span className="text-[9px] font-mono font-bold text-zinc-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10 flex items-center gap-1">
-                  <Clock className="w-2.5 h-2.5" />
-                  {runtime}
-                </span>
+                <span className="text-zinc-600">•</span>
+                <span className="font-semibold text-zinc-300">{releaseYear}</span>
+                <span className="text-zinc-600">•</span>
+                <span className="font-semibold text-zinc-300">{runtime}</span>
               </div>
 
-              {/* Big, Prominent Movie Title */}
-              <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-[1.1] drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] line-clamp-2 my-1.5">
+              {/* Movie Title */}
+              <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-[1.1] drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] line-clamp-2 my-1">
                 {title}
               </h1>
 
-              {/* Lower Small Tags */}
-              <div className="flex flex-wrap gap-1">
+              {/* Cinematic Audio & Genre Strip */}
+              <div className="flex items-center flex-wrap gap-1.5 pt-0.5">
                 <span className="px-2 py-0.5 rounded-md bg-red-600/30 border border-red-500/40 text-[9px] font-black text-red-200 uppercase tracking-wider backdrop-blur-md shadow-[0_0_8px_rgba(239,68,68,0.4)]">
                   MULTI AUDIO
                 </span>
