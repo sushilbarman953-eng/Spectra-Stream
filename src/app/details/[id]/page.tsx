@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import {
@@ -17,7 +16,13 @@ import {
   ArrowLeft,
   Compass,
 } from "lucide-react";
-import { tmdb, MediaItem, IMAGE_BASE, DEFAULT_CREDITS, BACKUP_HINDI_MOVIES, BACKUP_HINDI_SERIES } from "@/lib/tmdb";
+import {
+  tmdb,
+  IMAGE_BASE,
+  DEFAULT_CREDITS,
+  EXTENDED_MOVIES_CATALOG,
+  EXTENDED_SERIES_CATALOG,
+} from "@/lib/tmdb";
 import { HINDI_DUBBED_ANIME_CATALOG } from "@/lib/animeService";
 import { watchlistManager } from "@/lib/watchlistManager";
 import { downloadManager } from "@/lib/downloadManager";
@@ -41,7 +46,6 @@ export default function DetailsPage() {
   const [inWatchlist, setInWatchlist] = useState<boolean>(false);
   const [downloaded, setDownloaded] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -67,7 +71,7 @@ export default function DetailsPage() {
           setCast(rawCast);
           setCrew(rawCrew);
 
-          // Category-aware recommendations
+          // Build large catalog pool for 2-row discovery
           let recs: any[] = [];
           if (source === "anime") {
             recs = HINDI_DUBBED_ANIME_CATALOG.filter((a) => String(a.mal_id) !== String(id)).map((a) => ({
@@ -81,13 +85,24 @@ export default function DetailsPage() {
             }));
           } else if (data.recommendations?.results?.length) {
             recs = data.recommendations.results;
-          } else if (data.similar?.results?.length) {
-            recs = data.similar.results;
           } else {
             recs = type === "tv"
-              ? BACKUP_HINDI_SERIES.filter((s) => String(s.id) !== String(id))
-              : BACKUP_HINDI_MOVIES.filter((m) => String(m.id) !== String(id));
+              ? EXTENDED_SERIES_CATALOG.filter((s) => String(s.id) !== String(id))
+              : EXTENDED_MOVIES_CATALOG.filter((m) => String(m.id) !== String(id));
           }
+
+          // Ensure at least 10-16 titles to populate 2 rows nicely
+          if (recs.length < 10) {
+            const fallbackFill = type === "tv" ? EXTENDED_SERIES_CATALOG : EXTENDED_MOVIES_CATALOG;
+            const existingIds = new Set(recs.map((r) => String(r.id)));
+            fallbackFill.forEach((item) => {
+              if (!existingIds.has(String(item.id)) && String(item.id) !== String(id)) {
+                recs.push(item);
+                existingIds.add(String(item.id));
+              }
+            });
+          }
+
           setRecommendations(recs);
         }
       } catch (e) {
@@ -152,10 +167,6 @@ export default function DetailsPage() {
     setDownloaded(true);
   };
 
-  const markImageBroken = (key: string) => {
-    setBrokenImages((prev) => ({ ...prev, [key]: true }));
-  };
-
   if (loading && !details) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -173,7 +184,7 @@ export default function DetailsPage() {
     : null;
   const rating = details?.vote_average ? details.vote_average.toFixed(1) : "8.1";
 
-  // Dynamic filter for Cast, Director, and Producer
+  // Filter Credits for Cast, Director, Producer
   const directors = crew.filter(
     (c: any) =>
       c.job?.toLowerCase() === "director" ||
@@ -198,16 +209,14 @@ export default function DetailsPage() {
       <div className="relative rounded-3xl p-4 sm:p-5 border border-white/10 bg-[#0e0e14]/90 backdrop-blur-2xl shadow-2xl overflow-hidden">
         {details?.backdrop_path && (
           <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <Image
+            <img
               src={
                 details.backdrop_path.startsWith("http")
                   ? details.backdrop_path
                   : `${IMAGE_BASE}/w780${details.backdrop_path}`
               }
               alt=""
-              fill
-              unoptimized
-              className="object-cover blur-2xl"
+              className="w-full h-full object-cover blur-2xl"
             />
           </div>
         )}
@@ -228,7 +237,7 @@ export default function DetailsPage() {
           <div className="flex gap-4 items-start">
             <div className="relative w-28 aspect-[2/3] rounded-2xl overflow-hidden bg-zinc-950 border border-white/15 flex-none shadow-xl">
               {posterUrl ? (
-                <Image src={posterUrl} alt={title} fill unoptimized className="object-cover" />
+                <img src={posterUrl} alt={title} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
                   Poster
@@ -315,7 +324,7 @@ export default function DetailsPage() {
         </p>
       </div>
 
-      {/* 3. Cast & Crew Matrix with working tabs & resilient avatars */}
+      {/* 3. Cast & Crew with working photos */}
       <div className="space-y-3 px-1">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
           <div className="flex items-center gap-1.5">
@@ -368,9 +377,7 @@ export default function DetailsPage() {
         {creditViewMode === "grid" ? (
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2">
             {displayCredits.map((member: any, idx: number) => {
-              const imageKey = `credit-${member.id || idx}`;
-              const isBroken = brokenImages[imageKey];
-              const avatar = !isBroken && member.profile_path
+              const avatar = member.profile_path
                 ? member.profile_path.startsWith("http")
                   ? member.profile_path
                   : `${IMAGE_BASE}/w185${member.profile_path}`
@@ -381,15 +388,15 @@ export default function DetailsPage() {
                   key={`credit-${member.id || idx}-${member.job || member.character || idx}`}
                   className="flex-none w-24 p-2.5 rounded-2xl bg-[#0c0c14]/80 border border-white/10 flex flex-col items-center text-center space-y-1.5 shadow-md hover:border-white/25 transition"
                 >
-                  <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-950 border border-white/20 flex-none shadow-inner flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 border border-white/20 flex-none shadow-inner flex items-center justify-center relative">
                     {avatar ? (
-                      <Image
+                      <img
                         src={avatar}
                         alt=""
-                        fill
-                        unoptimized
-                        className="object-cover"
-                        onError={() => markImageBroken(imageKey)}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
                       />
                     ) : (
                       <span className="text-white font-black text-xs tracking-wider">
@@ -410,9 +417,7 @@ export default function DetailsPage() {
         ) : (
           <div className="flex flex-col gap-1.5">
             {displayCredits.map((member: any, idx: number) => {
-              const imageKey = `credit-list-${member.id || idx}`;
-              const isBroken = brokenImages[imageKey];
-              const avatar = !isBroken && member.profile_path
+              const avatar = member.profile_path
                 ? member.profile_path.startsWith("http")
                   ? member.profile_path
                   : `${IMAGE_BASE}/w185${member.profile_path}`
@@ -423,15 +428,15 @@ export default function DetailsPage() {
                   key={`credit-list-${member.id || idx}-${member.job || member.character || idx}`}
                   className="flex items-center gap-3 p-2 rounded-xl bg-[#0c0c14]/80 border border-white/10"
                 >
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-950 border border-white/15 flex-none flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-800 border border-white/15 flex-none flex items-center justify-center">
                     {avatar ? (
-                      <Image
+                      <img
                         src={avatar}
                         alt=""
-                        fill
-                        unoptimized
-                        className="object-cover"
-                        onError={() => markImageBroken(imageKey)}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
                       />
                     ) : (
                       <span className="text-white font-bold text-xs">
@@ -452,8 +457,8 @@ export default function DetailsPage() {
         )}
       </div>
 
-      {/* 4. "More Like This" Discovery Shelf with Horizontal Edge-Peeking Posters */}
-      <div className="space-y-2 pt-2 border-t border-white/10">
+      {/* 4. "More Like This" — 2 Horizontal Rows with multiple posters */}
+      <div className="space-y-2.5 pt-2 border-t border-white/10">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-1.5">
             <Compass className="w-4 h-4 text-red-500" />
@@ -464,11 +469,10 @@ export default function DetailsPage() {
           </span>
         </div>
 
-        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-2 px-0.5">
+        {/* 2-ROW HORIZONTAL SCROLL MATRIX */}
+        <div className="grid grid-rows-2 grid-flow-col auto-cols-[110px] sm:auto-cols-[125px] gap-2.5 overflow-x-auto no-scrollbar pb-3 px-0.5">
           {recommendations.map((item: any, idx: number) => {
-            const recImageKey = `rec-img-${item.id || idx}`;
-            const isRecBroken = brokenImages[recImageKey];
-            const poster = !isRecBroken && item.poster_path
+            const poster = item.poster_path
               ? item.poster_path.startsWith("http")
                 ? item.poster_path
                 : `${IMAGE_BASE}/w185${item.poster_path}`
@@ -477,24 +481,21 @@ export default function DetailsPage() {
 
             return (
               <Link
-                key={`rec-${item.id}-${idx}`}
+                key={`rec-row-${item.id}-${idx}`}
                 href={
                   item.source === "anime" || (recType === "tv" && String(item.id).length < 6)
                     ? `/details/${item.id}?type=tv&source=anime`
                     : `/details/${item.id}?type=${recType}`
                 }
                 onClick={() => soundFx.playCinematicPop()}
-                className="flex-none w-28 group relative"
+                className="group relative flex flex-col"
               >
                 <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
                   {poster ? (
-                    <Image
+                    <img
                       src={poster}
                       alt=""
-                      fill
-                      unoptimized
-                      className="object-cover transition duration-300"
-                      onError={() => markImageBroken(recImageKey)}
+                      className="w-full h-full object-cover transition duration-300"
                     />
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900 p-2 text-center">
@@ -504,7 +505,7 @@ export default function DetailsPage() {
                     </div>
                   )}
 
-                  {/* Red Frosted Glass Tag */}
+                  {/* Red Frosted Glass Multi Badge */}
                   <div className="absolute top-1.5 left-1.5 z-10">
                     <span className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
                       MULTI
@@ -519,10 +520,10 @@ export default function DetailsPage() {
                   ) : null}
                 </div>
 
-                <h4 className="text-[11px] font-bold text-white truncate mt-1 group-hover:text-red-300 transition">
+                <h4 className="text-[10px] font-bold text-white truncate mt-1 group-hover:text-red-300 transition">
                   {item.title || item.name}
                 </h4>
-                <p className="text-[9px] text-zinc-400 font-mono truncate">
+                <p className="text-[8px] text-zinc-400 font-mono truncate">
                   {(item.release_date || item.first_air_date || "2024").slice(0, 4)}
                 </p>
               </Link>
