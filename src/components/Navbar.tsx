@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import Image from "next/image";
 import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Maximize2 } from "lucide-react";
 import { useSearch } from "@/context/SearchContext";
 import { soundFx } from "@/lib/soundFx";
+import { IMAGE_BASE } from "@/lib/tmdb";
 
 const CATEGORIES = [
   { label: "Home", href: "/", icon: Sparkles },
@@ -58,10 +60,8 @@ export const Navbar = () => {
 
       if (Math.abs(scrollDiff) > 8) {
         if (currentScrollY > 40 && scrollDiff > 0) {
-          // Scrolling down the page content -> hide navbar
           setIsVisible(false);
         } else {
-          // Scrolling up towards the top -> show navbar
           setIsVisible(true);
         }
       }
@@ -167,16 +167,19 @@ export const Navbar = () => {
     }
   };
 
+  // SINGLE CLICK: Opens Mini Search | DOUBLE CLICK: Opens Full Screen Search
   const handleSearchAction = (e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (clickTimer.current) {
+      // Second click within 260ms -> Fullscreen Search
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
       setSmallGlassOpen(false);
       soundFx.playCinematicWhoosh();
       openSearch();
     } else {
+      // First click -> wait to see if second click comes, otherwise toggle mini search
       clickTimer.current = setTimeout(() => {
         clickTimer.current = null;
         soundFx.playCinematicPop();
@@ -218,7 +221,7 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* Middle: Rotary Dial on Catalog OR Dynamic Page Indicator on Details/Player */}
+          {/* Middle: Rotary Dial or Dynamic Indicator */}
           <div
             className="flex-1 max-w-[240px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing touch-none select-none"
             onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
@@ -269,18 +272,103 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* Right: Quick Search Button */}
-          <div className="flex-none">
+          {/* Right: Quick Search Button & Mini Dropdown Container */}
+          <div className="flex-none relative" ref={containerRef}>
             <button
-              onClick={() => {
-                soundFx.playCinematicWhoosh();
-                openSearch();
-              }}
-              className="p-2 rounded-full bg-white/[0.07] hover:bg-white/[0.12] border border-white/15 text-zinc-300"
+              onClick={handleSearchAction}
+              className={`p-2 rounded-full border transition-all select-none active:scale-95 ${
+                smallGlassOpen
+                  ? "bg-white text-black border-white shadow-glow"
+                  : "bg-white/[0.07] hover:bg-white/[0.12] border-white/15 text-zinc-300"
+              }`}
               aria-label="Search"
+              title="Click once for mini search, twice for full screen"
             >
-              <Search className="w-3.5 h-3.5 text-zinc-300" />
+              <Search className={`w-3.5 h-3.5 ${smallGlassOpen ? "text-black" : "text-zinc-300"}`} />
             </button>
+
+            {/* Mini Search Bar Popover */}
+            {smallGlassOpen && (
+              <div
+                className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="relative flex items-center">
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 pointer-events-none" />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Quick search titles..."
+                    className="w-full py-1.5 pl-8 pr-14 rounded-xl text-xs text-white placeholder-zinc-400 bg-white/10 border border-white/20 focus:outline-none focus:border-white transition"
+                  />
+                  <div className="absolute right-2 flex items-center gap-1">
+                    {query && (
+                      <button
+                        onClick={() => {
+                          setQuery("");
+                          setResults([]);
+                        }}
+                        className="p-0.5 rounded-full text-zinc-400 hover:text-white"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSmallGlassOpen(false);
+                        soundFx.playCinematicWhoosh();
+                        openSearch();
+                      }}
+                      className="p-1 rounded text-zinc-400 hover:text-white"
+                      title="Expand to Fullscreen"
+                    >
+                      <Maximize2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-56 overflow-y-auto no-scrollbar space-y-1">
+                  {loading && (
+                    <div className="py-3 text-center text-[10px] text-zinc-400">
+                      Searching...
+                    </div>
+                  )}
+
+                  {results.map((item) => {
+                    const itemTitle = item.title || item.name || "Untitled";
+                    const poster = item.poster_path ? `${IMAGE_BASE}/w92${item.poster_path}` : null;
+
+                    return (
+                      <div
+                        key={`${item.media_type}-${item.id}`}
+                        onClick={() => {
+                          soundFx.playCinematicPop();
+                          setSmallGlassOpen(false);
+                          router.push(`/details/${item.id}?type=${item.media_type}`);
+                        }}
+                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition cursor-pointer"
+                      >
+                        <div className="relative w-7 h-9 rounded-md overflow-hidden bg-zinc-950 flex-none border border-white/10">
+                          {poster ? (
+                            <Image src={poster} alt={itemTitle} fill className="object-cover" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-[8px] text-zinc-600">N/A</div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-[11px] font-bold text-white truncate">{itemTitle}</h4>
+                          <span className="text-[9px] text-zinc-400 uppercase">
+                            {item.media_type === "tv" ? "Series" : "Movie"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
