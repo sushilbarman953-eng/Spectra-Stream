@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
-import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Maximize2 } from "lucide-react";
+import { Search, Sparkles, Film, Tv, Radio, Flame, Mic, X, Maximize2, Star } from "lucide-react";
 import { useSearch } from "@/context/SearchContext";
 import { soundFx } from "@/lib/soundFx";
 import { IMAGE_BASE } from "@/lib/tmdb";
@@ -27,11 +27,9 @@ export const Navbar = () => {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Directional scroll state
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
 
-  // Wheel Drag State
   const [isDragging, setIsDragging] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
 
@@ -52,7 +50,6 @@ export const Navbar = () => {
 
   const currentIndex = isDragging ? previewIndex : baseIndex;
 
-  // Scroll listener: hides when scrolling up (reading down), appears when scrolling down (returning to top)
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -87,6 +84,7 @@ export const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // INSTANT PER-CHARACTER SEARCH (100ms debounce)
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -97,17 +95,17 @@ export const Navbar = () => {
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
         if (res.ok) {
           const data = await res.json();
-          setResults((data.results || []).slice(0, 5));
+          setResults(data.results || []);
         }
       } catch (err) {
         console.error("Search error:", err);
       } finally {
         setLoading(false);
       }
-    }, 220);
+    }, 100);
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -167,19 +165,16 @@ export const Navbar = () => {
     }
   };
 
-  // SINGLE CLICK: Opens Mini Search | DOUBLE CLICK: Opens Full Screen Search
   const handleSearchAction = (e: React.MouseEvent) => {
     e.stopPropagation();
 
     if (clickTimer.current) {
-      // Second click within 260ms -> Fullscreen Search
       clearTimeout(clickTimer.current);
       clickTimer.current = null;
       setSmallGlassOpen(false);
       soundFx.playCinematicWhoosh();
       openSearch();
     } else {
-      // First click -> wait to see if second click comes, otherwise toggle mini search
       clickTimer.current = setTimeout(() => {
         clickTimer.current = null;
         soundFx.playCinematicPop();
@@ -189,6 +184,20 @@ export const Navbar = () => {
           return next;
         });
       }, 260);
+    }
+  };
+
+  const handleItemSelect = (item: any) => {
+    soundFx.playCinematicPop();
+    setSmallGlassOpen(false);
+    setQuery("");
+
+    if (item.media_type === "live_tv") {
+      router.push("/tv");
+    } else if (item.media_type === "anime") {
+      router.push(`/details/${item.id}?type=tv&source=anime`);
+    } else {
+      router.push(`/details/${item.id}?type=${item.media_type || "movie"}`);
     }
   };
 
@@ -209,7 +218,6 @@ export const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
         <div className="flex items-center justify-between gap-1 sm:gap-2 h-10">
-          
           {/* Left Brand */}
           <div className="flex-none">
             <Link
@@ -221,7 +229,7 @@ export const Navbar = () => {
             </Link>
           </div>
 
-          {/* Middle: Rotary Dial or Dynamic Indicator */}
+          {/* Middle: Category Wheel or Context Pill */}
           <div
             className="flex-1 max-w-[240px] sm:max-w-md mx-auto overflow-hidden relative cursor-grab active:cursor-grabbing touch-none select-none"
             onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
@@ -272,7 +280,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* Right: Quick Search Button & Mini Dropdown Container */}
+          {/* Right: Search Button & Live Dropdown */}
           <div className="flex-none relative" ref={containerRef}>
             <button
               onClick={handleSearchAction}
@@ -287,30 +295,30 @@ export const Navbar = () => {
               <Search className={`w-3.5 h-3.5 ${smallGlassOpen ? "text-black" : "text-zinc-300"}`} />
             </button>
 
-            {/* Mini Search Bar Popover */}
+            {/* Live Search Popup Overlay */}
             {smallGlassOpen && (
               <div
-                className="absolute top-12 right-0 w-72 sm:w-80 rounded-2xl p-2.5 bg-[#09090e]/95 backdrop-blur-3xl border border-white/25 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2 animate-in fade-in zoom-in-95 duration-200"
+                className="absolute top-12 right-0 w-80 sm:w-96 rounded-3xl p-3 bg-[#09090e]/95 backdrop-blur-3xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 space-y-2.5 animate-in fade-in zoom-in-95 duration-150"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="relative flex items-center">
-                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-2.5 pointer-events-none" />
+                  <Search className="w-3.5 h-3.5 text-zinc-400 absolute left-3 pointer-events-none" />
                   <input
                     ref={inputRef}
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Quick search titles..."
-                    className="w-full py-1.5 pl-8 pr-14 rounded-xl text-xs text-white placeholder-zinc-400 bg-white/10 border border-white/20 focus:outline-none focus:border-white transition"
+                    placeholder="Search movies, anime, series, live TV..."
+                    className="w-full py-2 pl-9 pr-14 rounded-2xl text-xs text-white placeholder-zinc-400 bg-white/10 border border-white/20 focus:outline-none focus:border-white transition"
                   />
-                  <div className="absolute right-2 flex items-center gap-1">
+                  <div className="absolute right-2.5 flex items-center gap-1.5">
                     {query && (
                       <button
                         onClick={() => {
                           setQuery("");
                           setResults([]);
                         }}
-                        className="p-0.5 rounded-full text-zinc-400 hover:text-white"
+                        className="p-1 rounded-full text-zinc-400 hover:text-white"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -322,46 +330,93 @@ export const Navbar = () => {
                         openSearch();
                       }}
                       className="p-1 rounded text-zinc-400 hover:text-white"
-                      title="Expand to Fullscreen"
+                      title="Fullscreen Modal"
                     >
                       <Maximize2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
 
-                <div className="max-h-56 overflow-y-auto no-scrollbar space-y-1">
+                {/* Instant Result Rows */}
+                <div className="max-h-72 overflow-y-auto no-scrollbar space-y-1.5">
                   {loading && (
-                    <div className="py-3 text-center text-[10px] text-zinc-400">
-                      Searching...
+                    <div className="py-4 text-center text-[11px] text-zinc-400 font-mono">
+                      Searching catalog...
+                    </div>
+                  )}
+
+                  {!loading && query && results.length === 0 && (
+                    <div className="py-4 text-center text-xs text-zinc-400">
+                      No results for &ldquo;{query}&rdquo;
                     </div>
                   )}
 
                   {results.map((item) => {
-                    const itemTitle = item.title || item.name || "Untitled";
-                    const poster = item.poster_path ? `${IMAGE_BASE}/w92${item.poster_path}` : null;
+                    const poster = item.poster_path
+                      ? item.poster_path.startsWith("http")
+                        ? item.poster_path
+                        : `${IMAGE_BASE}/w92${item.poster_path}`
+                      : null;
+
+                    const mediaBadge =
+                      item.media_type === "live_tv"
+                        ? "LIVE TV"
+                        : item.media_type === "anime"
+                        ? "ANIME"
+                        : item.media_type === "tv"
+                        ? "SERIES"
+                        : "MOVIE";
+
+                    const badgeColor =
+                      item.media_type === "live_tv"
+                        ? "bg-red-500/20 text-red-400 border-red-500/30"
+                        : item.media_type === "anime"
+                        ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                        : "bg-white/10 text-zinc-300 border-white/15";
 
                     return (
                       <div
                         key={`${item.media_type}-${item.id}`}
-                        onClick={() => {
-                          soundFx.playCinematicPop();
-                          setSmallGlassOpen(false);
-                          router.push(`/details/${item.id}?type=${item.media_type}`);
-                        }}
-                        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/10 transition cursor-pointer"
+                        onClick={() => handleItemSelect(item)}
+                        className="flex items-center gap-3 p-2 rounded-2xl hover:bg-white/10 border border-transparent hover:border-white/15 transition cursor-pointer group"
                       >
-                        <div className="relative w-7 h-9 rounded-md overflow-hidden bg-zinc-950 flex-none border border-white/10">
+                        <div className="relative w-10 h-14 rounded-xl overflow-hidden bg-zinc-950 flex-none border border-white/15">
                           {poster ? (
-                            <Image src={poster} alt={itemTitle} fill className="object-cover" />
+                            <Image
+                              src={poster}
+                              alt={item.title}
+                              fill
+                              unoptimized
+                              className="object-cover group-hover:scale-105 transition-transform"
+                            />
                           ) : (
-                            <div className="flex items-center justify-center h-full text-[8px] text-zinc-600">N/A</div>
+                            <div className="flex items-center justify-center h-full text-zinc-600">
+                              {item.media_type === "live_tv" ? (
+                                <Radio className="w-4 h-4 text-red-400" />
+                              ) : (
+                                <Film className="w-4 h-4 text-zinc-500" />
+                              )}
+                            </div>
                           )}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="text-[11px] font-bold text-white truncate">{itemTitle}</h4>
-                          <span className="text-[9px] text-zinc-400 uppercase">
-                            {item.media_type === "tv" ? "Series" : "Movie"}
-                          </span>
+
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <h4 className="text-xs font-bold text-white truncate group-hover:text-red-300 transition">
+                            {item.title}
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase font-mono ${badgeColor}`}
+                            >
+                              {mediaBadge}
+                            </span>
+                            {item.vote_average ? (
+                              <span className="flex items-center gap-0.5 text-[9px] font-bold text-zinc-300">
+                                <Star className="w-2.5 h-2.5 fill-white text-white" />
+                                {item.vote_average.toFixed(1)}
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     );
