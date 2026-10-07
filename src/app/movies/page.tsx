@@ -53,7 +53,13 @@ export default function MoviesPage() {
   ];
 
   const trendingByTab: Record<string, MediaItem[]> = {
-    top_hits: [BOLLYWOOD_CATALOG[0], SOUTH_INDIAN_CATALOG[0], HOLLYWOOD_CATALOG[0], BOLLYWOOD_CATALOG[1], SOUTH_INDIAN_CATALOG[1]],
+    top_hits: [
+      BOLLYWOOD_CATALOG[0],
+      SOUTH_INDIAN_CATALOG[0],
+      HOLLYWOOD_CATALOG[0],
+      BOLLYWOOD_CATALOG[1],
+      SOUTH_INDIAN_CATALOG[1],
+    ],
     cinema: BACKUP_HINDI_MOVIES,
     bollywood: BOLLYWOOD_CATALOG,
     south: SOUTH_INDIAN_CATALOG,

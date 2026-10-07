@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import Image, { ImageProps } from "next/image";
 import { Film } from "lucide-react";
 
-interface SafeImageProps extends Omit<ImageProps, "onError" | "onLoad"> {
+interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackSrc?: string;
 }
 
@@ -17,11 +16,10 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  // If no source is provided or image genuinely failed
   if (!src || failed) {
     return (
-      <div className="relative w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-b from-[#141420] to-[#0a0a10] border border-white/10 select-none">
-        <Film className="w-6 h-6 text-zinc-500 mb-1.5" />
+      <div className="relative w-full h-full flex flex-col items-center justify-center p-2.5 text-center bg-gradient-to-b from-[#181824] to-[#0c0c14] border border-white/10 select-none">
+        <Film className="w-5 h-5 text-zinc-500 mb-1" />
         <span className="text-[10px] font-bold text-zinc-300 line-clamp-2 px-1">
           {alt || "Media Poster"}
         </span>
@@ -31,18 +29,19 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0d0d14]">
-      {/* Dynamic Pulse Shimmer Skeleton */}
+      {/* Skeleton Shimmer */}
       {loading && (
         <div className="absolute inset-0 z-10 overflow-hidden bg-zinc-900/90">
           <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         </div>
       )}
 
-      <Image
+      {/* Native img tag avoids Next.js remote domain & proxy interceptors */}
+      <img
         {...props}
         src={src}
-        alt={alt || "Media"}
-        unoptimized
+        alt={alt || "Artwork"}
+        loading="lazy"
         onLoad={() => setLoading(false)}
         onError={() => {
           setFailed(true);

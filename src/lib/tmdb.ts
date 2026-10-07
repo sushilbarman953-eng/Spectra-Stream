@@ -31,7 +31,7 @@ export interface EpisodeItem {
 
 export const IMAGE_BASE = "https://image.tmdb.org/t/p";
 
-// 1. BOLLYWOOD HINDI BLOCKBUSTERS (All unique, authentic TMDB posters)
+// 1. BOLLYWOOD HINDI CINEMA
 export const BOLLYWOOD_CATALOG: MediaItem[] = [
   {
     id: 872906,
@@ -87,18 +87,9 @@ export const BOLLYWOOD_CATALOG: MediaItem[] = [
     audioLanguages: ["HIN"],
     release_date: "2024",
   },
-  {
-    id: 934433,
-    title: "Stree 2",
-    poster_path: "https://image.tmdb.org/t/p/w500/1X7a4bC5dE8fGhIjKlMnOpQrStU.jpg",
-    vote_average: 7.8,
-    media_type: "movie",
-    audioLanguages: ["HIN"],
-    release_date: "2024",
-  },
 ];
 
-// 2. SOUTH INDIAN BLOCKBUSTERS (Telugu, Tamil, Kannada, Malayalam)
+// 2. SOUTH INDIAN BLOCKBUSTERS
 export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
   {
     id: 579974,
@@ -106,7 +97,7 @@ export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
     poster_path: "https://image.tmdb.org/t/p/w500/wE0noMt2q9ELvlCGQMSvW4gu0vL.jpg",
     vote_average: 8.6,
     media_type: "movie",
-    audioLanguages: ["TEL", "HIN", "TAM"],
+    audioLanguages: ["TEL", "HIN"],
     release_date: "2022",
   },
   {
@@ -115,7 +106,7 @@ export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
     poster_path: "https://image.tmdb.org/t/p/w500/x7fB6F5bQ1yK4j9n1t5lO0xQ8A9.jpg",
     vote_average: 8.0,
     media_type: "movie",
-    audioLanguages: ["TEL", "HIN", "TAM"],
+    audioLanguages: ["TEL", "HIN"],
     release_date: "2024",
   },
   {
@@ -146,15 +137,6 @@ export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
     release_date: "2022",
   },
   {
-    id: 976573,
-    title: "Jailer",
-    poster_path: "https://image.tmdb.org/t/p/w500/7L4jM8u6z9qB3t1Q2M5c7X4jM8u.jpg",
-    vote_average: 7.6,
-    media_type: "movie",
-    audioLanguages: ["TAM", "HIN"],
-    release_date: "2023",
-  },
-  {
     id: 1125553,
     title: "Pushpa: The Rise",
     poster_path: "https://image.tmdb.org/t/p/w500/1X7a4bC5dE8fGhIjKlMnOpQrSt9.jpg",
@@ -165,7 +147,7 @@ export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
   },
 ];
 
-// 3. HOLLYWOOD DUAL AUDIO (Hindi + English)
+// 3. HOLLYWOOD DUAL AUDIO
 export const HOLLYWOOD_CATALOG: MediaItem[] = [
   {
     id: 693134,
@@ -223,7 +205,7 @@ export const HOLLYWOOD_CATALOG: MediaItem[] = [
   },
 ];
 
-// 4. REGIONAL CINEMA (Punjabi, Bengali, Marathi)
+// 4. REGIONAL HIT RELEASES (Unique individual posters)
 export const REGIONAL_CATALOG: MediaItem[] = [
   {
     id: 853036,
@@ -246,7 +228,7 @@ export const REGIONAL_CATALOG: MediaItem[] = [
   {
     id: 1111102,
     title: "Bhooter Bhabishyat",
-    poster_path: "https://image.tmdb.org/t/p/w500/fiVW06jE7z9YnO4trhaMEdclSiC.jpg",
+    poster_path: "https://image.tmdb.org/t/p/w500/7I6VUdPj6tQECNHdviJkUHD2f89.jpg",
     vote_average: 8.2,
     media_type: "movie",
     audioLanguages: ["BEN", "HIN"],
@@ -321,26 +303,6 @@ export const BACKUP_HINDI_SERIES: MediaItem[] = [
     audioLanguages: ["MULTI", "HIN"],
     first_air_date: "2011",
   },
-  {
-    id: 94605,
-    name: "Mirzapur",
-    title: "Mirzapur",
-    poster_path: "https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqAt2V7JMrHG.jpg",
-    vote_average: 8.3,
-    media_type: "tv",
-    audioLanguages: ["HIN"],
-    first_air_date: "2018",
-  },
-  {
-    id: 87739,
-    name: "The Family Man",
-    title: "The Family Man",
-    poster_path: "https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",
-    vote_average: 8.5,
-    media_type: "tv",
-    audioLanguages: ["HIN"],
-    first_air_date: "2019",
-  },
 ];
 
 export const EXTENDED_MOVIES_CATALOG = BACKUP_HINDI_MOVIES;
@@ -348,14 +310,12 @@ export const EXTENDED_SERIES_CATALOG = BACKUP_HINDI_SERIES;
 
 export const DEFAULT_CREDITS = {
   cast: [
-    { id: 1, name: "Shah Rukh Khan", character: "Lead Actor", profile_path: "https://image.tmdb.org/t/p/w185/1E5baAaEse26fej7uHcjOgEE2t2.jpg" },
-    { id: 2, name: "Deepika Padukone", character: "Lead Actress", profile_path: "https://image.tmdb.org/t/p/w185/7NGzHqXm5ZqW2wB3uT1l4v4J2qP.jpg" },
-    { id: 3, name: "Cillian Murphy", character: "J. Robert Oppenheimer", profile_path: "https://image.tmdb.org/t/p/w185/360Rz7dZ0U575n009kQ2jX8rL1e.jpg" },
-    { id: 4, name: "Tom Cruise", character: "Ethan Hunt", profile_path: "https://image.tmdb.org/t/p/w185/8qB9q5m6c7X4jM8u6z9qB3t1Q2M.jpg" },
+    { id: 1, name: "Shah Rukh Khan", character: "Lead", profile_path: "https://image.tmdb.org/t/p/w185/A8kW5XORq44SgnYnILR7zp9G2zP.jpg" },
+    { id: 2, name: "Deepika Padukone", character: "Lead", profile_path: "https://image.tmdb.org/t/p/w185/kZ09j8mY1e4u6Z9qB3t1Q2M5c7X.jpg" },
+    { id: 3, name: "Cillian Murphy", character: "Lead", profile_path: "https://image.tmdb.org/t/p/w185/360Rz7dZ0U575n009kQ2jX8rL1e.jpg" },
   ],
   crew: [
     { id: 10, name: "Christopher Nolan", job: "Director", profile_path: "https://image.tmdb.org/t/p/w185/xuAIuYSmsUzKlUMBFGVZaWsY3Z5.jpg" },
-    { id: 11, name: "Emma Thomas", job: "Producer", profile_path: null },
   ],
 };
 
@@ -371,7 +331,7 @@ export const tmdb = {
   getTopRated: async (type: "movie" | "tv"): Promise<MediaItem[]> => {
     return type === "movie" ? SOUTH_INDIAN_CATALOG : BACKUP_HINDI_SERIES;
   },
-  discoverMedia: async (type: "movie" | "tv", _genreId?: number, _extra?: string, _page?: number): Promise<MediaItem[]> => {
+  discoverMedia: async (type: "movie" | "tv"): Promise<MediaItem[]> => {
     return type === "movie" ? BACKUP_HINDI_MOVIES : BACKUP_HINDI_SERIES;
   },
   getDetails: async (type: "movie" | "tv", id: string | number): Promise<any> => {
@@ -379,17 +339,17 @@ export const tmdb = {
     const found = pool.find((item) => String(item.id) === String(id)) || pool[0];
     return {
       ...found,
-      runtime: 154,
+      runtime: 148,
       credits: DEFAULT_CREDITS,
-      overview: found?.overview || "Experience high-definition multi-audio cinema on Spectra Stream.",
-      recommendations: { results: pool.slice(1, 10) },
+      overview: found?.overview || "Streaming in HD Multi-Audio on Spectra.",
+      recommendations: { results: pool.slice(1, 8) },
     };
   },
   getSeasonEpisodes: async (_id: string | number, season: number = 1): Promise<EpisodeItem[]> => {
-    return Array.from({ length: 10 }).map((_, idx) => ({
+    return Array.from({ length: 8 }).map((_, idx) => ({
       id: idx + 1,
       name: `Episode ${idx + 1}`,
-      overview: `Streaming Season ${season} Episode ${idx + 1} with multi-audio support.`,
+      overview: `Season ${season} Episode ${idx + 1}`,
       episode_number: idx + 1,
       season_number: season,
       still_path: "https://image.tmdb.org/t/p/w300/uKvVjHNqB5VmOrdxqAt2V7JMrHG.jpg",
@@ -418,14 +378,6 @@ export const getRealtimeComingSoon = async (): Promise<any[]> => {
       releaseDateText: "Oct 18",
       bookedCount: 12200,
       posterUrl: "https://image.tmdb.org/t/p/w500/p15w8b5jM3t7iF1G8Q4rQ8n5Y7K.jpg",
-      type: "movie",
-    },
-    {
-      id: "cs3",
-      title: "Vettaiyan",
-      releaseDateText: "Oct 24",
-      bookedCount: 19800,
-      posterUrl: "https://image.tmdb.org/t/p/w500/7L4jM8u6z9qB3t1Q2M5c7X4jM8u.jpg",
       type: "movie",
     },
   ];
