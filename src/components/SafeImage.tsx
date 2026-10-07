@@ -10,36 +10,36 @@ interface SafeImageProps extends Omit<ImageProps, "onError" | "onLoad"> {
 export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt,
-  fallbackSrc = "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80",
   className,
   ...props
 }) => {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [failed, setFailed] = useState(false);
 
-  const finalSrc = error ? fallbackSrc : src;
+  // High-contrast clean dark cinema fallback
+  const fallbackArtwork = "https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg";
+  const imageSrc = !src || failed ? fallbackArtwork : src;
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-zinc-950">
-      {/* SHIMMER SKELETON EFFECT */}
+    <div className="relative w-full h-full overflow-hidden bg-[#0d0d14]">
+      {/* Dynamic Pulse Shimmer Skeleton */}
       {loading && (
-        <div className="absolute inset-0 z-10 overflow-hidden bg-zinc-900/80">
-          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="absolute inset-0 z-10 overflow-hidden bg-zinc-900/90">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
         </div>
       )}
 
-      {/* RENDERED IMAGE */}
       <Image
         {...props}
-        src={finalSrc}
-        alt={alt || "Media artwork"}
+        src={imageSrc}
+        alt={alt || "Artwork"}
         unoptimized
         onLoad={() => setLoading(false)}
         onError={() => {
-          setError(true);
+          setFailed(true);
           setLoading(false);
         }}
-        className={`w-full h-full object-cover transition-opacity duration-500 ${
+        className={`w-full h-full object-cover transition-opacity duration-300 ${
           loading ? "opacity-0" : "opacity-100"
         } ${className || ""}`}
       />
