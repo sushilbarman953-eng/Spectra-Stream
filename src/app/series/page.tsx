@@ -1,60 +1,57 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Tv, Trophy, ShieldAlert, Smile, Radio } from "lucide-react";
-import { tmdb, MediaItem, BACKUP_HINDI_SERIES } from "@/lib/tmdb";
+import React, { useState } from "react";
+import Link from "next/link";
+import { Tv, Trophy, ShieldAlert, Radio, Smile, ChevronRight } from "lucide-react";
+import { BACKUP_HINDI_SERIES, MediaItem } from "@/lib/tmdb";
 import { HeroCarousel } from "@/components/HeroCarousel";
-import { OttShelf } from "@/components/OttShelf";
+import { MediaPosterCard } from "@/components/MediaPosterCard";
+import { soundFx } from "@/lib/soundFx";
 
 export default function SeriesPage() {
-  const [top10Series, setTop10Series] = useState<MediaItem[]>(BACKUP_HINDI_SERIES);
-  const [indianSeries, setIndianSeries] = useState<MediaItem[]>(BACKUP_HINDI_SERIES);
-  const [crimeThrillers, setCrimeThrillers] = useState<MediaItem[]>(BACKUP_HINDI_SERIES);
-  const [globalDubbed, setGlobalDubbed] = useState<MediaItem[]>(BACKUP_HINDI_SERIES);
-  const [comedySitcoms, setComedySitcoms] = useState<MediaItem[]>(BACKUP_HINDI_SERIES);
+  const [activeTab] = useState<string>("all");
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadSeries = async () => {
-      try {
-        const [trend, inWeb, crime, global, com] = await Promise.all([
-          tmdb.getTrending("tv"),
-          tmdb.getHindiSeries(),
-          tmdb.discoverMedia("tv", 80),
-          tmdb.discoverMedia("tv", 10765, "&with_original_language=ko|es|en"),
-          tmdb.discoverMedia("tv", 35),
-        ]);
+  const renderShelf = (title: string, items: MediaItem[], icon: any) => {
+    const IconComp = icon;
+    return (
+      <section className="space-y-2.5 select-none">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-1.5">
+            <IconComp className="w-4 h-4 text-red-500" />
+            <h2 className="text-sm font-bold text-white tracking-wide">{title}</h2>
+          </div>
+          <Link
+            href="/explore"
+            onClick={() => soundFx.playCinematicPop()}
+            className="text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-0.5 transition"
+          >
+            <span>All</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
 
-        if (isMounted) {
-          const enrich = (items: MediaItem[], audios: string[]) =>
-            (items?.length ? items : BACKUP_HINDI_SERIES).map((i) => ({ ...i, audioLanguages: audios }));
-
-          if (trend?.length) setTop10Series(enrich(trend.slice(0, 10), ["HIN", "ENG"]));
-          if (inWeb?.length) setIndianSeries(enrich(inWeb, ["HIN"]));
-          if (crime?.length) setCrimeThrillers(enrich(crime, ["HIN", "ENG"]));
-          if (global?.length) setGlobalDubbed(enrich(global, ["HIN", "KOR", "ENG"]));
-          if (com?.length) setComedySitcoms(enrich(com, ["HIN", "ENG"]));
-        }
-      } catch (e) {
-        console.error("Series load error:", e);
-      }
-    };
-
-    loadSeries();
-    return () => { isMounted = false; };
-  }, []);
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-0.5">
+          {items.map((item, idx) => (
+            <MediaPosterCard
+              key={`${title}-${item.id}-${idx}`}
+              item={item}
+              defaultType="tv"
+            />
+          ))}
+        </div>
+      </section>
+    );
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2 pb-28 space-y-6">
-      {/* 10-POSTER HERO CAROUSEL */}
-      <HeroCarousel items={top10Series} defaultType="tv" badgePrefix="Trending Series" />
+    <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
+      <HeroCarousel items={BACKUP_HINDI_SERIES} />
 
-      {/* OTT SHELVES */}
-      <OttShelf title="Top 10 Series Today" subtitle="Most watched web shows across India" icon={Trophy} items={top10Series} isRanked={true} type="tv" />
-      <OttShelf title="Indian OTT Originals" subtitle="Exclusive Hindi & regional shows" icon={Tv} items={indianSeries} type="tv" />
-      <OttShelf title="Suspense & Crime Thrillers" subtitle="Investigative and dark mystery series" icon={ShieldAlert} items={crimeThrillers} type="tv" />
-      <OttShelf title="Global Dramas in Hindi" subtitle="Korean & Spanish shows with Hindi audio" icon={Radio} items={globalDubbed} type="tv" badgeLabel="HIN DUB" />
-      <OttShelf title="Comedy & Sitcoms" subtitle="Lighthearted episodes for binge-watching" icon={Smile} items={comedySitcoms} type="tv" />
+      {renderShelf("Top 10 Series Today", BACKUP_HINDI_SERIES, Trophy)}
+      {renderShelf("Indian OTT Originals", BACKUP_HINDI_SERIES.slice(4), Tv)}
+      {renderShelf("Suspense & Crime Thrillers", BACKUP_HINDI_SERIES.slice(0, 4), ShieldAlert)}
+      {renderShelf("Global Dramas in Hindi", BACKUP_HINDI_SERIES.slice(2, 6), Radio)}
+      {renderShelf("Binge-Worthy Shows", BACKUP_HINDI_SERIES.slice(1, 5), Smile)}
     </div>
   );
 }

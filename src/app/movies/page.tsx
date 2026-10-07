@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Film,
@@ -13,11 +13,11 @@ import {
 } from "lucide-react";
 import {
   MediaItem,
-  BACKUP_HINDI_MOVIES,
   BOLLYWOOD_CATALOG,
   SOUTH_INDIAN_CATALOG,
   HOLLYWOOD_CATALOG,
-  getRealtimeTrending,
+  REGIONAL_CATALOG,
+  BACKUP_HINDI_MOVIES,
 } from "@/lib/tmdb";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { FilterableRankedShelf } from "@/components/FilterableRankedShelf";
@@ -41,94 +41,8 @@ const MOVIE_GENRE_PILLS = [
   { id: "drama", label: "Drama" },
 ];
 
-const FRANCHISE_SPOTLIGHTS: MediaItem[] = [
-  {
-    id: 385687,
-    title: "Fast X",
-    poster_path: "https://image.tmdb.org/t/p/w500/fiVW06jE7z9YnO4trhaMEdclSiC.jpg",
-    vote_average: 7.2,
-    media_type: "movie",
-    audioLanguages: ["MULTI", "HIN", "ENG"],
-  },
-  {
-    id: 671,
-    title: "Harry Potter and the Sorcerer's Stone",
-    poster_path: "https://image.tmdb.org/t/p/w500/wuMc08IPKEatv9rnMNXvIDxqP4W.jpg",
-    vote_average: 7.9,
-    media_type: "movie",
-    audioLanguages: ["MULTI", "HIN"],
-  },
-  {
-    id: 823464,
-    title: "Godzilla x Kong: The New Empire",
-    poster_path: "https://image.tmdb.org/t/p/w500/bQ2ywkchIiaKLSEaMrcT6e29f91.jpg",
-    vote_average: 7.2,
-    media_type: "movie",
-    audioLanguages: ["MULTI", "HIN"],
-  },
-  {
-    id: 299536,
-    title: "Avengers: Infinity War",
-    poster_path: "https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
-    vote_average: 8.3,
-    media_type: "movie",
-    audioLanguages: ["MULTI", "HIN", "ENG"],
-  },
-];
-
-// Verified Working TMDB Regional Indian Cinema Posters
-const REGIONAL_HINDI_HITS: MediaItem[] = [
-  {
-    id: 1125553,
-    title: "Carry On Jatta 3",
-    poster_path: "https://image.tmdb.org/t/p/w500/9bC1gq6p4M9y0K2t7Y0X1j43kG2.jpg",
-    vote_average: 8.0,
-    media_type: "movie",
-    audioLanguages: ["PUN", "HIN"],
-  },
-  {
-    id: 1163456,
-    title: "Baap Manus",
-    poster_path: "https://image.tmdb.org/t/p/w500/yDHYTfA3R0jFYba16jBB12R8GNT.jpg",
-    vote_average: 8.4,
-    media_type: "movie",
-    audioLanguages: ["MAR", "HIN"],
-  },
-  {
-    id: 1184321,
-    title: "Bhooter Bhabishyat",
-    poster_path: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
-    vote_average: 8.2,
-    media_type: "movie",
-    audioLanguages: ["BEN", "HIN"],
-  },
-  {
-    id: 1248932,
-    title: "Jatt & Juliet 3",
-    poster_path: "https://image.tmdb.org/t/p/w500/7I6VUdPj6tQECNHdviJkUHD2f89.jpg",
-    vote_average: 7.8,
-    media_type: "movie",
-    audioLanguages: ["PUN", "HIN"],
-  },
-];
-
 export default function MoviesPage() {
   const [activeGenre, setActiveGenre] = useState<string>("all");
-  const [heroCollection, setHeroCollection] = useState<MediaItem[]>([]);
-  const [trendingMovies, setTrendingMovies] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
-
-  useEffect(() => {
-    const mergedHero = [
-      ...HOLLYWOOD_CATALOG.slice(0, 4),
-      ...BOLLYWOOD_CATALOG.slice(0, 3),
-      ...SOUTH_INDIAN_CATALOG.slice(0, 3),
-    ];
-    setHeroCollection(mergedHero);
-
-    getRealtimeTrending("movie").then((items) => {
-      if (items && items.length > 0) setTrendingMovies(items);
-    });
-  }, []);
 
   const trendingTabs = [
     { id: "top_hits", label: "Top Hits" },
@@ -139,56 +53,12 @@ export default function MoviesPage() {
   ];
 
   const trendingByTab: Record<string, MediaItem[]> = {
-    top_hits: trendingMovies.slice(0, 10),
+    top_hits: [BOLLYWOOD_CATALOG[0], SOUTH_INDIAN_CATALOG[0], HOLLYWOOD_CATALOG[0], BOLLYWOOD_CATALOG[1], SOUTH_INDIAN_CATALOG[1]],
     cinema: BACKUP_HINDI_MOVIES,
     bollywood: BOLLYWOOD_CATALOG,
     south: SOUTH_INDIAN_CATALOG,
     hollywood: HOLLYWOOD_CATALOG,
   };
-
-  // Completely Unique Non-Repeating Titles for Random Movies
-  const randomMoviesPool: MediaItem[] = [
-    {
-      id: 533535,
-      title: "Deadpool & Wolverine",
-      poster_path: "https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg",
-      vote_average: 7.8,
-      media_type: "movie",
-      audioLanguages: ["MULTI", "HIN"],
-    },
-    {
-      id: 693134,
-      title: "Dune: Part Two",
-      poster_path: "https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
-      vote_average: 8.3,
-      media_type: "movie",
-      audioLanguages: ["MULTI", "HIN"],
-    },
-    {
-      id: 157336,
-      title: "Interstellar",
-      poster_path: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-      vote_average: 8.4,
-      media_type: "movie",
-      audioLanguages: ["MULTI", "HIN"],
-    },
-    {
-      id: 872585,
-      title: "Oppenheimer",
-      poster_path: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
-      vote_average: 8.1,
-      media_type: "movie",
-      audioLanguages: ["MULTI", "HIN"],
-    },
-    {
-      id: 945961,
-      title: "Alien: Romulus",
-      poster_path: "https://image.tmdb.org/t/p/w500/b33nnKl1GSJbao4l3fZ0A8Mm56a.jpg",
-      vote_average: 7.3,
-      media_type: "movie",
-      audioLanguages: ["MULTI", "HIN"],
-    },
-  ];
 
   const renderSectionShelf = (
     title: string,
@@ -231,7 +101,7 @@ export default function MoviesPage() {
     <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
       {/* 00. Hero Carousel */}
       <section className="w-full">
-        <HeroCarousel items={heroCollection.length > 0 ? heroCollection : BACKUP_HINDI_MOVIES} />
+        <HeroCarousel items={HOLLYWOOD_CATALOG.concat(BOLLYWOOD_CATALOG.slice(0, 3))} />
       </section>
 
       {/* 01. Category Filter Pills */}
@@ -267,7 +137,7 @@ export default function MoviesPage() {
       />
 
       {/* 03. Franchise Spotlights */}
-      {renderSectionShelf("Franchise Spotlights", FRANCHISE_SPOTLIGHTS, Sparkles)}
+      {renderSectionShelf("Franchise Spotlights", HOLLYWOOD_CATALOG.slice(2, 6), Sparkles)}
 
       {/* 04. Studio Franchises & Brand Hubs */}
       <StudioFranchiseHubs />
@@ -282,7 +152,7 @@ export default function MoviesPage() {
       {renderSectionShelf("South Indian", SOUTH_INDIAN_CATALOG, Clapperboard)}
 
       {/* 08. Regional Hits */}
-      {renderSectionShelf("Regional Hits", REGIONAL_HINDI_HITS, Flame)}
+      {renderSectionShelf("Regional Hits", REGIONAL_CATALOG, Flame)}
 
       {/* 09. Indian Stars */}
       <StarSpotlightCapsules
@@ -299,7 +169,17 @@ export default function MoviesPage() {
       />
 
       {/* 11. Random Movies */}
-      {renderSectionShelf("Random Movies", randomMoviesPool, Compass)}
+      {renderSectionShelf(
+        "Random Movies",
+        [
+          BOLLYWOOD_CATALOG[4],
+          SOUTH_INDIAN_CATALOG[2],
+          HOLLYWOOD_CATALOG[1],
+          SOUTH_INDIAN_CATALOG[4],
+          BOLLYWOOD_CATALOG[2],
+        ],
+        Compass
+      )}
     </div>
   );
 }

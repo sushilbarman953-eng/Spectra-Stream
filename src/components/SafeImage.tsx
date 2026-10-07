@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Image, { ImageProps } from "next/image";
+import { Film } from "lucide-react";
 
 interface SafeImageProps extends Omit<ImageProps, "onError" | "onLoad"> {
   fallbackSrc?: string;
@@ -16,9 +17,17 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  // High-contrast clean dark cinema fallback
-  const fallbackArtwork = "https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg";
-  const imageSrc = !src || failed ? fallbackArtwork : src;
+  // If no source is provided or image genuinely failed
+  if (!src || failed) {
+    return (
+      <div className="relative w-full h-full flex flex-col items-center justify-center p-3 text-center bg-gradient-to-b from-[#141420] to-[#0a0a10] border border-white/10 select-none">
+        <Film className="w-6 h-6 text-zinc-500 mb-1.5" />
+        <span className="text-[10px] font-bold text-zinc-300 line-clamp-2 px-1">
+          {alt || "Media Poster"}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-[#0d0d14]">
@@ -31,8 +40,8 @@ export const SafeImage: React.FC<SafeImageProps> = ({
 
       <Image
         {...props}
-        src={imageSrc}
-        alt={alt || "Artwork"}
+        src={src}
+        alt={alt || "Media"}
         unoptimized
         onLoad={() => setLoading(false)}
         onError={() => {
