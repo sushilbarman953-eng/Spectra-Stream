@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { IMAGE_BASE, MediaItem } from "@/lib/tmdb";
 import { soundFx } from "@/lib/soundFx";
+import { SafeImage } from "@/components/SafeImage";
 
 interface MediaPosterCardProps {
   item: MediaItem & { rank?: number; audioLanguages?: string[] };
@@ -49,19 +49,18 @@ export const MediaPosterCard: React.FC<MediaPosterCardProps> = ({
       className={`flex-none ${widthClass} group relative flex flex-col select-none`}
     >
       <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/35 transition-all shadow-md group-hover:scale-[1.02]">
-        <Image
+        {/* SAFE IMAGE WITH SHIMMER LOADER */}
+        <SafeImage
           src={resolvePoster(item.poster_path)}
           alt={title}
           fill
-          unoptimized
-          className="object-cover transition-transform duration-300"
         />
 
         {/* Ambient Top & Bottom Contrast Gradients */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
         {/* PERFECTLY LEVEL FLOATING HEADER ROW */}
-        <div className="absolute top-2 inset-x-2 z-10 flex items-center justify-between pointer-events-none">
+        <div className="absolute top-2 inset-x-2 z-20 flex items-center justify-between pointer-events-none">
           {/* Floating Left: Star Rating */}
           <div className="flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/80 backdrop-blur-md border border-white/15 text-[9px] font-bold text-white shadow-md leading-none">
             <Star className="w-2.5 h-2.5 fill-white text-white shrink-0" />
