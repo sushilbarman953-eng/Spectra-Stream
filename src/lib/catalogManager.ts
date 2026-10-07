@@ -49,6 +49,13 @@ export interface CustomCatalogState {
   kdrama: MediaItem[];
   indianWeb: MediaItem[];
   crimeThrillers: MediaItem[];
+  romanceSeries: MediaItem[];
+  historicalEpics: MediaItem[];
+  realityTv: MediaItem[];
+  pakistaniDramas: MediaItem[];
+  westernSeries: MediaItem[];
+  asianDramas: MediaItem[];
+  scifiFantasy: MediaItem[];
   animeHero: MediaItem[];
   hindiDubAnime: MediaItem[];
   topShonen: MediaItem[];
@@ -103,6 +110,13 @@ const DEFAULT_CATALOG: CustomCatalogState = {
   kdrama: BACKUP_HINDI_SERIES.slice(2, 6),
   indianWeb: BACKUP_HINDI_SERIES.slice(0, 4),
   crimeThrillers: BACKUP_HINDI_SERIES.slice(1, 5),
+  romanceSeries: BACKUP_HINDI_SERIES.slice(2, 6),
+  historicalEpics: BACKUP_HINDI_SERIES.slice(0, 4),
+  realityTv: BACKUP_HINDI_SERIES.slice(3, 7),
+  pakistaniDramas: BACKUP_HINDI_SERIES.slice(1, 5),
+  westernSeries: BACKUP_HINDI_SERIES.slice(0, 5),
+  asianDramas: BACKUP_HINDI_SERIES.slice(2, 6),
+  scifiFantasy: BACKUP_HINDI_SERIES.slice(1, 6),
   animeHero: DEFAULT_ANIME_ITEMS.slice(0, 5),
   hindiDubAnime: DEFAULT_ANIME_ITEMS,
   topShonen: DEFAULT_ANIME_ITEMS.slice(0, 4),
@@ -120,7 +134,6 @@ export const catalogManager = {
           ...DEFAULT_CATALOG,
           ...parsed,
           settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
-          moviesHero: parsed.moviesHero?.length ? parsed.moviesHero : DEFAULT_CATALOG.moviesHero,
         };
       }
     } catch (e) {
