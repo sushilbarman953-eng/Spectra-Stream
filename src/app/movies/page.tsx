@@ -80,23 +80,23 @@ const REGIONAL_HINDI_HITS: MediaItem[] = [
   {
     id: 853036,
     title: "Carry On Jatta 3",
-    poster_path: "https://image.tmdb.org/t/p/w342/d2PqL46aX1j43kG2qDq74X9y0K.jpg",
+    poster_path: "https://image.tmdb.org/t/p/w342/7I6VUdPj6tQECNHdviJkUHD2f89.jpg",
     vote_average: 8.0,
     media_type: "movie",
     audioLanguages: ["PUN", "HIN"],
   },
   {
     id: 1111101,
-    title: "Baap Manus (Marathi)",
-    poster_path: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=342&q=80",
+    title: "Baap Manus",
+    poster_path: "https://image.tmdb.org/t/p/w342/yDHYTfA3R0jFYba16jBB12R8GNT.jpg",
     vote_average: 8.4,
     media_type: "movie",
     audioLanguages: ["MAR", "HIN"],
   },
   {
     id: 1111102,
-    title: "Bhooter Bhabishyat (Bengali)",
-    poster_path: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=342&q=80",
+    title: "Bhooter Bhabishyat",
+    poster_path: "https://image.tmdb.org/t/p/w342/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
     vote_average: 8.2,
     media_type: "movie",
     audioLanguages: ["BEN", "HIN"],
@@ -104,7 +104,7 @@ const REGIONAL_HINDI_HITS: MediaItem[] = [
   {
     id: 1111103,
     title: "Jatt & Juliet 3",
-    poster_path: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=342&q=80",
+    poster_path: "https://image.tmdb.org/t/p/w342/wWba3TaojhK7NjnI0427v5ZZxZz.jpg",
     vote_average: 7.8,
     media_type: "movie",
     audioLanguages: ["PUN", "HIN"],
@@ -117,7 +117,6 @@ export default function MoviesPage() {
   const [trendingMovies, setTrendingMovies] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
 
   useEffect(() => {
-    // 00. Top Blockbusters spanning Hollywood, Bollywood, and South Indian cinema
     const mergedHero = [
       ...HOLLYWOOD_CATALOG.slice(0, 4),
       ...BOLLYWOOD_CATALOG.slice(0, 3),
@@ -125,13 +124,11 @@ export default function MoviesPage() {
     ];
     setHeroCollection(mergedHero);
 
-    // Fetch dynamic date-anchored trending
     getRealtimeTrending("movie").then((items) => {
       if (items && items.length > 0) setTrendingMovies(items);
     });
   }, []);
 
-  // 02. Trending Movies Sub-Chips
   const trendingTabs = [
     { id: "top_hits", label: "Top Hits" },
     { id: "cinema", label: "Cinema" },
@@ -147,6 +144,13 @@ export default function MoviesPage() {
     south: SOUTH_INDIAN_CATALOG,
     hollywood: HOLLYWOOD_CATALOG,
   };
+
+  // Distinct deduplicated list for Random Movies
+  const randomMoviesPool: MediaItem[] = [
+    ...BACKUP_HINDI_MOVIES.slice(0, 3),
+    ...HOLLYWOOD_CATALOG.slice(0, 3),
+    ...SOUTH_INDIAN_CATALOG.slice(0, 3),
+  ].filter((item, index, self) => index === self.findIndex((t) => t.id === item.id));
 
   const renderSectionShelf = (
     title: string,
@@ -187,12 +191,12 @@ export default function MoviesPage() {
 
   return (
     <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
-      {/* 00. Hero Carousel (Hollywood, Bollywood, South Indian) */}
+      {/* 00. Hero Carousel */}
       <section className="w-full">
         <HeroCarousel items={heroCollection.length > 0 ? heroCollection : BACKUP_HINDI_MOVIES} />
       </section>
 
-      {/* 01. Movie Category Filter Pills (Directly beneath Carousel) */}
+      {/* 01. Category Filter Pills */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
         {MOVIE_GENRE_PILLS.map((pill) => {
           const isSelected = activeGenre === pill.id;
@@ -215,7 +219,7 @@ export default function MoviesPage() {
         })}
       </div>
 
-      {/* 02. Trending Movies (Sub-Chips: Top Hits | Cinema | Bollywood | South | Hollywood) */}
+      {/* 02. Trending Movies */}
       <FilterableRankedShelf
         title="Trending Movies"
         tabs={trendingTabs}
@@ -224,25 +228,25 @@ export default function MoviesPage() {
         defaultType="movie"
       />
 
-      {/* 03. Franchise Spotlights (Fast & Furious, Harry Potter, Monsterverse) */}
+      {/* 03. Franchise Spotlights */}
       {renderSectionShelf("Franchise Spotlights", FRANCHISE_SPOTLIGHTS, Sparkles)}
 
-      {/* 04. Studio Franchises & Brand Hubs (Marvel, DC, Sony, Warner Bros) */}
+      {/* 04. Studio Franchises & Brand Hubs */}
       <StudioFranchiseHubs />
 
-      {/* 05. Hollywood (Dual-Audio Blockbusters) */}
+      {/* 05. Hollywood */}
       {renderSectionShelf("Hollywood", HOLLYWOOD_CATALOG, Globe2)}
 
-      {/* 06. Bollywood (Mainstream Hindi Cinema) */}
+      {/* 06. Bollywood */}
       {renderSectionShelf("Bollywood", BOLLYWOOD_CATALOG, Film)}
 
-      {/* 07. South Indian (Telugu, Tamil, Malayalam & Kannada) */}
+      {/* 07. South Indian */}
       {renderSectionShelf("South Indian", SOUTH_INDIAN_CATALOG, Clapperboard)}
 
-      {/* 08. Regional Hits (Pollywood, Marathi, Bengali) */}
+      {/* 08. Regional Hits */}
       {renderSectionShelf("Regional Hits", REGIONAL_HINDI_HITS, Flame)}
 
-      {/* 09. Indian Stars (Movie Headliners Spotlight) */}
+      {/* 09. Indian Stars */}
       <StarSpotlightCapsules
         title="Indian Stars"
         subtitle="Movie Headliners"
@@ -256,16 +260,8 @@ export default function MoviesPage() {
         stars={HOLLYWOOD_MOVIE_STARS}
       />
 
-      {/* 11. Random Movies (Curated Quality Mix Across All Genres) */}
-      {renderSectionShelf(
-        "Random Movies",
-        [
-          ...BACKUP_HINDI_MOVIES.slice(2, 6),
-          ...HOLLYWOOD_CATALOG.slice(1, 4),
-          ...SOUTH_INDIAN_CATALOG.slice(2, 5),
-        ],
-        Compass
-      )}
+      {/* 11. Random Movies */}
+      {renderSectionShelf("Random Movies", randomMoviesPool, Compass)}
     </div>
   );
 }
