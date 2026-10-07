@@ -10,15 +10,25 @@ import {
   Sparkles,
   ChevronRight,
   Compass,
-  Sliders,
 } from "lucide-react";
-import { MediaItem } from "@/lib/tmdb";
+import {
+  MediaItem,
+  BOLLYWOOD_CATALOG,
+  SOUTH_INDIAN_CATALOG,
+  HOLLYWOOD_CATALOG,
+  REGIONAL_CATALOG,
+  BACKUP_HINDI_MOVIES,
+} from "@/lib/tmdb";
 import { catalogManager, CustomCatalogState } from "@/lib/catalogManager";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { FilterableRankedShelf } from "@/components/FilterableRankedShelf";
 import { MediaPosterCard } from "@/components/MediaPosterCard";
 import { StudioFranchiseHubs } from "@/components/StudioFranchiseHubs";
-import { StarSpotlightCapsules } from "@/components/StarSpotlightCapsules";
+import {
+  StarSpotlightCapsules,
+  INDIAN_MOVIE_STARS,
+  HOLLYWOOD_MOVIE_STARS,
+} from "@/components/StarSpotlightCapsules";
 import { soundFx } from "@/lib/soundFx";
 
 const MOVIE_GENRE_PILLS = [
@@ -43,7 +53,17 @@ export default function MoviesPage() {
     return () => window.removeEventListener("spectra_catalog_updated", load);
   }, []);
 
-  if (!catalog) return null;
+  const fallbackHero = [...HOLLYWOOD_CATALOG.slice(0, 3), ...BOLLYWOOD_CATALOG.slice(0, 2)];
+  const heroMovies = (catalog?.moviesHero && catalog.moviesHero.length > 0)
+    ? catalog.moviesHero
+    : fallbackHero;
+
+  const bollywoodList = (catalog?.bollywood && catalog.bollywood.length > 0) ? catalog.bollywood : BOLLYWOOD_CATALOG;
+  const southList = (catalog?.south && catalog.south.length > 0) ? catalog.south : SOUTH_INDIAN_CATALOG;
+  const hollywoodList = (catalog?.hollywood && catalog.hollywood.length > 0) ? catalog.hollywood : HOLLYWOOD_CATALOG;
+  const regionalList = (catalog?.regional && catalog.regional.length > 0) ? catalog.regional : REGIONAL_CATALOG;
+  const indianStarsList = (catalog?.indianStars && catalog.indianStars.length > 0) ? catalog.indianStars : INDIAN_MOVIE_STARS;
+  const hollywoodStarsList = (catalog?.hollywoodStars && catalog.hollywoodStars.length > 0) ? catalog.hollywoodStars : HOLLYWOOD_MOVIE_STARS;
 
   const trendingTabs = [
     { id: "top_hits", label: "Top Hits" },
@@ -54,12 +74,26 @@ export default function MoviesPage() {
   ];
 
   const trendingByTab: Record<string, MediaItem[]> = {
-    top_hits: [...catalog.bollywood.slice(0, 3), ...catalog.south.slice(0, 3)],
-    cinema: [...catalog.bollywood, ...catalog.south],
-    bollywood: catalog.bollywood,
-    south: catalog.south,
-    hollywood: catalog.hollywood,
+    top_hits: [
+      bollywoodList[0],
+      southList[0],
+      hollywoodList[0],
+      bollywoodList[1],
+      southList[1],
+    ].filter(Boolean),
+    cinema: BACKUP_HINDI_MOVIES,
+    bollywood: bollywoodList,
+    south: southList,
+    hollywood: hollywoodList,
   };
+
+  const randomMoviesPool: MediaItem[] = [
+    bollywoodList[2] || bollywoodList[0],
+    southList[1] || southList[0],
+    hollywoodList[1] || hollywoodList[0],
+    southList[2] || southList[0],
+    bollywoodList[0],
+  ].filter(Boolean);
 
   const renderSectionShelf = (
     title: string,
@@ -100,23 +134,19 @@ export default function MoviesPage() {
     );
   };
 
+  const showHero = catalog?.settings?.showHeroCarousel !== false;
+  const showFranchises = catalog?.settings?.showFranchises !== false;
+  const showIndianStars = catalog?.settings?.showIndianStars !== false;
+  const showHollywoodStars = catalog?.settings?.showHollywoodStars !== false;
+
   return (
     <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
       {/* 00. Hero Carousel */}
-      <section className="w-full">
-        <HeroCarousel items={catalog.hero} />
-      </section>
-
-      {/* Floating Quick Admin Studio Shortcut */}
-      <div className="flex justify-end -mt-4 pr-1">
-        <Link
-          href="/admin"
-          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-[10px] font-mono text-zinc-300 hover:text-white transition shadow-glow"
-        >
-          <Sliders className="w-3 h-3 text-red-400" />
-          <span>Open Content Studio</span>
-        </Link>
-      </div>
+      {showHero && (
+        <section className="w-full">
+          <HeroCarousel items={heroMovies} />
+        </section>
+      )}
 
       {/* 01. Category Filter Pills */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
@@ -151,49 +181,43 @@ export default function MoviesPage() {
       />
 
       {/* 03. Franchise Spotlights */}
-      {renderSectionShelf("Franchise Spotlights", catalog.hollywood.slice(1, 5), Sparkles)}
+      {renderSectionShelf("Franchise Spotlights", hollywoodList.slice(1, 5), Sparkles)}
 
       {/* 04. Studio Franchises & Brand Hubs */}
-      <StudioFranchiseHubs />
+      {showFranchises && <StudioFranchiseHubs />}
 
       {/* 05. Hollywood */}
-      {renderSectionShelf("Hollywood", catalog.hollywood, Globe2)}
+      {renderSectionShelf("Hollywood", hollywoodList, Globe2)}
 
       {/* 06. Bollywood */}
-      {renderSectionShelf("Bollywood", catalog.bollywood, Film)}
+      {renderSectionShelf("Bollywood", bollywoodList, Film)}
 
       {/* 07. South Indian */}
-      {renderSectionShelf("South Indian", catalog.south, Clapperboard)}
+      {renderSectionShelf("South Indian", southList, Clapperboard)}
 
       {/* 08. Regional Hits */}
-      {renderSectionShelf("Regional Hits", catalog.regional, Flame)}
+      {renderSectionShelf("Regional Hits", regionalList, Flame)}
 
       {/* 09. Indian Stars */}
-      <StarSpotlightCapsules
-        title="Indian Stars"
-        subtitle="Movie Headliners"
-        stars={catalog.indianStars}
-      />
+      {showIndianStars && (
+        <StarSpotlightCapsules
+          title="Indian Stars"
+          subtitle="Movie Headliners"
+          stars={indianStarsList}
+        />
+      )}
 
       {/* 10. Hollywood Stars Showcase */}
-      <StarSpotlightCapsules
-        title="Hollywood Stars Showcase"
-        subtitle="Global Spotlight"
-        stars={catalog.hollywoodStars}
-      />
+      {showHollywoodStars && (
+        <StarSpotlightCapsules
+          title="Hollywood Stars Showcase"
+          subtitle="Global Spotlight"
+          stars={hollywoodStarsList}
+        />
+      )}
 
       {/* 11. Random Movies */}
-      {renderSectionShelf(
-        "Random Movies",
-        [
-          catalog.bollywood[2],
-          catalog.south[1],
-          catalog.hollywood[0],
-          catalog.south[0],
-          catalog.bollywood[0],
-        ].filter(Boolean),
-        Compass
-      )}
+      {renderSectionShelf("Random Movies", randomMoviesPool, Compass)}
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { soundFx } from "@/lib/soundFx";
 import { SafeImage } from "@/components/SafeImage";
 
 interface HeroCarouselProps {
-  items: MediaItem[];
+  items?: MediaItem[];
 }
 
 export function HeroCarousel({ items }: HeroCarouselProps) {
@@ -18,7 +18,9 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const [isPaused, setIsPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const carouselItems = items.slice(0, 8);
+  // Safe fallback to prevent undefined.slice crashes
+  const safeItems = Array.isArray(items) ? items : [];
+  const carouselItems = safeItems.slice(0, 8);
   const currentItem = carouselItems[activeIndex] || carouselItems[0];
 
   useEffect(() => {
@@ -26,7 +28,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
     setInWatchlist(watchlistManager.has(currentItem.id));
   }, [currentItem]);
 
-  // 8-second rotation
   useEffect(() => {
     if (isPaused || carouselItems.length <= 1) return;
     timerRef.current = setInterval(() => {
@@ -39,11 +40,8 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
 
   if (!currentItem) return null;
 
-  // 16:9 Widescreen Backdrop for Background
   const backdropUrl = currentItem.backdrop_path || currentItem.poster_path;
-  // 9:16 Vertical Poster for the Thumbnail Capsule
   const posterUrl = currentItem.poster_path || currentItem.backdrop_path;
-
   const itemType = currentItem.media_type || "movie";
   const title = currentItem.title || currentItem.name || "Featured Title";
   const releaseYear = (currentItem.release_date || currentItem.first_air_date || "2024").slice(0, 4);
@@ -75,7 +73,7 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* 1. 16:9 WIDESCREEN CINEMATIC BACKDROP */}
+      {/* 16:9 Widescreen Backdrop */}
       <Link
         href={`/details/${currentItem.id}?type=${itemType}`}
         onClick={() => soundFx.playCinematicWhoosh()}
@@ -89,11 +87,9 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent pointer-events-none" />
       </Link>
 
-      {/* 2. LOWER FLOATING CAPSULE WITH 9:16 VERTICAL POSTER */}
+      {/* Floating Lower Capsule with 9:16 Vertical Poster */}
       <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:bottom-3 sm:left-3 sm:right-3 z-20">
         <div className="rounded-2xl p-2.5 sm:p-3 bg-black/70 backdrop-blur-2xl border border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex items-end gap-3.5">
-          
-          {/* 9:16 / 2:3 Vertical Thumbnail */}
           <Link
             href={`/details/${currentItem.id}?type=${itemType}`}
             onClick={() => soundFx.playCinematicPop()}
@@ -106,7 +102,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
             />
           </Link>
 
-          {/* Details & Controls */}
           <div className="flex-1 min-w-0 flex flex-col justify-between gap-1 pb-0.5">
             <div>
               <h3 className="text-sm sm:text-base font-black text-white truncate">
@@ -151,7 +146,6 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
                 </button>
               </div>
 
-              {/* Slider Dots Indicator */}
               <div className="flex items-center gap-1 pr-1">
                 {carouselItems.map((_, idx) => (
                   <button
