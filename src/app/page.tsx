@@ -13,7 +13,6 @@ import {
   ChevronRight,
   Star,
   Play,
-  Bookmark,
 } from "lucide-react";
 import {
   MediaItem,
@@ -27,6 +26,7 @@ import {
 import { HINDI_DUBBED_ANIME_CATALOG } from "@/lib/animeService";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
 import { watchlistManager } from "@/lib/watchlistManager";
+import { HeroCarousel } from "@/components/HeroCarousel";
 import { FilterableRankedShelf } from "@/components/FilterableRankedShelf";
 import {
   CuratedCollectionsShelf,
@@ -55,6 +55,17 @@ export default function HomePage() {
     setFavorites(savedWatchlist.slice(0, 8));
   }, []);
 
+  const resolvePoster = (item: any) => {
+    if (!item?.poster_path) {
+      return "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80";
+    }
+    if (typeof item.poster_path === "string" && item.poster_path.startsWith("http")) {
+      return item.poster_path;
+    }
+    return `${IMAGE_BASE}/w342${item.poster_path}`;
+  };
+
+  // 1. Trending Movies Sub-Pills
   const movieTabs = [
     { id: "top", label: "TOP Movies" },
     { id: "cinema", label: "Cinema" },
@@ -73,6 +84,7 @@ export default function HomePage() {
     bengali: BACKUP_HINDI_MOVIES.slice(2, 8),
   };
 
+  // 2. Trending TV Series Sub-Pills
   const seriesTabs = [
     { id: "top_series", label: "Top Series" },
     { id: "indian_drama", label: "Indian Drama" },
@@ -85,14 +97,14 @@ export default function HomePage() {
     top_series: BACKUP_HINDI_SERIES.slice(0, 10),
     indian_drama: BACKUP_HINDI_SERIES,
     reality: BACKUP_HINDI_SERIES.slice(1, 6),
-    anime_tv: HINDI_DUBBED_ANIME_CATALOG.slice(0, 6).map((a) => ({
+    anime_tv: HINDI_DUBBED_ANIME_CATALOG.slice(0, 8).map((a) => ({
       id: a.mal_id,
       title: a.title_english || a.title,
       poster_path: a.images.jpg.image_url,
       vote_average: a.score,
       media_type: "tv" as const,
     })),
-    asian_drama: BACKUP_HINDI_SERIES.slice(0, 5),
+    asian_drama: BACKUP_HINDI_SERIES.slice(0, 6),
   };
 
   const categoriesData = [
@@ -158,8 +170,8 @@ export default function HomePage() {
       id: "cur1",
       title: "Epic Indian Blockbusters",
       posters: [
-        "https://image.tmdb.org/t/p/w342/yDHYTfA3R0jFYba16jBB12R8GNT.jpg",
-        "https://image.tmdb.org/t/p/w342/7I6VUdPj6tQECNHdviJkUHD2f89.jpg",
+        "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80",
+        "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=342&q=80",
       ],
       link: "/movies",
     },
@@ -167,14 +179,20 @@ export default function HomePage() {
       id: "cur2",
       title: "Global Crime & Drama",
       posters: [
-        "https://image.tmdb.org/t/p/w342/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
-        "https://image.tmdb.org/t/p/w342/fiVW06jE7z9YnO4trhaMEdclSiC.jpg",
+        "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=342&q=80",
+        "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=342&q=80",
       ],
       link: "/series",
     },
   ];
 
-  const renderSimpleRow = (title: string, items: MediaItem[], icon: any, href: string) => {
+  const renderCleanShelf = (
+    title: string,
+    items: any[],
+    icon: any,
+    viewAllHref: string,
+    isAnime = false
+  ) => {
     const IconComp = icon;
     return (
       <section className="space-y-2.5">
@@ -184,7 +202,7 @@ export default function HomePage() {
             <h2 className="text-sm font-bold text-white tracking-wide">{title}</h2>
           </div>
           <Link
-            href={href}
+            href={viewAllHref}
             onClick={() => soundFx.playCinematicPop()}
             className="text-xs font-semibold text-zinc-400 hover:text-white flex items-center gap-0.5 transition"
           >
@@ -195,55 +213,46 @@ export default function HomePage() {
 
         <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-0.5">
           {items.map((item, idx) => {
-            const poster = item.poster_path
-              ? item.poster_path.startsWith("http")
-                ? item.poster_path
-                : `${IMAGE_BASE}/w342${item.poster_path}`
-              : null;
-            const targetType = item.media_type || "movie";
+            const poster = resolvePoster(item);
+            const targetType = isAnime ? "tv" : item.media_type || "movie";
+            const targetUrl = isAnime
+              ? `/details/${item.id}?type=tv&source=anime`
+              : `/details/${item.id}?type=${targetType}`;
 
             return (
               <Link
                 key={`${item.id}-${idx}`}
-                href={`/details/${item.id}?type=${targetType}`}
+                href={targetUrl}
                 onClick={() => soundFx.playCinematicPop()}
                 className="flex-none w-28 sm:w-32 group relative flex flex-col"
               >
                 <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                  {poster ? (
-                    <Image
-                      src={poster}
-                      alt={item.title || item.name || "Media Poster"}
-                      fill
-                      unoptimized
-                      className="object-cover transition duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
-                      Poster
-                    </div>
-                  )}
+                  <Image
+                    src={poster}
+                    alt={item.title || item.name || "Media Poster"}
+                    fill
+                    unoptimized
+                    className="object-cover transition duration-300"
+                  />
 
+                  {/* Floating Top-Left: Star Rating */}
+                  <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
+                    <Star className="w-2 h-2 fill-white text-white" />
+                    <span>{item.vote_average ? Number(item.vote_average).toFixed(1) : "8.5"}</span>
+                  </div>
+
+                  {/* Floating Top-Right: Language Pill */}
                   <div className="absolute top-1.5 right-1.5 z-10">
                     <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-black/75 backdrop-blur-md border border-white/20 text-zinc-200">
                       Hindi
                     </span>
                   </div>
-
-                  {item.vote_average ? (
-                    <div className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
-                      <Star className="w-2 h-2 fill-white text-white" />
-                      {item.vote_average.toFixed(1)}
-                    </div>
-                  ) : null}
                 </div>
 
+                {/* Only Title Beneath the Poster */}
                 <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
                   {item.title || item.name}
                 </h4>
-                <p className="text-[9px] text-zinc-400 font-mono truncate">
-                  {(item.release_date || item.first_air_date || "2024").slice(0, 4)}
-                </p>
               </Link>
             );
           })}
@@ -255,7 +264,7 @@ export default function HomePage() {
   const animeShelfItems = HINDI_DUBBED_ANIME_CATALOG.slice(0, 10).map((a) => ({
     id: a.mal_id,
     title: a.title_english || a.title,
-    poster_path: a.images.jpg.image_url,
+    poster_path: a.images?.jpg?.large_image_url || a.images?.jpg?.image_url,
     vote_average: a.score,
     media_type: "tv" as const,
   }));
@@ -263,8 +272,13 @@ export default function HomePage() {
   const lastWatchedTitle = continueWatching[0]?.title || null;
 
   return (
-    <div className="min-h-screen bg-[#08080c] text-white pt-3 pb-28 px-3 sm:px-6 flex flex-col gap-8 max-w-7xl mx-auto">
-      {/* 01. Keep Watching (Continue Watching Progress) */}
+    <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
+      {/* 00. RESTORED HERO CAROUSEL */}
+      <section className="w-full">
+        <HeroCarousel items={BACKUP_HINDI_MOVIES} />
+      </section>
+
+      {/* 01. Keep Watching */}
       {continueWatching.length > 0 && (
         <section className="space-y-2.5">
           <div className="flex items-center justify-between px-1">
@@ -303,7 +317,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 02. Trending Movies (Sub-Filter Pills with big numbers) */}
+      {/* 02. Trending Movies (Sub-Filters, Numbers 1, 2, 3...) */}
       <FilterableRankedShelf
         title="Trending Movies"
         tabs={movieTabs}
@@ -312,7 +326,7 @@ export default function HomePage() {
         defaultType="movie"
       />
 
-      {/* 03. Trending TV Series (Sub-Filter Pills) */}
+      {/* 03. Trending TV Series (Sub-Filters) */}
       <FilterableRankedShelf
         title="Trending TV Series"
         tabs={seriesTabs}
@@ -322,12 +336,12 @@ export default function HomePage() {
       />
 
       {/* 04. Trending Anime */}
-      {renderSimpleRow("Trending Anime", animeShelfItems, Sparkles, "/anime")}
+      {renderCleanShelf("Trending Anime", animeShelfItems, Sparkles, "/anime", true)}
 
       {/* 05. Categories (Wide Frosted Tiles) */}
       <CategorizedPillShelf categories={categoriesData} />
 
-      {/* 06. Back to Your Favorites & 09. Because You Watched [Title] */}
+      {/* 06. Back to Your Favorites & 09. Because You Watched */}
       <ContextualPersonalizedShelves
         favorites={favorites}
         becauseWatchedTitle={lastWatchedTitle}
@@ -337,19 +351,19 @@ export default function HomePage() {
       {/* 07. Coming Soon (Pre-Release Alerts) */}
       <ComingSoonShelf items={comingSoonData} />
 
-      {/* 08. Indian Stars (Actor Spotlight Capsules) */}
+      {/* 08. Indian Stars */}
       <StarsSpotlightShelf stars={indianStarsData} />
 
-      {/* 10. Regional Cinema Shelves (Sequential Rows) */}
+      {/* 10. Regional Cinema Shelves */}
       <div className="space-y-6">
-        {renderSimpleRow("Cinema", BACKUP_HINDI_MOVIES, Flame, "/movies")}
-        {renderSimpleRow("Bollywood", BOLLYWOOD_CATALOG, Film, "/movies")}
-        {renderSimpleRow("South Indian", SOUTH_INDIAN_CATALOG, Clapperboard, "/movies")}
-        {renderSimpleRow("Hollywood", HOLLYWOOD_CATALOG, Globe2, "/movies")}
-        {renderSimpleRow("Indian Drama", BACKUP_HINDI_SERIES, Tv, "/series")}
+        {renderCleanShelf("Cinema", BACKUP_HINDI_MOVIES, Flame, "/movies")}
+        {renderCleanShelf("Bollywood", BOLLYWOOD_CATALOG, Film, "/movies")}
+        {renderCleanShelf("South Indian", SOUTH_INDIAN_CATALOG, Clapperboard, "/movies")}
+        {renderCleanShelf("Hollywood", HOLLYWOOD_CATALOG, Globe2, "/movies")}
+        {renderCleanShelf("Indian Drama", BACKUP_HINDI_SERIES, Tv, "/series")}
       </div>
 
-      {/* 11. Curated Collections & Discovery Feed */}
+      {/* 11. Curated Collections & 3-Column Wall */}
       <div className="space-y-8">
         <CuratedCollectionsShelf collections={curatedCollectionsData} />
         <MultiRowGridDiscover items={BACKUP_HINDI_MOVIES.slice(0, 9)} />

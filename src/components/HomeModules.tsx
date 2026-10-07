@@ -10,15 +10,17 @@ import {
   Flame,
   Sparkles,
   ChevronRight,
-  Heart,
   Bookmark,
 } from "lucide-react";
 import { MediaItem, IMAGE_BASE } from "@/lib/tmdb";
 import { soundFx } from "@/lib/soundFx";
 
-/* =========================================================================
-   4. CURATED COLLECTION BANNERS ("MUST-WATCH")
-   ========================================================================= */
+const getPosterSrc = (path?: string | null) => {
+  if (!path) return "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80";
+  if (path.startsWith("http")) return path;
+  return `${IMAGE_BASE}/w342${path}`;
+};
+
 export interface CuratedCollection {
   id: string;
   title: string;
@@ -46,7 +48,6 @@ export const CuratedCollectionsShelf: React.FC<{ collections: CuratedCollection[
             onClick={() => soundFx.playCinematicSwell()}
             className="group relative aspect-[16/9] sm:aspect-[21/9] rounded-2xl overflow-hidden border border-white/15 bg-zinc-950 shadow-xl flex flex-col justify-end p-2.5 sm:p-3 hover:border-white/35 transition active:scale-[0.98]"
           >
-            {/* Multi-Poster Vertical Slices Background */}
             <div className="absolute inset-0 flex opacity-40 group-hover:opacity-55 transition-opacity duration-300">
               {col.posters.map((src, idx) => (
                 <div key={idx} className="relative flex-1 h-full border-r border-black/40 overflow-hidden">
@@ -54,11 +55,7 @@ export const CuratedCollectionsShelf: React.FC<{ collections: CuratedCollection[
                 </div>
               ))}
             </div>
-
-            {/* Dark Vignette Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-
-            {/* Laurel Wreath Framing & Typography */}
             <div className="relative z-10 text-center flex flex-col items-center">
               <span className="text-[8px] sm:text-[10px] uppercase font-mono tracking-widest text-zinc-300">
                 CURATED PICKS
@@ -78,9 +75,6 @@ export const CuratedCollectionsShelf: React.FC<{ collections: CuratedCollection[
   );
 };
 
-/* =========================================================================
-   5. CATEGORIZED PILL SHELF
-   ========================================================================= */
 export interface CategoryPill {
   id: string;
   name: string;
@@ -96,7 +90,6 @@ export const CategorizedPillShelf: React.FC<{ categories: CategoryPill[] }> = ({
       <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
         Categories
       </h2>
-
       <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-0.5">
         {categories.map((cat) => (
           <Link
@@ -105,7 +98,6 @@ export const CategorizedPillShelf: React.FC<{ categories: CategoryPill[] }> = ({
             onClick={() => soundFx.playCinematicPop()}
             className="flex-none relative h-11 px-5 rounded-2xl overflow-hidden border border-white/15 bg-zinc-900 flex items-center justify-center shadow-md hover:border-white/35 active:scale-95 transition group"
           >
-            {/* Translucent Backdrop Photo Texture */}
             <Image
               src={cat.bgUrl}
               alt=""
@@ -114,7 +106,6 @@ export const CategorizedPillShelf: React.FC<{ categories: CategoryPill[] }> = ({
               className="object-cover opacity-25 group-hover:opacity-40 group-hover:scale-105 transition-all duration-300"
             />
             <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
-
             <span className="relative z-10 text-xs font-black text-white tracking-wide uppercase drop-shadow">
               {cat.name}
             </span>
@@ -125,9 +116,6 @@ export const CategorizedPillShelf: React.FC<{ categories: CategoryPill[] }> = ({
   );
 };
 
-/* =========================================================================
-   6. "COMING SOON" ALERT SHELF
-   ========================================================================= */
 export interface ComingSoonItem {
   id: string;
   title: string;
@@ -176,17 +164,14 @@ export const ComingSoonShelf: React.FC<{ items: ComingSoonItem[] }> = ({ items }
                   className="object-cover"
                 />
 
-                {/* Ambient Top & Bottom Vignettes */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/60 pointer-events-none" />
 
-                {/* Top-Left: Release Date Badge */}
                 <div className="absolute top-1.5 left-1.5 z-10">
                   <span className="px-2 py-0.5 rounded-lg text-[8px] font-mono font-black uppercase tracking-wider bg-black/80 backdrop-blur-md border border-white/20 text-white shadow-md">
                     {item.releaseDateText}
                   </span>
                 </div>
 
-                {/* Top-Right: Glass Notification Bell Button */}
                 <button
                   onClick={(e) => toggleNotify(item.id, e)}
                   className={`absolute top-1.5 right-1.5 z-20 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-xl border transition active:scale-90 shadow-md ${
@@ -203,7 +188,6 @@ export const ComingSoonShelf: React.FC<{ items: ComingSoonItem[] }> = ({ items }
                   )}
                 </button>
 
-                {/* Bottom Overlay: Pre-Booking Counter */}
                 <div className="absolute bottom-1.5 left-1.5 right-1.5 z-10 text-center">
                   <span className="inline-block w-full py-0.5 rounded-md bg-white/15 backdrop-blur-md border border-white/20 text-[8px] font-mono font-bold text-zinc-100">
                     {item.bookedCount} booked
@@ -222,9 +206,6 @@ export const ComingSoonShelf: React.FC<{ items: ComingSoonItem[] }> = ({ items }
   );
 };
 
-/* =========================================================================
-   7. ACTOR SPOTLIGHT ROW ("INDIAN STARS")
-   ========================================================================= */
 export interface StarSpotlight {
   id: string;
   name: string;
@@ -250,7 +231,6 @@ export const StarsSpotlightShelf: React.FC<{ stars: StarSpotlight[] }> = ({ star
             className="flex-none w-24 sm:w-28 flex flex-col items-center group cursor-pointer"
             onClick={() => soundFx.playCinematicPop()}
           >
-            {/* Squircle Avatar with Dual-Tone Vibrant Neon Gradient */}
             <div
               className={`relative w-24 h-28 sm:w-28 sm:h-32 rounded-3xl overflow-hidden p-0.5 border border-white/20 shadow-xl group-hover:scale-105 group-hover:border-white/40 transition duration-300 ${star.gradient}`}
             >
@@ -264,7 +244,6 @@ export const StarsSpotlightShelf: React.FC<{ stars: StarSpotlight[] }> = ({ star
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
 
-                {/* Name Centered at Base in Condensed Uppercase Typography */}
                 <div className="absolute bottom-1.5 inset-x-1 text-center">
                   <h4 className="text-[9px] sm:text-[10px] font-black text-white tracking-tight uppercase line-clamp-1 drop-shadow leading-tight">
                     {star.name}
@@ -279,11 +258,6 @@ export const StarsSpotlightShelf: React.FC<{ stars: StarSpotlight[] }> = ({ star
   );
 };
 
-/* =========================================================================
-   8. CONTEXTUAL PERSONALIZED SHELVES:
-      - "Back to Your Favorites"
-      - "Because U Watched [Title]"
-   ========================================================================= */
 export const ContextualPersonalizedShelves: React.FC<{
   favorites: MediaItem[];
   becauseWatchedTitle: string | null;
@@ -291,7 +265,6 @@ export const ContextualPersonalizedShelves: React.FC<{
 }> = ({ favorites, becauseWatchedTitle, becauseWatchedItems }) => {
   return (
     <div className="space-y-7 select-none">
-      {/* 8A. Back to Your Favorites */}
       {favorites.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -313,11 +286,7 @@ export const ContextualPersonalizedShelves: React.FC<{
 
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {favorites.map((item, idx) => {
-              const poster = item.poster_path
-                ? item.poster_path.startsWith("http")
-                  ? item.poster_path
-                  : `${IMAGE_BASE}/w342${item.poster_path}`
-                : null;
+              const poster = getPosterSrc(item.poster_path);
               const type = item.media_type || "movie";
 
               return (
@@ -328,20 +297,25 @@ export const ContextualPersonalizedShelves: React.FC<{
                   className="flex-none w-28 sm:w-32 group relative"
                 >
                   <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                    {poster ? (
-                      <Image src={poster} alt="" fill unoptimized className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
-                        Poster
+                    <Image src={poster} alt="" fill unoptimized className="object-cover" />
+                    
+                    {/* Top-Left Rating */}
+                    {item.vote_average ? (
+                      <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/15 text-[8px] font-black text-white">
+                        <Star className="w-2.5 h-2.5 fill-white text-white" />
+                        <span>{item.vote_average.toFixed(1)}</span>
                       </div>
-                    )}
+                    ) : null}
+
+                    {/* Top-Right Language Tag */}
                     <div className="absolute top-1.5 right-1.5">
                       <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200">
                         MULTI
                       </span>
                     </div>
                   </div>
-                  <h4 className="text-[11px] font-bold text-white truncate mt-1.5">
+
+                  <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
                     {item.title || item.name}
                   </h4>
                 </Link>
@@ -351,7 +325,6 @@ export const ContextualPersonalizedShelves: React.FC<{
         </div>
       )}
 
-      {/* 8B. Because U Watched [Title] */}
       {becauseWatchedItems.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -367,19 +340,12 @@ export const ContextualPersonalizedShelves: React.FC<{
                   "Recommended For You"
                 )}
               </h2>
-              <p className="text-[10px] text-zinc-400 font-medium">
-                Similar cinematic storylines & genres
-              </p>
             </div>
           </div>
 
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {becauseWatchedItems.map((item, idx) => {
-              const poster = item.poster_path
-                ? item.poster_path.startsWith("http")
-                  ? item.poster_path
-                  : `${IMAGE_BASE}/w342${item.poster_path}`
-                : null;
+              const poster = getPosterSrc(item.poster_path);
               const type = item.media_type || "movie";
 
               return (
@@ -390,31 +356,27 @@ export const ContextualPersonalizedShelves: React.FC<{
                   className="flex-none w-28 sm:w-32 group relative"
                 >
                   <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                    {poster ? (
-                      <Image src={poster} alt="" fill unoptimized className="object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
-                        Poster
-                      </div>
-                    )}
+                    <Image src={poster} alt="" fill unoptimized className="object-cover" />
+
+                    {/* Top-Left Rating */}
                     {item.vote_average ? (
                       <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/15 text-[8px] font-black text-white">
                         <Star className="w-2.5 h-2.5 fill-white text-white" />
                         <span>{item.vote_average.toFixed(1)}</span>
                       </div>
                     ) : null}
+
+                    {/* Top-Right Language */}
                     <div className="absolute top-1.5 right-1.5">
                       <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200">
                         MULTI
                       </span>
                     </div>
                   </div>
+
                   <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
                     {item.title || item.name}
                   </h4>
-                  <p className="text-[9px] text-zinc-400 font-mono truncate">
-                    [Hindi] • {(item.release_date || item.first_air_date || "2024").slice(0, 4)}
-                  </p>
                 </Link>
               );
             })}
@@ -425,9 +387,6 @@ export const ContextualPersonalizedShelves: React.FC<{
   );
 };
 
-/* =========================================================================
-   9. MULTI-ROW GRID DISCOVER ("MOST TRENDING") — 3-COLUMN DISCOVERY GRID
-   ========================================================================= */
 export const MultiRowGridDiscover: React.FC<{ items: MediaItem[] }> = ({ items }) => {
   return (
     <div className="space-y-3.5 select-none pt-2">
@@ -441,16 +400,10 @@ export const MultiRowGridDiscover: React.FC<{ items: MediaItem[] }> = ({ items }
         <span className="text-[10px] font-mono text-zinc-400">DISCOVERY FEED</span>
       </div>
 
-      {/* 3-Column Portrait Grid */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
         {items.map((item, idx) => {
-          const poster = item.poster_path
-            ? item.poster_path.startsWith("http")
-              ? item.poster_path
-              : `${IMAGE_BASE}/w342${item.poster_path}`
-            : null;
+          const poster = getPosterSrc(item.poster_path);
           const type = item.media_type || "movie";
-
           const displayLang =
             item.audioLanguages && item.audioLanguages.length > 1
               ? "MULTI"
@@ -464,43 +417,33 @@ export const MultiRowGridDiscover: React.FC<{ items: MediaItem[] }> = ({ items }
               className="group relative flex flex-col"
             >
               <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-lg group-hover:scale-[1.02]">
-                {poster ? (
-                  <Image
-                    src={poster}
-                    alt={item.title || item.name || "Media"}
-                    fill
-                    unoptimized
-                    className="object-cover transition duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-600 text-xs">
-                    Poster
-                  </div>
-                )}
+                <Image
+                  src={poster}
+                  alt={item.title || item.name || "Media"}
+                  fill
+                  unoptimized
+                  className="object-cover transition duration-300"
+                />
 
-                {/* Top-Right Frosted Language Tag */}
+                {/* Floating Top-Left Rating */}
+                {item.vote_average ? (
+                  <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-black text-white border border-white/15">
+                    <Star className="w-2 h-2 fill-white text-white" />
+                    <span>{item.vote_average.toFixed(1)}</span>
+                  </div>
+                ) : null}
+
+                {/* Floating Top-Right Language */}
                 <div className="absolute top-1.5 right-1.5 z-10">
                   <span className="px-1.5 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-wider bg-black/60 backdrop-blur-md border border-white/20 text-zinc-200">
                     {displayLang}
                   </span>
                 </div>
-
-                {item.vote_average ? (
-                  <div className="absolute bottom-1.5 left-1.5 z-10 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-black text-white border border-white/15">
-                    <Star className="w-2 h-2 fill-white text-white" />
-                    <span>{item.vote_average.toFixed(1)}</span>
-                  </div>
-                ) : null}
               </div>
 
-              <div className="mt-1 space-y-0.5">
-                <h4 className="text-[10px] sm:text-xs font-bold text-white truncate group-hover:text-red-300 transition">
-                  {item.title || item.name}
-                </h4>
-                <p className="text-[8px] sm:text-[9px] text-zinc-400 font-mono truncate">
-                  [{displayLang}]
-                </p>
-              </div>
+              <h4 className="text-[10px] sm:text-xs font-bold text-white truncate mt-1 group-hover:text-red-300 transition">
+                {item.title || item.name}
+              </h4>
             </Link>
           );
         })}
