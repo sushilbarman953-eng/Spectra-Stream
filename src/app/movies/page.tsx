@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Film,
@@ -10,24 +10,15 @@ import {
   Sparkles,
   ChevronRight,
   Compass,
+  Sliders,
 } from "lucide-react";
-import {
-  MediaItem,
-  BOLLYWOOD_CATALOG,
-  SOUTH_INDIAN_CATALOG,
-  HOLLYWOOD_CATALOG,
-  REGIONAL_CATALOG,
-  BACKUP_HINDI_MOVIES,
-} from "@/lib/tmdb";
+import { MediaItem } from "@/lib/tmdb";
+import { catalogManager, CustomCatalogState } from "@/lib/catalogManager";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { FilterableRankedShelf } from "@/components/FilterableRankedShelf";
 import { MediaPosterCard } from "@/components/MediaPosterCard";
 import { StudioFranchiseHubs } from "@/components/StudioFranchiseHubs";
-import {
-  StarSpotlightCapsules,
-  INDIAN_MOVIE_STARS,
-  HOLLYWOOD_MOVIE_STARS,
-} from "@/components/StarSpotlightCapsules";
+import { StarSpotlightCapsules } from "@/components/StarSpotlightCapsules";
 import { soundFx } from "@/lib/soundFx";
 
 const MOVIE_GENRE_PILLS = [
@@ -43,6 +34,16 @@ const MOVIE_GENRE_PILLS = [
 
 export default function MoviesPage() {
   const [activeGenre, setActiveGenre] = useState<string>("all");
+  const [catalog, setCatalog] = useState<CustomCatalogState | null>(null);
+
+  useEffect(() => {
+    const load = () => setCatalog(catalogManager.get());
+    load();
+    window.addEventListener("spectra_catalog_updated", load);
+    return () => window.removeEventListener("spectra_catalog_updated", load);
+  }, []);
+
+  if (!catalog) return null;
 
   const trendingTabs = [
     { id: "top_hits", label: "Top Hits" },
@@ -53,28 +54,12 @@ export default function MoviesPage() {
   ];
 
   const trendingByTab: Record<string, MediaItem[]> = {
-    top_hits: [
-      BOLLYWOOD_CATALOG[0],
-      SOUTH_INDIAN_CATALOG[0],
-      HOLLYWOOD_CATALOG[0],
-      BOLLYWOOD_CATALOG[1],
-      SOUTH_INDIAN_CATALOG[1],
-    ].filter(Boolean),
-    cinema: BACKUP_HINDI_MOVIES,
-    bollywood: BOLLYWOOD_CATALOG,
-    south: SOUTH_INDIAN_CATALOG,
-    hollywood: HOLLYWOOD_CATALOG,
+    top_hits: [...catalog.bollywood.slice(0, 3), ...catalog.south.slice(0, 3)],
+    cinema: [...catalog.bollywood, ...catalog.south],
+    bollywood: catalog.bollywood,
+    south: catalog.south,
+    hollywood: catalog.hollywood,
   };
-
-  // Safe deduplicated random movies pool (guaranteed to contain valid items)
-  const randomMoviesPool: MediaItem[] = [
-    BOLLYWOOD_CATALOG[2],
-    SOUTH_INDIAN_CATALOG[1],
-    HOLLYWOOD_CATALOG[1],
-    SOUTH_INDIAN_CATALOG[2],
-    BOLLYWOOD_CATALOG[0],
-    HOLLYWOOD_CATALOG[3],
-  ].filter(Boolean);
 
   const renderSectionShelf = (
     title: string,
@@ -105,7 +90,7 @@ export default function MoviesPage() {
         <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-0.5">
           {validItems.map((item, idx) => (
             <MediaPosterCard
-              key={`${title}-${item?.id ?? idx}-${idx}`}
+              key={`${title}-${item.id}-${idx}`}
               item={item}
               defaultType="movie"
             />
@@ -119,8 +104,19 @@ export default function MoviesPage() {
     <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
       {/* 00. Hero Carousel */}
       <section className="w-full">
-        <HeroCarousel items={HOLLYWOOD_CATALOG.concat(BOLLYWOOD_CATALOG.slice(0, 3)).filter(Boolean)} />
+        <HeroCarousel items={catalog.hero} />
       </section>
+
+      {/* Floating Quick Admin Studio Shortcut */}
+      <div className="flex justify-end -mt-4 pr-1">
+        <Link
+          href="/admin"
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-[10px] font-mono text-zinc-300 hover:text-white transition shadow-glow"
+        >
+          <Sliders className="w-3 h-3 text-red-400" />
+          <span>Open Content Studio</span>
+        </Link>
+      </div>
 
       {/* 01. Category Filter Pills */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar py-0.5">
@@ -155,39 +151,49 @@ export default function MoviesPage() {
       />
 
       {/* 03. Franchise Spotlights */}
-      {renderSectionShelf("Franchise Spotlights", HOLLYWOOD_CATALOG.slice(2, 6), Sparkles)}
+      {renderSectionShelf("Franchise Spotlights", catalog.hollywood.slice(1, 5), Sparkles)}
 
       {/* 04. Studio Franchises & Brand Hubs */}
       <StudioFranchiseHubs />
 
       {/* 05. Hollywood */}
-      {renderSectionShelf("Hollywood", HOLLYWOOD_CATALOG, Globe2)}
+      {renderSectionShelf("Hollywood", catalog.hollywood, Globe2)}
 
       {/* 06. Bollywood */}
-      {renderSectionShelf("Bollywood", BOLLYWOOD_CATALOG, Film)}
+      {renderSectionShelf("Bollywood", catalog.bollywood, Film)}
 
       {/* 07. South Indian */}
-      {renderSectionShelf("South Indian", SOUTH_INDIAN_CATALOG, Clapperboard)}
+      {renderSectionShelf("South Indian", catalog.south, Clapperboard)}
 
       {/* 08. Regional Hits */}
-      {renderSectionShelf("Regional Hits", REGIONAL_CATALOG, Flame)}
+      {renderSectionShelf("Regional Hits", catalog.regional, Flame)}
 
       {/* 09. Indian Stars */}
       <StarSpotlightCapsules
         title="Indian Stars"
         subtitle="Movie Headliners"
-        stars={INDIAN_MOVIE_STARS}
+        stars={catalog.indianStars}
       />
 
       {/* 10. Hollywood Stars Showcase */}
       <StarSpotlightCapsules
         title="Hollywood Stars Showcase"
         subtitle="Global Spotlight"
-        stars={HOLLYWOOD_MOVIE_STARS}
+        stars={catalog.hollywoodStars}
       />
 
       {/* 11. Random Movies */}
-      {renderSectionShelf("Random Movies", randomMoviesPool, Compass)}
+      {renderSectionShelf(
+        "Random Movies",
+        [
+          catalog.bollywood[2],
+          catalog.south[1],
+          catalog.hollywood[0],
+          catalog.south[0],
+          catalog.bollywood[0],
+        ].filter(Boolean),
+        Compass
+      )}
     </div>
   );
 }

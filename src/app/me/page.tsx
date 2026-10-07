@@ -961,7 +961,7 @@ export default function MePage() {
               </div>
             </div>
 
-            <div className="pt-2 text-center space-y-0.5 border-t border-white/10">
+            <div className="pt-2 text-center space-y-2 border-t border-white/10"><Link href="/admin" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 text-white font-mono text-[10px] hover:bg-white hover:text-black transition">⚙ Content Studio Panel</Link>
               <p className="text-[10px] text-zinc-400 font-mono">Spectra Cinema Engine • v2.4.0</p>
               <p className="text-[9px] text-zinc-600">Client Build #2026.09 • PWA Enabled</p>
             </div>
