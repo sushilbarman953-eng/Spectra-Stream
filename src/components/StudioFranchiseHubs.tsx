@@ -9,7 +9,7 @@ import { soundFx } from "@/lib/soundFx";
 export interface StudioItem {
   id: string;
   name: string;
-  logoUrl: string;
+  logo: React.ReactNode;
   bgUrl: string;
   filterQuery: string;
 }
@@ -18,30 +18,46 @@ const STUDIOS: StudioItem[] = [
   {
     id: "marvel",
     name: "Marvel Studios",
-    logoUrl: "https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?w=400&q=80",
-    bgUrl: "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&q=80",
+    bgUrl: "https://image.tmdb.org/t/p/w780/yF1xTrentcIS5o99ZpHrP3Xeo2.jpg",
     filterQuery: "marvel",
+    logo: (
+      <div className="bg-[#E23636] px-2.5 py-0.5 rounded tracking-tighter text-white font-black text-xs sm:text-sm font-sans shadow-md border border-red-400/40">
+        MARVEL
+      </div>
+    ),
   },
   {
     id: "dc",
     name: "DC Universe",
-    logoUrl: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&q=80",
-    bgUrl: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&q=80",
+    bgUrl: "https://image.tmdb.org/t/p/w780/o72R2eGuhYfV1a8x9x7F0L9W0X.jpg",
     filterQuery: "dc",
+    logo: (
+      <div className="w-8 h-8 rounded-full border-2 border-white/90 bg-blue-700/80 backdrop-blur-md flex items-center justify-center font-black text-xs text-white shadow-[0_0_12px_rgba(59,130,246,0.6)]">
+        DC
+      </div>
+    ),
   },
   {
     id: "sony",
     name: "Sony Pictures",
-    logoUrl: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&q=80",
-    bgUrl: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=600&q=80",
+    bgUrl: "https://image.tmdb.org/t/p/w780/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
     filterQuery: "sony",
+    logo: (
+      <div className="px-3 py-1 rounded bg-black/75 border border-white/30 text-white font-black tracking-widest text-[11px] font-mono shadow-md">
+        SONY
+      </div>
+    ),
   },
   {
     id: "warner",
     name: "Warner Bros.",
-    logoUrl: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80",
-    bgUrl: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=600&q=80",
+    bgUrl: "https://image.tmdb.org/t/p/w780/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
     filterQuery: "warner",
+    logo: (
+      <div className="w-8 h-8 rounded-full border-2 border-amber-300/80 bg-blue-900/80 backdrop-blur-md flex items-center justify-center font-black text-[10px] text-amber-200 shadow-md">
+        WB
+      </div>
+    ),
   },
 ];
 
@@ -61,22 +77,25 @@ export const StudioFranchiseHubs: React.FC = () => {
             key={studio.id}
             href={`/explore?studio=${studio.filterQuery}`}
             onClick={() => soundFx.playCinematicSwell()}
-            className="group relative aspect-[16/9] rounded-2xl overflow-hidden border border-white/15 bg-zinc-950 shadow-xl flex items-center justify-center p-3 hover:border-white/35 active:scale-[0.98] transition-all"
+            className="group relative aspect-[16/9] rounded-2xl overflow-hidden border border-white/15 bg-zinc-950 shadow-xl flex flex-col items-center justify-center p-3 hover:border-white/40 active:scale-[0.98] transition-all"
           >
-            {/* Background Atmosphere */}
+            {/* Background Backdrop */}
             <Image
               src={studio.bgUrl}
               alt={studio.name}
               fill
               unoptimized
-              className="object-cover opacity-35 group-hover:opacity-50 group-hover:scale-105 transition-all duration-300"
+              className="object-cover opacity-25 group-hover:opacity-45 group-hover:scale-105 transition-all duration-300"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
-            {/* Studio Title Tile */}
-            <span className="relative z-10 text-xs sm:text-sm font-black text-white tracking-widest uppercase drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] text-center px-1">
-              {studio.name}
-            </span>
+            {/* Centered Brand Vector Logo */}
+            <div className="relative z-10 flex flex-col items-center gap-1.5 transform group-hover:scale-110 transition-transform duration-300">
+              {studio.logo}
+              <span className="text-[10px] font-bold text-zinc-300 tracking-wider uppercase drop-shadow">
+                {studio.name}
+              </span>
+            </div>
           </Link>
         ))}
       </div>

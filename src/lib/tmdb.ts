@@ -31,12 +31,13 @@ export interface EpisodeItem {
 
 export const IMAGE_BASE = "https://image.tmdb.org/t/p";
 
-// 1. BOLLYWOOD HINDI CINEMA
+// 1. BOLLYWOOD (Both 9:16 Poster + 16:9 Backdrop)
 export const BOLLYWOOD_CATALOG: MediaItem[] = [
   {
     id: 872906,
     title: "Jawan",
     poster_path: "https://image.tmdb.org/t/p/w500/jYW3g8Q9qY76xV4cO645bJ9UoQ9.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/yF1xTrentcIS5o99ZpHrP3Xeo2.jpg",
     vote_average: 7.4,
     media_type: "movie",
     audioLanguages: ["HIN"],
@@ -46,6 +47,7 @@ export const BOLLYWOOD_CATALOG: MediaItem[] = [
     id: 781732,
     title: "Animal",
     poster_path: "https://image.tmdb.org/t/p/w500/hrNm2gTsk8o6R4j9n1t5lO0xQ8A.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/o72R2eGuhYfV1a8x9x7F0L9W0X.jpg",
     vote_average: 6.8,
     media_type: "movie",
     audioLanguages: ["HIN"],
@@ -55,6 +57,7 @@ export const BOLLYWOOD_CATALOG: MediaItem[] = [
     id: 866398,
     title: "Dunki",
     poster_path: "https://image.tmdb.org/t/p/w500/tLpA0bA5X9WJk5uF9C7oM3sH1eA.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
     vote_average: 7.1,
     media_type: "movie",
     audioLanguages: ["HIN"],
@@ -64,6 +67,7 @@ export const BOLLYWOOD_CATALOG: MediaItem[] = [
     id: 872585,
     title: "Pathaan",
     poster_path: "https://image.tmdb.org/t/p/w500/m1b9ToB5xO0f9GqT8yK4c3eQ0f9.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
     vote_average: 6.9,
     media_type: "movie",
     audioLanguages: ["HIN"],
@@ -73,28 +77,21 @@ export const BOLLYWOOD_CATALOG: MediaItem[] = [
     id: 976573,
     title: "12th Fail",
     poster_path: "https://image.tmdb.org/t/p/w500/yA0t7c4U5L9Wf8k2J1e4v6M8xQ9.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg",
     vote_average: 8.6,
     media_type: "movie",
     audioLanguages: ["HIN"],
     release_date: "2023",
   },
-  {
-    id: 1022789,
-    title: "Fighter",
-    poster_path: "https://image.tmdb.org/t/p/w500/zF3y9L5kO4WJk5uF9C7oM3sH1eA.jpg",
-    vote_average: 7.0,
-    media_type: "movie",
-    audioLanguages: ["HIN"],
-    release_date: "2024",
-  },
 ];
 
-// 2. SOUTH INDIAN BLOCKBUSTERS
+// 2. SOUTH INDIAN (Both 9:16 Poster + 16:9 Backdrop)
 export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
   {
     id: 579974,
     title: "RRR",
     poster_path: "https://image.tmdb.org/t/p/w500/wE0noMt2q9ELvlCGQMSvW4gu0vL.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/bQ2ywkchIiaKLSEaMrcT6e29f91.jpg",
     vote_average: 8.6,
     media_type: "movie",
     audioLanguages: ["TEL", "HIN"],
@@ -104,6 +101,7 @@ export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
     id: 801688,
     title: "Kalki 2898 AD",
     poster_path: "https://image.tmdb.org/t/p/w500/x7fB6F5bQ1yK4j9n1t5lO0xQ8A9.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/yF1xTrentcIS5o99ZpHrP3Xeo2.jpg",
     vote_average: 8.0,
     media_type: "movie",
     audioLanguages: ["TEL", "HIN"],
@@ -113,6 +111,7 @@ export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
     id: 872906,
     title: "Salaar: Part 1 – Ceasefire",
     poster_path: "https://image.tmdb.org/t/p/w500/mI5f0qL3n7U9K5wY8t2v6b4c1eA.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
     vote_average: 7.7,
     media_type: "movie",
     audioLanguages: ["TEL", "HIN"],
@@ -122,37 +121,21 @@ export const SOUTH_INDIAN_CATALOG: MediaItem[] = [
     id: 792307,
     title: "Leo",
     poster_path: "https://image.tmdb.org/t/p/w500/p15w8b5jM3t7iF1G8Q4rQ8n5Y7K.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
     vote_average: 7.5,
     media_type: "movie",
     audioLanguages: ["TAM", "HIN"],
     release_date: "2023",
   },
-  {
-    id: 678512,
-    title: "K.G.F: Chapter 2",
-    poster_path: "https://image.tmdb.org/t/p/w500/kh0m9bL1u2X3yK5v8a3T7L4jM8u.jpg",
-    vote_average: 8.2,
-    media_type: "movie",
-    audioLanguages: ["KAN", "HIN"],
-    release_date: "2022",
-  },
-  {
-    id: 1125553,
-    title: "Pushpa: The Rise",
-    poster_path: "https://image.tmdb.org/t/p/w500/1X7a4bC5dE8fGhIjKlMnOpQrSt9.jpg",
-    vote_average: 7.8,
-    media_type: "movie",
-    audioLanguages: ["TEL", "HIN"],
-    release_date: "2021",
-  },
 ];
 
-// 3. HOLLYWOOD DUAL AUDIO
+// 3. HOLLYWOOD DUAL AUDIO (Both 9:16 Poster + 16:9 Backdrop)
 export const HOLLYWOOD_CATALOG: MediaItem[] = [
   {
     id: 693134,
     title: "Dune: Part Two",
     poster_path: "https://image.tmdb.org/t/p/w500/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5hj0x2.jpg",
     vote_average: 8.3,
     media_type: "movie",
     audioLanguages: ["MULTI", "HIN", "ENG"],
@@ -162,6 +145,7 @@ export const HOLLYWOOD_CATALOG: MediaItem[] = [
     id: 533535,
     title: "Deadpool & Wolverine",
     poster_path: "https://image.tmdb.org/t/p/w500/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/yDHYTfA3R0jFYba16jBB12R8GNT.jpg",
     vote_average: 7.8,
     media_type: "movie",
     audioLanguages: ["MULTI", "HIN", "ENG"],
@@ -171,6 +155,7 @@ export const HOLLYWOOD_CATALOG: MediaItem[] = [
     id: 157336,
     title: "Interstellar",
     poster_path: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/rAiYTsqhk0ND1mOXzP3qY98uk83.jpg",
     vote_average: 8.4,
     media_type: "movie",
     audioLanguages: ["MULTI", "HIN", "ENG"],
@@ -180,37 +165,21 @@ export const HOLLYWOOD_CATALOG: MediaItem[] = [
     id: 872585,
     title: "Oppenheimer",
     poster_path: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
     vote_average: 8.1,
     media_type: "movie",
     audioLanguages: ["MULTI", "HIN", "ENG"],
     release_date: "2023",
   },
-  {
-    id: 299536,
-    title: "Avengers: Infinity War",
-    poster_path: "https://image.tmdb.org/t/p/w500/7WsyChQLEftFiDOVTGkv3hFpyyt.jpg",
-    vote_average: 8.3,
-    media_type: "movie",
-    audioLanguages: ["MULTI", "HIN", "ENG"],
-    release_date: "2018",
-  },
-  {
-    id: 27205,
-    title: "Inception",
-    poster_path: "https://image.tmdb.org/t/p/w500/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
-    vote_average: 8.4,
-    media_type: "movie",
-    audioLanguages: ["MULTI", "HIN", "ENG"],
-    release_date: "2010",
-  },
 ];
 
-// 4. REGIONAL HIT RELEASES (Unique individual posters)
+// 4. REGIONAL HIT RELEASES
 export const REGIONAL_CATALOG: MediaItem[] = [
   {
     id: 853036,
     title: "Carry On Jatta 3",
     poster_path: "https://image.tmdb.org/t/p/w500/d2PqL46aX1j43kG2qDq74X9y0K.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/xOMo8BRK7PfcJv9JCnx7s5hj0x2.jpg",
     vote_average: 8.0,
     media_type: "movie",
     audioLanguages: ["PUN", "HIN"],
@@ -220,6 +189,7 @@ export const REGIONAL_CATALOG: MediaItem[] = [
     id: 1111101,
     title: "Baap Manus",
     poster_path: "https://image.tmdb.org/t/p/w500/yDHYTfA3R0jFYba16jBB12R8GNT.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg",
     vote_average: 8.4,
     media_type: "movie",
     audioLanguages: ["MAR", "HIN"],
@@ -229,6 +199,7 @@ export const REGIONAL_CATALOG: MediaItem[] = [
     id: 1111102,
     title: "Bhooter Bhabishyat",
     poster_path: "https://image.tmdb.org/t/p/w500/7I6VUdPj6tQECNHdviJkUHD2f89.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/rAiYTsqhk0ND1mOXzP3qY98uk83.jpg",
     vote_average: 8.2,
     media_type: "movie",
     audioLanguages: ["BEN", "HIN"],
@@ -238,6 +209,7 @@ export const REGIONAL_CATALOG: MediaItem[] = [
     id: 1111103,
     title: "Jatt & Juliet 3",
     poster_path: "https://image.tmdb.org/t/p/w500/wuMc08IPKEatv9rnMNXvIDxqP4W.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/yF1xTrentcIS5o99ZpHrP3Xeo2.jpg",
     vote_average: 7.8,
     media_type: "movie",
     audioLanguages: ["PUN", "HIN"],
@@ -251,13 +223,14 @@ export const BACKUP_HINDI_MOVIES: MediaItem[] = [
   ...HOLLYWOOD_CATALOG,
 ];
 
-// 5. SERIES CATALOG
+// 5. SERIES (Both 9:16 Poster + 16:9 Backdrop)
 export const BACKUP_HINDI_SERIES: MediaItem[] = [
   {
     id: 119051,
     name: "Wednesday",
     title: "Wednesday",
     poster_path: "https://image.tmdb.org/t/p/w500/9PFonBhy4cQy7Jz20NpMygczOkv.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/iHSwvRVsRyxpX7FE7GbviaDvgGZ.jpg",
     vote_average: 8.5,
     media_type: "tv",
     audioLanguages: ["MULTI", "HIN"],
@@ -268,6 +241,7 @@ export const BACKUP_HINDI_SERIES: MediaItem[] = [
     name: "The Boys",
     title: "The Boys",
     poster_path: "https://image.tmdb.org/t/p/w500/2zmTngn1tYC1AvfnNDBpQIavBk8.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/n6bUvigpRFqSwmPp1m2YADdbRBc.jpg",
     vote_average: 8.4,
     media_type: "tv",
     audioLanguages: ["MULTI", "HIN"],
@@ -278,6 +252,7 @@ export const BACKUP_HINDI_SERIES: MediaItem[] = [
     name: "The Last of Us",
     title: "The Last of Us",
     poster_path: "https://image.tmdb.org/t/p/w500/uKvVjHNqB5VmOrdxqAt2V7JMrHG.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg",
     vote_average: 8.6,
     media_type: "tv",
     audioLanguages: ["MULTI", "HIN"],
@@ -288,20 +263,11 @@ export const BACKUP_HINDI_SERIES: MediaItem[] = [
     name: "Stranger Things",
     title: "Stranger Things",
     poster_path: "https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",
+    backdrop_path: "https://image.tmdb.org/t/p/w1280/56v2KjBlU4XaOv9rVYEQypROD7P.jpg",
     vote_average: 8.6,
     media_type: "tv",
     audioLanguages: ["MULTI", "HIN"],
     first_air_date: "2016",
-  },
-  {
-    id: 1399,
-    name: "Game of Thrones",
-    title: "Game of Thrones",
-    poster_path: "https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg",
-    vote_average: 8.4,
-    media_type: "tv",
-    audioLanguages: ["MULTI", "HIN"],
-    first_air_date: "2011",
   },
 ];
 
