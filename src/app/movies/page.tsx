@@ -59,12 +59,22 @@ export default function MoviesPage() {
       HOLLYWOOD_CATALOG[0],
       BOLLYWOOD_CATALOG[1],
       SOUTH_INDIAN_CATALOG[1],
-    ],
+    ].filter(Boolean),
     cinema: BACKUP_HINDI_MOVIES,
     bollywood: BOLLYWOOD_CATALOG,
     south: SOUTH_INDIAN_CATALOG,
     hollywood: HOLLYWOOD_CATALOG,
   };
+
+  // Safe deduplicated random movies pool (guaranteed to contain valid items)
+  const randomMoviesPool: MediaItem[] = [
+    BOLLYWOOD_CATALOG[2],
+    SOUTH_INDIAN_CATALOG[1],
+    HOLLYWOOD_CATALOG[1],
+    SOUTH_INDIAN_CATALOG[2],
+    BOLLYWOOD_CATALOG[0],
+    HOLLYWOOD_CATALOG[3],
+  ].filter(Boolean);
 
   const renderSectionShelf = (
     title: string,
@@ -73,6 +83,8 @@ export default function MoviesPage() {
     viewAllHref: string = "/explore"
   ) => {
     const IconComp = icon;
+    const validItems = (items || []).filter((item): item is MediaItem => Boolean(item && item.id));
+
     return (
       <section className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
@@ -91,9 +103,9 @@ export default function MoviesPage() {
         </div>
 
         <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-0.5">
-          {items.map((item, idx) => (
+          {validItems.map((item, idx) => (
             <MediaPosterCard
-              key={`${title}-${item.id}-${idx}`}
+              key={`${title}-${item?.id ?? idx}-${idx}`}
               item={item}
               defaultType="movie"
             />
@@ -107,7 +119,7 @@ export default function MoviesPage() {
     <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
       {/* 00. Hero Carousel */}
       <section className="w-full">
-        <HeroCarousel items={HOLLYWOOD_CATALOG.concat(BOLLYWOOD_CATALOG.slice(0, 3))} />
+        <HeroCarousel items={HOLLYWOOD_CATALOG.concat(BOLLYWOOD_CATALOG.slice(0, 3)).filter(Boolean)} />
       </section>
 
       {/* 01. Category Filter Pills */}
@@ -175,17 +187,7 @@ export default function MoviesPage() {
       />
 
       {/* 11. Random Movies */}
-      {renderSectionShelf(
-        "Random Movies",
-        [
-          BOLLYWOOD_CATALOG[4],
-          SOUTH_INDIAN_CATALOG[2],
-          HOLLYWOOD_CATALOG[1],
-          SOUTH_INDIAN_CATALOG[4],
-          BOLLYWOOD_CATALOG[2],
-        ],
-        Compass
-      )}
+      {renderSectionShelf("Random Movies", randomMoviesPool, Compass)}
     </div>
   );
 }
