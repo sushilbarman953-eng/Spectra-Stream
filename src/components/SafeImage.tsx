@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Film } from "lucide-react";
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  fill?: boolean;
   fallbackSrc?: string;
 }
 
@@ -11,6 +12,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   src,
   alt,
   className,
+  fill,
   ...props
 }) => {
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         </div>
       )}
 
-      {/* Native img tag avoids Next.js remote domain & proxy interceptors */}
+      {/* Native img tag with fill omitted from DOM attributes */}
       <img
         {...props}
         src={src}
