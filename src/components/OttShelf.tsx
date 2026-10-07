@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useRef } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
-import { MediaItem, IMAGE_BASE } from "@/lib/tmdb";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { MediaItem } from "@/lib/tmdb";
 import { soundFx } from "@/lib/soundFx";
+import { MediaPosterCard } from "@/components/MediaPosterCard";
 
 interface OttShelfProps {
   title: string;
@@ -37,19 +36,8 @@ export const OttShelf: React.FC<OttShelfProps> = ({
 
   if (!items || items.length === 0) return null;
 
-  const resolvePoster = (item: any) => {
-    if (!item?.poster_path) {
-      return "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80";
-    }
-    if (typeof item.poster_path === "string" && item.poster_path.startsWith("http")) {
-      return item.poster_path;
-    }
-    return `${IMAGE_BASE}/w342${item.poster_path}`;
-  };
-
   return (
     <div className="space-y-2 relative group/shelf select-none">
-      {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5">
@@ -84,93 +72,21 @@ export const OttShelf: React.FC<OttShelfProps> = ({
         </div>
       </div>
 
-      {/* Poster Row */}
       <div
         ref={rowRef}
         className="flex gap-2.5 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory pb-1 px-1"
         style={{ WebkitOverflowScrolling: "touch" }}
       >
-        {items.map((item, idx) => {
-          const poster = resolvePoster(item);
-          const mediaType = item.media_type || type;
-          const audioTags = item.audioLanguages || ["HIN", "ENG"];
-          const rank = idx + 1;
-
-          let displayLanguage = badgeLabel;
-          if (!displayLanguage) {
-            if (audioTags.length > 1) {
-              displayLanguage = "MULTI";
-            } else {
-              const single = (audioTags[0] || "").toUpperCase();
-              displayLanguage =
-                single === "HIN" ? "HINDI" :
-                single === "TAM" ? "TAMIL" :
-                single === "TEL" ? "TELUGU" :
-                single === "MAL" ? "MALAYALAM" :
-                single === "KAN" ? "KANNADA" :
-                single === "BEN" ? "BENGALI" :
-                single === "ENG" ? "ENGLISH" :
-                single === "JAP" ? "JAPANESE" : single;
-            }
-          }
-
-          return (
-            <Link
-              key={`shelf-${item.id}-${idx}`}
-              href={
-                mediaType === "tv" && String(item.id).length < 6
-                  ? `/details/${item.id}?type=tv&source=anime`
-                  : `/details/${item.id}?type=${mediaType}`
-              }
-              onClick={() => soundFx.playCinematicPop()}
-              className={`flex-none snap-start group relative flex flex-col ${
-                isRanked ? "w-36 sm:w-40 pl-6" : "w-28 sm:w-32"
-              }`}
-            >
-              {/* Overlapping Number for Top 10 */}
-              {isRanked && (
-                <span className="absolute -left-1 bottom-6 text-5xl sm:text-6xl font-black italic tracking-tighter text-zinc-600/60 select-none group-hover:text-red-500/80 transition-colors z-10 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                  {rank}
-                </span>
-              )}
-
-              <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/35 transition-all shadow-md group-hover:scale-[1.02]">
-                <Image
-                  src={poster}
-                  alt={item.title || item.name || "Media"}
-                  fill
-                  unoptimized
-                  className="object-cover transition-transform duration-300"
-                />
-
-                {/* Floating Top-Left: Star Rating */}
-                {item.vote_average ? (
-                  <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[8px] text-white font-bold border border-white/15 z-10 shadow-md">
-                    <Star className="w-2.5 h-2.5 fill-white text-white" />
-                    <span>{Number(item.vote_average).toFixed(1)}</span>
-                  </div>
-                ) : (
-                  <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[8px] text-white font-bold border border-white/15 z-10 shadow-md">
-                    <Star className="w-2.5 h-2.5 fill-white text-white" />
-                    <span>8.5</span>
-                  </div>
-                )}
-
-                {/* Floating Top-Right: Audio/Language Tag */}
-                <div className="absolute top-1.5 right-1.5 z-10">
-                  <span className="px-1.5 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
-                    {displayLanguage}
-                  </span>
-                </div>
-              </div>
-
-              {/* Only Media Title Beneath */}
-              <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition-colors">
-                {item.title || item.name}
-              </h4>
-            </Link>
-          );
-        })}
+        {items.map((item, idx) => (
+          <MediaPosterCard
+            key={`shelf-${item.id}-${idx}`}
+            item={item}
+            rank={isRanked ? idx + 1 : undefined}
+            defaultType={type}
+            badgeLabel={badgeLabel}
+            widthClass={isRanked ? "w-36 sm:w-40" : "w-28 sm:w-32"}
+          />
+        ))}
       </div>
     </div>
   );

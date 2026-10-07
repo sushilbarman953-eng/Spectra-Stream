@@ -527,3 +527,62 @@ export const HOLLYWOOD_CATALOG: MediaItem[] = [
     audioLanguages: ["English", "Hindi"],
   },
 ];
+
+// Dynamic Real-Time Date Fetchers (Trending & In-Theatres relative to today)
+export const getRealtimeTrending = async (type: "movie" | "tv" = "movie"): Promise<MediaItem[]> => {
+  const now = new Date();
+  const todayStr = now.toISOString().split("T")[0]; // e.g., 2026-10-07
+  const pastDate = new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    const extra = `&primary_release_date.gte=${pastDate}&primary_release_date.lte=${todayStr}&with_original_language=hi|en|te|ta`;
+    const res = await tmdb.discoverMedia(type, undefined, extra, 1);
+    if (res && res.length > 0) return res;
+  } catch {}
+
+  return type === "movie" ? BACKUP_HINDI_MOVIES : BACKUP_HINDI_SERIES;
+};
+
+export const getRealtimeComingSoon = async (): Promise<any[]> => {
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const future = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+  try {
+    const extra = `&primary_release_date.gte=${tomorrow}&primary_release_date.lte=${future}&with_original_language=hi|te|ta|en`;
+    const res = await tmdb.discoverMedia("movie", undefined, extra, 1);
+    if (res && res.length > 0) {
+      return res.slice(0, 6).map((item, idx) => {
+        const d = item.release_date ? new Date(item.release_date) : new Date();
+        const dateText = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return {
+          id: String(item.id),
+          title: item.title || item.name,
+          releaseDateText: dateText,
+          bookedCount: 8000 + idx * 2400,
+          posterUrl: item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80",
+          type: "movie" as const,
+        };
+      });
+    }
+  } catch {}
+
+  return [
+    {
+      id: "cs1",
+      title: "Devara: Part 1",
+      releaseDateText: "Oct 10",
+      bookedCount: 16420,
+      posterUrl: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80",
+      type: "movie",
+    },
+    {
+      id: "cs2",
+      title: "Kanguva",
+      releaseDateText: "Oct 18",
+      bookedCount: 12200,
+      posterUrl: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=342&q=80",
+      type: "movie",
+    },
+  ];
+};

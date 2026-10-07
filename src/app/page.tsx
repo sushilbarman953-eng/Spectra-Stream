@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Flame,
   Film,
@@ -11,23 +10,24 @@ import {
   Tv,
   Globe2,
   ChevronRight,
-  Star,
   Play,
 } from "lucide-react";
 import {
   MediaItem,
-  IMAGE_BASE,
   BACKUP_HINDI_MOVIES,
   BACKUP_HINDI_SERIES,
   BOLLYWOOD_CATALOG,
   SOUTH_INDIAN_CATALOG,
   HOLLYWOOD_CATALOG,
+  getRealtimeTrending,
+  getRealtimeComingSoon,
 } from "@/lib/tmdb";
 import { HINDI_DUBBED_ANIME_CATALOG } from "@/lib/animeService";
 import { playbackHistory, WatchProgressItem } from "@/lib/playbackHistory";
 import { watchlistManager } from "@/lib/watchlistManager";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { FilterableRankedShelf } from "@/components/FilterableRankedShelf";
+import { MediaPosterCard } from "@/components/MediaPosterCard";
 import {
   CuratedCollectionsShelf,
   CategorizedPillShelf,
@@ -41,6 +41,8 @@ import { soundFx } from "@/lib/soundFx";
 export default function HomePage() {
   const [continueWatching, setContinueWatching] = useState<WatchProgressItem[]>([]);
   const [favorites, setFavorites] = useState<MediaItem[]>([]);
+  const [trendingRealtimeMovies, setTrendingRealtimeMovies] = useState<MediaItem[]>(BACKUP_HINDI_MOVIES);
+  const [realtimeComingSoon, setRealtimeComingSoon] = useState<any[]>([]);
 
   useEffect(() => {
     setContinueWatching(playbackHistory.getAll().slice(0, 6));
@@ -53,19 +55,17 @@ export default function HomePage() {
       media_type: item.type,
     }));
     setFavorites(savedWatchlist.slice(0, 8));
+
+    // Dynamic real-time date data fetch
+    getRealtimeTrending("movie").then((items) => {
+      if (items && items.length > 0) setTrendingRealtimeMovies(items);
+    });
+
+    getRealtimeComingSoon().then((items) => {
+      if (items && items.length > 0) setRealtimeComingSoon(items);
+    });
   }, []);
 
-  const resolvePoster = (item: any) => {
-    if (!item?.poster_path) {
-      return "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80";
-    }
-    if (typeof item.poster_path === "string" && item.poster_path.startsWith("http")) {
-      return item.poster_path;
-    }
-    return `${IMAGE_BASE}/w342${item.poster_path}`;
-  };
-
-  // 1. Trending Movies Sub-Pills
   const movieTabs = [
     { id: "top", label: "TOP Movies" },
     { id: "cinema", label: "Cinema" },
@@ -76,7 +76,7 @@ export default function HomePage() {
   ];
 
   const moviesByTab: Record<string, MediaItem[]> = {
-    top: BACKUP_HINDI_MOVIES.slice(0, 10),
+    top: trendingRealtimeMovies.slice(0, 10),
     cinema: BACKUP_HINDI_MOVIES,
     bollywood: BOLLYWOOD_CATALOG,
     south: SOUTH_INDIAN_CATALOG,
@@ -84,7 +84,6 @@ export default function HomePage() {
     bengali: BACKUP_HINDI_MOVIES.slice(2, 8),
   };
 
-  // 2. Trending TV Series Sub-Pills
   const seriesTabs = [
     { id: "top_series", label: "Top Series" },
     { id: "indian_drama", label: "Indian Drama" },
@@ -112,33 +111,6 @@ export default function HomePage() {
     { id: "all_movies", name: "All Movies", href: "/movies", bgUrl: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=300&q=80" },
     { id: "all_dramas", name: "All Dramas", href: "/series", bgUrl: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=300&q=80" },
     { id: "punjabi", name: "Punjabi", href: "/movies", bgUrl: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=300&q=80" },
-  ];
-
-  const comingSoonData = [
-    {
-      id: "cs1",
-      title: "Devara: Part 1",
-      releaseDateText: "Sep 28",
-      bookedCount: 14820,
-      posterUrl: "https://image.tmdb.org/t/p/w342/A9v2rQ12fQZ6R8wZ9i0g0hY2.jpg",
-      type: "movie" as const,
-    },
-    {
-      id: "cs2",
-      title: "Kanguva",
-      releaseDateText: "Oct 10",
-      bookedCount: 9230,
-      posterUrl: "https://image.tmdb.org/t/p/w342/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-      type: "movie" as const,
-    },
-    {
-      id: "cs3",
-      title: "Vettaiyan",
-      releaseDateText: "Oct 24",
-      bookedCount: 18400,
-      posterUrl: "https://image.tmdb.org/t/p/w342/b33nnKl1GSJbao4l3fZ0A8Mm56a.jpg",
-      type: "movie" as const,
-    },
   ];
 
   const indianStarsData = [
@@ -212,50 +184,14 @@ export default function HomePage() {
         </div>
 
         <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1 px-0.5">
-          {items.map((item, idx) => {
-            const poster = resolvePoster(item);
-            const targetType = isAnime ? "tv" : item.media_type || "movie";
-            const targetUrl = isAnime
-              ? `/details/${item.id}?type=tv&source=anime`
-              : `/details/${item.id}?type=${targetType}`;
-
-            return (
-              <Link
-                key={`${item.id}-${idx}`}
-                href={targetUrl}
-                onClick={() => soundFx.playCinematicPop()}
-                className="flex-none w-28 sm:w-32 group relative flex flex-col"
-              >
-                <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                  <Image
-                    src={poster}
-                    alt={item.title || item.name || "Media Poster"}
-                    fill
-                    unoptimized
-                    className="object-cover transition duration-300"
-                  />
-
-                  {/* Floating Top-Left: Star Rating */}
-                  <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] text-white font-bold border border-white/15">
-                    <Star className="w-2 h-2 fill-white text-white" />
-                    <span>{item.vote_average ? Number(item.vote_average).toFixed(1) : "8.5"}</span>
-                  </div>
-
-                  {/* Floating Top-Right: Language Pill */}
-                  <div className="absolute top-1.5 right-1.5 z-10">
-                    <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-black/75 backdrop-blur-md border border-white/20 text-zinc-200">
-                      Hindi
-                    </span>
-                  </div>
-                </div>
-
-                {/* Only Title Beneath the Poster */}
-                <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
-                  {item.title || item.name}
-                </h4>
-              </Link>
-            );
-          })}
+          {items.map((item, idx) => (
+            <MediaPosterCard
+              key={`${item.id}-${idx}`}
+              item={item}
+              defaultType={isAnime ? "tv" : item.media_type || "movie"}
+              href={isAnime ? `/details/${item.id}?type=tv&source=anime` : undefined}
+            />
+          ))}
         </div>
       </section>
     );
@@ -273,9 +209,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#08080c] text-white pt-2 pb-28 px-3 sm:px-6 flex flex-col gap-7 max-w-7xl mx-auto">
-      {/* 00. RESTORED HERO CAROUSEL */}
+      {/* 00. Hero Carousel */}
       <section className="w-full">
-        <HeroCarousel items={BACKUP_HINDI_MOVIES} />
+        <HeroCarousel items={trendingRealtimeMovies} />
       </section>
 
       {/* 01. Keep Watching */}
@@ -317,7 +253,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* 02. Trending Movies (Sub-Filters, Numbers 1, 2, 3...) */}
+      {/* 02. Trending Movies (Real-Time Dynamic for Current Date) */}
       <FilterableRankedShelf
         title="Trending Movies"
         tabs={movieTabs}
@@ -326,7 +262,7 @@ export default function HomePage() {
         defaultType="movie"
       />
 
-      {/* 03. Trending TV Series (Sub-Filters) */}
+      {/* 03. Trending TV Series */}
       <FilterableRankedShelf
         title="Trending TV Series"
         tabs={seriesTabs}
@@ -338,7 +274,7 @@ export default function HomePage() {
       {/* 04. Trending Anime */}
       {renderCleanShelf("Trending Anime", animeShelfItems, Sparkles, "/anime", true)}
 
-      {/* 05. Categories (Wide Frosted Tiles) */}
+      {/* 05. Categories */}
       <CategorizedPillShelf categories={categoriesData} />
 
       {/* 06. Back to Your Favorites & 09. Because You Watched */}
@@ -348,8 +284,8 @@ export default function HomePage() {
         becauseWatchedItems={BOLLYWOOD_CATALOG.slice(0, 8)}
       />
 
-      {/* 07. Coming Soon (Pre-Release Alerts) */}
-      <ComingSoonShelf items={comingSoonData} />
+      {/* 07. Coming Soon (Lookahead from Current Date) */}
+      <ComingSoonShelf items={realtimeComingSoon.length > 0 ? realtimeComingSoon : []} />
 
       {/* 08. Indian Stars */}
       <StarsSpotlightShelf stars={indianStarsData} />
@@ -366,7 +302,7 @@ export default function HomePage() {
       {/* 11. Curated Collections & 3-Column Wall */}
       <div className="space-y-8">
         <CuratedCollectionsShelf collections={curatedCollectionsData} />
-        <MultiRowGridDiscover items={BACKUP_HINDI_MOVIES.slice(0, 9)} />
+        <MultiRowGridDiscover items={trendingRealtimeMovies.slice(0, 9)} />
       </div>
     </div>
   );
