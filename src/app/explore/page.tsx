@@ -9,13 +9,13 @@ import {
   Film,
   Tv,
   Flame,
-  Sparkles,
   TrendingUp,
   SlidersHorizontal,
   Loader2,
 } from "lucide-react";
 import { tmdb, MediaItem, IMAGE_BASE } from "@/lib/tmdb";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { soundFx } from "@/lib/soundFx";
 
 const GENRES = [
   { id: "all", name: "All Genres" },
@@ -38,6 +38,16 @@ export default function ExplorePage() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const resolvePoster = (item: MediaItem) => {
+    if (!item?.poster_path) {
+      return "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80";
+    }
+    if (item.poster_path.startsWith("http")) {
+      return item.poster_path;
+    }
+    return `${IMAGE_BASE}/w342${item.poster_path}`;
+  };
+
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
@@ -54,7 +64,6 @@ export default function ExplorePage() {
           results = await tmdb.getPopular(mediaType);
         }
 
-        // Apply genre filter if selected
         if (selectedGenre !== "all") {
           const gId = parseInt(selectedGenre, 10);
           results = results.filter((item) => item.genre_ids?.includes(gId));
@@ -75,7 +84,7 @@ export default function ExplorePage() {
   }, [mediaType, selectedGenre, sortBy]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-8 py-3 pb-28 space-y-5">
+    <div className="max-w-6xl mx-auto px-4 md:px-8 py-3 pb-28 space-y-5 select-none">
       {/* Title & Type Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/10">
         <div>
@@ -88,10 +97,12 @@ export default function ExplorePage() {
           </p>
         </div>
 
-        {/* Media Type Toggle: Movies vs TV Shows */}
         <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/5 border border-white/10 self-start sm:self-auto">
           <button
-            onClick={() => setMediaType("movie")}
+            onClick={() => {
+              soundFx.playCinematicPop();
+              setMediaType("movie");
+            }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               mediaType === "movie"
                 ? "bg-white text-black shadow-glow font-black"
@@ -103,7 +114,10 @@ export default function ExplorePage() {
           </button>
 
           <button
-            onClick={() => setMediaType("tv")}
+            onClick={() => {
+              soundFx.playCinematicPop();
+              setMediaType("tv");
+            }}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               mediaType === "tv"
                 ? "bg-white text-black shadow-glow font-black"
@@ -118,7 +132,6 @@ export default function ExplorePage() {
 
       {/* Sorting & Filter Strip */}
       <div className="space-y-2.5">
-        {/* Sort Pill Row */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           {[
             { id: "trending", label: "Trending", icon: TrendingUp },
@@ -131,7 +144,10 @@ export default function ExplorePage() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setSortBy(tab.id as any)}
+                onClick={() => {
+                  soundFx.playMechanicalTick();
+                  setSortBy(tab.id as any);
+                }}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border transition ${
                   isSelected
                     ? "bg-white text-black border-white shadow-glow"
@@ -145,7 +161,6 @@ export default function ExplorePage() {
           })}
         </div>
 
-        {/* Genre Pill Horizontal Scroller */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 -mx-4 px-4 sm:mx-0 sm:px-0">
           {GENRES.map((g) => {
             const isSelected = selectedGenre === g.id;
@@ -153,7 +168,10 @@ export default function ExplorePage() {
             return (
               <button
                 key={g.id}
-                onClick={() => setSelectedGenre(g.id)}
+                onClick={() => {
+                  soundFx.playMechanicalTick();
+                  setSelectedGenre(g.id);
+                }}
                 className={`px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap transition border ${
                   isSelected
                     ? "bg-white/20 text-white border-white/40 shadow-glow"
@@ -183,48 +201,44 @@ export default function ExplorePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {items.map((item) => {
             const itemTitle = item.title || item.name || "Untitled";
-            const year = (item.release_date || item.first_air_date || "").slice(0, 4);
-            const poster = item.poster_path ? `${IMAGE_BASE}/w342${item.poster_path}` : null;
+            const poster = resolvePoster(item);
 
             return (
-              <Link key={item.id} href={`/details/${item.id}?type=${mediaType}`} className="group">
-                <GlassCard
-                  hoverEffect
-                  className="overflow-hidden border border-white/10 rounded-2xl h-full flex flex-col justify-between bg-[#0b0b10]"
-                >
-                  <div className="relative aspect-[2/3] w-full bg-zinc-950">
-                    {poster ? (
-                      <Image
-                        src={poster}
-                        alt={itemTitle}
-                        fill
-                        sizes="180px"
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-zinc-600 text-xs">
-                        No Poster
-                      </div>
-                    )}
+              <Link
+                key={item.id}
+                href={`/details/${item.id}?type=${mediaType}`}
+                onClick={() => soundFx.playCinematicPop()}
+                className="group flex flex-col"
+              >
+                <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
+                  <Image
+                    src={poster}
+                    alt={itemTitle}
+                    fill
+                    unoptimized
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
 
-                    {item.vote_average > 0 && (
-                      <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[9px] text-white font-bold border border-white/15">
-                        <Star className="w-2.5 h-2.5 fill-white text-white" />
-                        {item.vote_average.toFixed(1)}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="p-2 bg-black/60 space-y-0.5">
-                    <h4 className="text-xs font-bold text-white truncate">{itemTitle}</h4>
-                    <div className="flex items-center justify-between text-[10px] text-zinc-400">
-                      <span>{year || "N/A"}</span>
-                      <span className="uppercase text-[9px] font-semibold text-zinc-300">
-                        {mediaType === "tv" ? "Series" : "Movie"}
-                      </span>
+                  {/* Floating Top-Left: Star Rating */}
+                  {item.vote_average > 0 ? (
+                    <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[8px] text-white font-bold border border-white/15 z-10 shadow-md">
+                      <Star className="w-2.5 h-2.5 fill-white text-white" />
+                      <span>{item.vote_average.toFixed(1)}</span>
                     </div>
+                  ) : null}
+
+                  {/* Floating Top-Right: Language Tag */}
+                  <div className="absolute top-1.5 right-1.5 z-10">
+                    <span className="px-1.5 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-wider bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200 shadow-[0_0_8px_rgba(239,68,68,0.45)]">
+                      MULTI
+                    </span>
                   </div>
-                </GlassCard>
+                </div>
+
+                {/* Only Media Title Beneath */}
+                <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
+                  {itemTitle}
+                </h4>
               </Link>
             );
           })}
