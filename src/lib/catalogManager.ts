@@ -1,9 +1,27 @@
 "use client";
 
 import { MediaItem } from "@/lib/tmdb";
-import { HINDI_DUBBED_ANIME_CATALOG } from "@/lib/animeService";
-import { CURATED_CHANNELS, LiveChannel } from "@/lib/iptv";
-import { INDIAN_MOVIE_STARS, HOLLYWOOD_MOVIE_STARS, StarProfile } from "@/components/StarSpotlightCapsules";
+import { LiveChannel, CURATED_CHANNELS } from "@/lib/iptv";
+import { StarProfile } from "@/components/StarSpotlightCapsules";
+
+// Universal SVG poster generator (100% offline, zero network requests, zero blocking)
+const makePosterSvg = (title: string, color1: string, color2: string) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="450" viewBox="0 0 300 450">
+    <defs>
+      <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="${color1}"/>
+        <stop offset="50%" stop-color="${color2}"/>
+        <stop offset="100%" stop-color="#050508"/>
+      </linearGradient>
+    </defs>
+    <rect width="300" height="450" fill="url(#g)"/>
+    <circle cx="150" cy="180" r="48" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+    <polygon points="144,164 164,180 144,196" fill="#ffffff"/>
+    <text x="150" y="270" font-family="system-ui,-apple-system,sans-serif" font-weight="900" font-size="20" fill="#ffffff" text-anchor="middle" letter-spacing="1">${title.toUpperCase()}</text>
+    <text x="150" y="295" font-family="monospace" font-weight="700" font-size="11" fill="rgba(255,255,255,0.5)" text-anchor="middle" letter-spacing="2">4K ULTRA HD</text>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
 
 export interface WebCustomSettings {
   siteTitle: string;
@@ -54,41 +72,37 @@ export interface CustomCatalogState {
   liveChannels: LiveChannel[];
 }
 
-const GLOBAL_MOVIES: MediaItem[] = [
-  { id: 974950, title: "Jawan", poster_path: "/jFt1g94utjj2YK4aeapSaW012tp.jpg", vote_average: 8.2, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
-  { id: 872906, title: "Animal", poster_path: "/hr95ooB6b6hk32T799WYbh993LO.jpg", vote_average: 7.8, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
-  { id: 838209, title: "Pathaan", poster_path: "/m1b9ToAbG17b73z91r03aK3k8lH.jpg", vote_average: 7.4, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
-  { id: 1072790, title: "Dunki", poster_path: "/zsqJ6n5K2aU6a07E4d9n1mJ0j9h.jpg", vote_average: 7.1, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
-  { id: 111111, title: "12th Fail", poster_path: "/2qkW8PqJ0c6rOq4K7s2d5F8x1A3.jpg", vote_average: 8.6, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
-  { id: 579974, title: "RRR", poster_path: "/nEu44fX3W8zQ0Z0L8yv4cO1q2X3.jpg", vote_average: 8.6, media_type: "movie", audioLanguages: ["MULTI", "TEL", "HIN"] },
-  { id: 222222, title: "Kalki 2898 AD", poster_path: "/r174783q5f4k7s2d5F8x1A3y8U4.jpg", vote_average: 8.0, media_type: "movie", audioLanguages: ["MULTI", "TEL", "HIN"] },
-  { id: 333333, title: "Salaar: Part 1 - Ceasefire", poster_path: "/a6S2r1a1a7s8d9f0g1h2j3k4l5m.jpg", vote_average: 7.7, media_type: "movie", audioLanguages: ["MULTI", "TEL", "HIN"] },
-  { id: 792307, title: "Leo", poster_path: "/pD6sL4v7aB5oN4X8yF1u2X3yK.jpg", vote_average: 7.5, media_type: "movie", audioLanguages: ["MULTI", "TAM", "HIN"] },
-  { id: 533535, title: "Deadpool & Wolverine", poster_path: "/8cdWjvZQUExUUTzyp4t6EDMubfO.jpg", backdrop_path: "/yDHYTfA3R0jFYba16jBB1jv8vEU.jpg", vote_average: 8.0, media_type: "movie", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 693134, title: "Dune: Part Two", poster_path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg", backdrop_path: "/xOMo8BRK7PfcJv9JCnx7s520DRq.jpg", vote_average: 8.3, media_type: "movie", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 157336, title: "Interstellar", poster_path: "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg", backdrop_path: "/rAiYTsqAlinmh6AcKBiAHZKQx8y.jpg", vote_average: 8.4, media_type: "movie", audioLanguages: ["MULTI", "HIN", "ENG"] },
+const GUARANTEED_MOVIES: MediaItem[] = [
+  { id: 974950, title: "Jawan", poster_path: makePosterSvg("Jawan", "#1e3a8a", "#b91c1c"), vote_average: 8.2, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
+  { id: 872906, title: "Animal", poster_path: makePosterSvg("Animal", "#450a0a", "#18181b"), vote_average: 7.8, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
+  { id: 838209, title: "Pathaan", poster_path: makePosterSvg("Pathaan", "#0f172a", "#ea580c"), vote_average: 7.4, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
+  { id: 1072790, title: "Dunki", poster_path: makePosterSvg("Dunki", "#713f12", "#1c1917"), vote_average: 7.1, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
+  { id: 111111, title: "12th Fail", poster_path: makePosterSvg("12th Fail", "#14532d", "#1c1917"), vote_average: 8.6, media_type: "movie", audioLanguages: ["MULTI", "HIN"] },
+  { id: 579974, title: "RRR", poster_path: makePosterSvg("RRR", "#7c2d12", "#1e293b"), vote_average: 8.6, media_type: "movie", audioLanguages: ["MULTI", "TEL", "HIN"] },
+  { id: 222222, title: "Kalki 2898 AD", poster_path: makePosterSvg("Kalki 2898", "#581c87", "#1e1b4b"), vote_average: 8.0, media_type: "movie", audioLanguages: ["MULTI", "TEL", "HIN"] },
+  { id: 333333, title: "Salaar", poster_path: makePosterSvg("Salaar", "#27272a", "#09090b"), vote_average: 7.7, media_type: "movie", audioLanguages: ["MULTI", "TEL", "HIN"] },
+  { id: 792307, title: "Leo", poster_path: makePosterSvg("Leo", "#831843", "#18181b"), vote_average: 7.5, media_type: "movie", audioLanguages: ["MULTI", "TAM", "HIN"] },
+  { id: 533535, title: "Deadpool", poster_path: makePosterSvg("Deadpool", "#991b1b", "#18181b"), vote_average: 8.0, media_type: "movie", audioLanguages: ["MULTI", "ENG", "HIN"] },
+  { id: 693134, title: "Dune 2", poster_path: makePosterSvg("Dune 2", "#854d0e", "#1c1917"), vote_average: 8.3, media_type: "movie", audioLanguages: ["MULTI", "ENG"] },
+  { id: 157336, title: "Interstellar", poster_path: makePosterSvg("Interstellar", "#1e3a8a", "#020617"), vote_average: 8.4, media_type: "movie", audioLanguages: ["MULTI", "ENG"] },
 ];
 
-const GLOBAL_SERIES: MediaItem[] = [
-  { id: 119051, title: "Wednesday", name: "Wednesday", poster_path: "/9PFonBhy4cQy7Jz20NpMygczOkv.jpg", backdrop_path: "/iHSwvRVsRyxKuOCzgEcBmNg9F0P.jpg", vote_average: 8.5, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 76479, title: "The Boys", name: "The Boys", poster_path: "/2ZmQuiupcW2Yf4RJwh2Q5S1r44T.jpg", backdrop_path: "/n6bUvigpRFqSwmPp1m2YADdbRBc.jpg", vote_average: 8.4, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 100088, title: "The Last of Us", name: "The Last of Us", poster_path: "/uKvVjK19uDUUQ2ebK5d1mqq0m1f.jpg", backdrop_path: "/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg", vote_average: 8.6, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 66732, title: "Stranger Things", name: "Stranger Things", poster_path: "/49WJfeN0moxb9IPfGn8AIqMGskD.jpg", backdrop_path: "/56v2KjBlU4XaOv9rVYEQypROD7P.jpg", vote_average: 8.6, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 93405, title: "Squid Game", name: "Squid Game", poster_path: "/dDlG1TzUfI8J8mCj5f8p7d2E2kG.jpg", backdrop_path: "/oaGvjB0DvdNDWhPtQ9Ys2z0F1kH.jpg", vote_average: 7.8, media_type: "tv", audioLanguages: ["MULTI", "HIN", "KOR"] },
-  { id: 60574, title: "Peaky Blinders", name: "Peaky Blinders", poster_path: "/vUUqzWa2LnHIVqkaKVlVGkVcZIW.jpg", backdrop_path: "/2OMB0ynKlyIenMJWI2Dy9IWT4c.jpg", vote_average: 8.6, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 1399, title: "Game of Thrones", name: "Game of Thrones", poster_path: "/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg", backdrop_path: "/2OMB0ynKlyIenMJWI2Dy9IWT4c.jpg", vote_average: 8.4, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
-  { id: 70523, title: "Dark", name: "Dark", poster_path: "/apbrkG8q9qY76xV4cO645bJ9UoQ.jpg", backdrop_path: "/3lBDg3i6nn5R2NK7iVpKsj9o5lA.jpg", vote_average: 8.5, media_type: "tv", audioLanguages: ["MULTI", "HIN", "GER"] },
+const GUARANTEED_SERIES: MediaItem[] = [
+  { id: 119051, title: "Wednesday", name: "Wednesday", poster_path: makePosterSvg("Wednesday", "#3b0764", "#09090b"), vote_average: 8.5, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
+  { id: 76479, title: "The Boys", name: "The Boys", poster_path: makePosterSvg("The Boys", "#991b1b", "#0f172a"), vote_average: 8.4, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
+  { id: 100088, title: "The Last of Us", name: "The Last of Us", poster_path: makePosterSvg("Last of Us", "#365314", "#0c0a09"), vote_average: 8.6, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
+  { id: 66732, title: "Stranger Things", name: "Stranger Things", poster_path: makePosterSvg("Stranger", "#831843", "#18181b"), vote_average: 8.6, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
+  { id: 93405, title: "Squid Game", name: "Squid Game", poster_path: makePosterSvg("Squid Game", "#be185d", "#111827"), vote_average: 7.8, media_type: "tv", audioLanguages: ["MULTI", "HIN", "KOR"] },
+  { id: 1399, title: "Game of Thrones", name: "Game of Thrones", poster_path: makePosterSvg("GoT", "#1e293b", "#020617"), vote_average: 8.4, media_type: "tv", audioLanguages: ["MULTI", "HIN", "ENG"] },
 ];
 
-const GLOBAL_ANIME: MediaItem[] = HINDI_DUBBED_ANIME_CATALOG.map((a) => ({
-  id: a.mal_id,
-  title: a.title_english || a.title,
-  poster_path: a.images.jpg.image_url,
-  backdrop_path: a.images.jpg.large_image_url || a.images.jpg.image_url,
-  vote_average: a.score,
-  media_type: "tv" as const,
-  audioLanguages: ["HIN", "JAP"],
-}));
+const GUARANTEED_ANIME: MediaItem[] = [
+  { id: 38000, title: "Demon Slayer", poster_path: makePosterSvg("Demon Slayer", "#065f46", "#111827"), vote_average: 8.5, media_type: "tv", audioLanguages: ["HIN", "JAP"] },
+  { id: 40748, title: "Jujutsu Kaisen", poster_path: makePosterSvg("Jujutsu Kaisen", "#1e1b4b", "#312e81"), vote_average: 8.6, media_type: "tv", audioLanguages: ["HIN", "JAP"] },
+  { id: 52299, title: "Solo Leveling", poster_path: makePosterSvg("Solo Leveling", "#1e3a8a", "#020617"), vote_average: 8.4, media_type: "tv", audioLanguages: ["HIN", "JAP"] },
+  { id: 20, title: "Naruto", poster_path: makePosterSvg("Naruto", "#ea580c", "#18181b"), vote_average: 8.0, media_type: "tv", audioLanguages: ["HIN", "JAP"] },
+  { id: 21, title: "One Piece", poster_path: makePosterSvg("One Piece", "#dc2626", "#1e3a8a"), vote_average: 8.7, media_type: "tv", audioLanguages: ["HIN", "JAP"] },
+];
 
 const DEFAULT_SETTINGS: WebCustomSettings = {
   siteTitle: "SPECTRA",
@@ -110,32 +124,39 @@ const DEFAULT_SETTINGS: WebCustomSettings = {
 
 const DEFAULT_CATALOG: CustomCatalogState = {
   settings: DEFAULT_SETTINGS,
-  homeHero: GLOBAL_MOVIES.slice(0, 5),
-  trendingMovies: GLOBAL_MOVIES,
-  trendingSeries: GLOBAL_SERIES,
-  trendingAnime: GLOBAL_ANIME,
-  moviesHero: GLOBAL_MOVIES.slice(9, 12).concat(GLOBAL_MOVIES.slice(0, 2)),
-  bollywood: GLOBAL_MOVIES.slice(0, 5),
-  south: GLOBAL_MOVIES.slice(5, 9),
-  hollywood: GLOBAL_MOVIES.slice(9),
-  regional: GLOBAL_MOVIES.slice(0, 9),
-  franchises: GLOBAL_MOVIES.slice(9),
-  indianStars: INDIAN_MOVIE_STARS,
-  hollywoodStars: HOLLYWOOD_MOVIE_STARS,
-  seriesHero: GLOBAL_SERIES.slice(0, 4),
-  kdrama: GLOBAL_SERIES.filter((s) => s.id === 93405 || s.id === 119051),
-  indianWeb: GLOBAL_SERIES.slice(0, 3),
-  crimeThrillers: GLOBAL_SERIES.slice(1, 6),
-  romanceSeries: GLOBAL_SERIES.slice(2, 5),
-  historicalEpics: GLOBAL_SERIES.slice(5),
-  realityTv: GLOBAL_SERIES.slice(3, 7),
-  pakistaniDramas: GLOBAL_SERIES.slice(0, 4),
-  westernSeries: GLOBAL_SERIES.slice(0, 5),
-  asianDramas: GLOBAL_SERIES.slice(2, 6),
-  scifiFantasy: GLOBAL_SERIES.slice(1, 6),
-  animeHero: GLOBAL_ANIME.slice(0, 4),
-  hindiDubAnime: GLOBAL_ANIME,
-  topShonen: GLOBAL_ANIME.slice(0, 4),
+  homeHero: GUARANTEED_MOVIES.slice(0, 5),
+  trendingMovies: GUARANTEED_MOVIES,
+  trendingSeries: GUARANTEED_SERIES,
+  trendingAnime: GUARANTEED_ANIME,
+  moviesHero: GUARANTEED_MOVIES.slice(8).concat(GUARANTEED_MOVIES.slice(0, 2)),
+  bollywood: GUARANTEED_MOVIES.slice(0, 5),
+  south: GUARANTEED_MOVIES.slice(5, 9),
+  hollywood: GUARANTEED_MOVIES.slice(9),
+  regional: GUARANTEED_MOVIES.slice(0, 9),
+  franchises: GUARANTEED_MOVIES.slice(9),
+  indianStars: [
+    { id: "srk", name: "Shah Rukh Khan", role: "King Khan", imageUrl: makePosterSvg("SRK", "#b45309", "#1c1917"), gradient: "bg-gradient-to-tr from-amber-500 to-red-600" },
+    { id: "prabhas", name: "Prabhas", role: "Rebel Star", imageUrl: makePosterSvg("Prabhas", "#b91c1c", "#1c1917"), gradient: "bg-gradient-to-tr from-red-600 to-orange-500" },
+    { id: "deepika", name: "Deepika Padukone", role: "Leading Actress", imageUrl: makePosterSvg("Deepika", "#be185d", "#1c1917"), gradient: "bg-gradient-to-tr from-pink-500 to-purple-600" },
+    { id: "jr_ntr", name: "Jr. NTR", role: "Man of Masses", imageUrl: makePosterSvg("Jr NTR", "#047857", "#1c1917"), gradient: "bg-gradient-to-tr from-emerald-500 to-teal-500" },
+  ],
+  hollywoodStars: [
+    { id: "cruise", name: "Tom Cruise", role: "Action Icon", imageUrl: makePosterSvg("Cruise", "#0284c7", "#0f172a"), gradient: "bg-gradient-to-tr from-cyan-500 to-blue-600" }
+  ],
+  seriesHero: GUARANTEED_SERIES.slice(0, 4),
+  kdrama: GUARANTEED_SERIES,
+  indianWeb: GUARANTEED_SERIES.slice(0, 3),
+  crimeThrillers: GUARANTEED_SERIES.slice(1, 5),
+  romanceSeries: GUARANTEED_SERIES,
+  historicalEpics: GUARANTEED_SERIES,
+  realityTv: GUARANTEED_SERIES,
+  pakistaniDramas: GUARANTEED_SERIES,
+  westernSeries: GUARANTEED_SERIES,
+  asianDramas: GUARANTEED_SERIES,
+  scifiFantasy: GUARANTEED_SERIES,
+  animeHero: GUARANTEED_ANIME,
+  hindiDubAnime: GUARANTEED_ANIME,
+  topShonen: GUARANTEED_ANIME,
   liveChannels: CURATED_CHANNELS,
 };
 
