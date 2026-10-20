@@ -14,7 +14,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { tmdb, MediaItem, IMAGE_BASE } from "@/lib/tmdb";
-import { GlassCard } from "@/components/ui/GlassCard";
 import { soundFx } from "@/lib/soundFx";
 
 const GENRES = [
@@ -69,7 +68,15 @@ export default function ExplorePage() {
           results = results.filter((item) => item.genre_ids?.includes(gId));
         }
 
-        if (isMounted) setItems(results);
+        // Deduplicate items by ID
+        const seen = new Set<string | number>();
+        const unique = results.filter((item) => {
+          if (!item?.id || seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        });
+
+        if (isMounted) setItems(unique);
       } catch (err) {
         console.error("Explore fetch error:", err);
       } finally {
@@ -199,13 +206,13 @@ export default function ExplorePage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-          {items.map((item) => {
+          {items.map((item, idx) => {
             const itemTitle = item.title || item.name || "Untitled";
             const poster = resolvePoster(item);
 
             return (
               <Link
-                key={item.id}
+                key={`explore-${item.id}-${idx}`}
                 href={`/details/${item.id}?type=${mediaType}`}
                 onClick={() => soundFx.playCinematicPop()}
                 className="group flex flex-col"
@@ -235,7 +242,6 @@ export default function ExplorePage() {
                   </div>
                 </div>
 
-                {/* Only Media Title Beneath */}
                 <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
                   {itemTitle}
                 </h4>
