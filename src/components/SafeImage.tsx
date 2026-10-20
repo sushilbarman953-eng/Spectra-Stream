@@ -8,17 +8,24 @@ export const resolveImageUrl = (path?: string | null): string | null => {
   const trimmed = path.trim();
   if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
 
-  // Already a full HTTP/HTTPS URL
+  // Unsplash and MyAnimeList are not blocked, serve them directly
+  if (trimmed.includes("unsplash.com") || trimmed.includes("myanimelist.net")) {
+    return trimmed;
+  }
+
+  // TMDB images: route through our internal proxy so Indian ISP blocks are bypassed
   if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
     if (trimmed.includes("image.tmdb.org/t/p/")) {
-      return trimmed.replace(/\/p\/(original|w1280|w500)\//, "/p/w342/");
+      const parts = trimmed.split("/t/p/");
+      const subPath = parts[1]?.replace(/^(original|w1280|w500)\//, "w342/") || parts[1];
+      return `/api/poster-proxy?path=${encodeURIComponent(`https://image.tmdb.org/t/p/${subPath}`)}`;
     }
     return trimmed;
   }
 
-  // Bare image filename or relative path
+  // Relative TMDB path (e.g. /jFt1g94utjj2YK4aeapSaW012tp.jpg)
   const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return `https://image.tmdb.org/t/p/w342${cleanPath}`;
+  return `/api/poster-proxy?path=${encodeURIComponent(`https://image.tmdb.org/t/p/w342${cleanPath}`)}`;
 };
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -77,7 +84,6 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         alt={alt || "Media artwork"}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
-        crossOrigin="anonymous"
         onLoad={() => setLoaded(true)}
         onError={() => {
           setFailed(true);

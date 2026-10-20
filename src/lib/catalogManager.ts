@@ -62,7 +62,7 @@ export interface CustomCatalogState {
   liveChannels: LiveChannel[];
 }
 
-const STORAGE_KEY = "spectra_universal_catalog_v5";
+const STORAGE_KEY = "spectra_universal_catalog_v6";
 
 const DEFAULT_ANIME_ITEMS: MediaItem[] = HINDI_DUBBED_ANIME_CATALOG.map((a) => ({
   id: a.mal_id,
