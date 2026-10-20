@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Film } from "lucide-react";
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -16,43 +16,37 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   priority,
   ...props
 }) => {
-  const isExternal = src && (src.includes("unsplash.com") || src.includes("myanimelist.net"));
+  const [hasError, setHasError] = useState(false);
 
-  if (isExternal) {
+  if (!src || hasError) {
     return (
-      <img
-        {...props}
-        src={src}
-        alt={alt || "Media"}
-        loading={priority ? "eager" : "lazy"}
-        className={`w-full h-full object-cover block ${className || ""}`}
-        onError={(e) => {
-          (e.target as HTMLElement).style.display = "none";
-        }}
-      />
+      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-between p-2.5 text-center bg-gradient-to-br from-[#1c1d2d] via-[#12131c] to-[#090a0f] border border-white/10 select-none">
+        <div className="w-full flex justify-between items-center text-zinc-500">
+          <Film className="w-3 h-3 text-red-500" />
+          <span className="text-[7px] font-mono tracking-widest text-zinc-500">SPECTRA</span>
+        </div>
+        <div className="my-auto py-1">
+          <Film className="w-5 h-5 text-zinc-400 mx-auto mb-1 opacity-70" />
+          <span className="text-[10px] font-bold text-white leading-tight line-clamp-2 px-0.5 block">
+            {alt || "Cinema"}
+          </span>
+        </div>
+        <span className="text-[7px] font-mono tracking-widest text-zinc-400 uppercase">
+          4K ULTRA
+        </span>
+      </div>
     );
   }
 
   return (
-    <div className="w-full h-full min-h-[160px] flex flex-col items-center justify-between p-3 text-center bg-gradient-to-br from-[#1c1d2d] via-[#12131c] to-[#090a0f] border border-white/10 select-none">
-      <div className="w-full flex justify-between items-center text-zinc-500">
-        <Film className="w-3.5 h-3.5 text-red-500/80" />
-        <span className="text-[8px] font-mono tracking-widest uppercase text-zinc-500">SPECTRA</span>
-      </div>
-      
-      <div className="my-auto py-2 px-1">
-        <div className="w-9 h-9 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-2 shadow-inner">
-          <Film className="w-4 h-4 text-white/70" />
-        </div>
-        <h4 className="text-xs font-black text-white leading-tight line-clamp-2 drop-shadow">
-          {alt || "Cinema Title"}
-        </h4>
-      </div>
-
-      <div className="w-full pt-1 border-t border-white/5 flex items-center justify-between text-[8px] font-mono text-zinc-500">
-        <span>4K ULTRA</span>
-        <span>MULTI</span>
-      </div>
-    </div>
+    <img
+      {...props}
+      src={src}
+      alt={alt || "Media artwork"}
+      loading={priority ? "eager" : "lazy"}
+      decoding="async"
+      onError={() => setHasError(true)}
+      className={`absolute inset-0 w-full h-full object-cover block select-none ${className || ""}`}
+    />
   );
 };

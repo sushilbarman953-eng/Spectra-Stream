@@ -51,10 +51,8 @@ export const MediaPosterCard: React.FC<MediaPosterCardProps> = ({
           priority={priority}
         />
 
-        {/* Ambient Top & Bottom Gradients */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
 
-        {/* Floating Badges */}
         <div className="absolute top-2 inset-x-2 z-20 flex items-center justify-between pointer-events-none">
           <div className="flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/80 backdrop-blur-md border border-white/15 text-[9px] font-bold text-white shadow-md leading-none">
             <Star className="w-2.5 h-2.5 fill-white text-white shrink-0" />
@@ -66,7 +64,6 @@ export const MediaPosterCard: React.FC<MediaPosterCardProps> = ({
           </div>
         </div>
 
-        {/* Rank Watermark */}
         {typeof rank === "number" && (
           <span className="absolute -bottom-2 right-1 text-5xl sm:text-6xl font-black italic tracking-tighter text-white/35 pointer-events-none select-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] font-sans">
             {rank}
