@@ -68,15 +68,15 @@ export default function ExplorePage() {
           results = results.filter((item) => item.genre_ids?.includes(gId));
         }
 
-        // Deduplicate items by ID
+        // Deduplicate items strictly by id
         const seen = new Set<string | number>();
-        const unique = results.filter((item) => {
+        const uniqueItems = results.filter((item) => {
           if (!item?.id || seen.has(item.id)) return false;
           seen.add(item.id);
           return true;
         });
 
-        if (isMounted) setItems(unique);
+        if (isMounted) setItems(uniqueItems);
       } catch (err) {
         console.error("Explore fetch error:", err);
       } finally {
@@ -227,7 +227,7 @@ export default function ExplorePage() {
                   />
 
                   {/* Floating Top-Left: Star Rating */}
-                  {item.vote_average > 0 ? (
+                  {item.vote_average && item.vote_average > 0 ? (
                     <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[8px] text-white font-bold border border-white/15 z-10 shadow-md">
                       <Star className="w-2.5 h-2.5 fill-white text-white" />
                       <span>{item.vote_average.toFixed(1)}</span>
@@ -242,6 +242,7 @@ export default function ExplorePage() {
                   </div>
                 </div>
 
+                {/* Only Media Title Beneath */}
                 <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
                   {itemTitle}
                 </h4>
