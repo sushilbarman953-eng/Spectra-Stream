@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Bell,
@@ -12,14 +11,9 @@ import {
   ChevronRight,
   Bookmark,
 } from "lucide-react";
-import { MediaItem, IMAGE_BASE } from "@/lib/tmdb";
+import { MediaItem } from "@/lib/tmdb";
 import { soundFx } from "@/lib/soundFx";
-
-const getPosterSrc = (path?: string | null) => {
-  if (!path) return "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=342&q=80";
-  if (path.startsWith("http")) return path;
-  return `${IMAGE_BASE}/w342${path}`;
-};
+import { SafeImage } from "@/components/SafeImage";
 
 export interface CuratedCollection {
   id: string;
@@ -51,7 +45,7 @@ export const CuratedCollectionsShelf: React.FC<{ collections: CuratedCollection[
             <div className="absolute inset-0 flex opacity-40 group-hover:opacity-55 transition-opacity duration-300">
               {col.posters.map((src, idx) => (
                 <div key={idx} className="relative flex-1 h-full border-r border-black/40 overflow-hidden">
-                  <Image src={src} alt="" fill unoptimized className="object-cover" />
+                  <SafeImage src={src} alt="" fill />
                 </div>
               ))}
             </div>
@@ -98,109 +92,15 @@ export const CategorizedPillShelf: React.FC<{ categories: CategoryPill[] }> = ({
             onClick={() => soundFx.playCinematicPop()}
             className="flex-none relative h-11 px-5 rounded-2xl overflow-hidden border border-white/15 bg-zinc-900 flex items-center justify-center shadow-md hover:border-white/35 active:scale-95 transition group"
           >
-            <Image
-              src={cat.bgUrl}
-              alt=""
-              fill
-              unoptimized
-              className="object-cover opacity-25 group-hover:opacity-40 group-hover:scale-105 transition-all duration-300"
-            />
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+            <div className="absolute inset-0">
+              <SafeImage src={cat.bgUrl} alt={cat.name} fill />
+            </div>
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
             <span className="relative z-10 text-xs font-black text-white tracking-wide uppercase drop-shadow">
               {cat.name}
             </span>
           </Link>
         ))}
-      </div>
-    </div>
-  );
-};
-
-export interface ComingSoonItem {
-  id: string;
-  title: string;
-  releaseDateText: string;
-  bookedCount: number;
-  posterUrl: string;
-  type?: "movie" | "tv";
-}
-
-export const ComingSoonShelf: React.FC<{ items: ComingSoonItem[] }> = ({ items }) => {
-  const [notifiedMap, setNotifiedMap] = useState<Record<string, boolean>>({});
-
-  const toggleNotify = (id: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    soundFx.playCinematicPop();
-    setNotifiedMap((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  return (
-    <div className="space-y-3 select-none">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base sm:text-lg font-black text-white tracking-tight">
-          Coming Soon
-        </h2>
-        <span className="text-[10px] font-mono font-bold text-zinc-400">
-          PRE-BOOKINGS OPEN
-        </span>
-      </div>
-
-      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-        {items.map((item) => {
-          const isNotified = notifiedMap[item.id];
-          return (
-            <Link
-              key={item.id}
-              href={`/details/${item.id}?type=${item.type || "movie"}`}
-              onClick={() => soundFx.playCinematicPop()}
-              className="flex-none w-32 sm:w-36 group relative flex flex-col"
-            >
-              <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-lg group-hover:scale-[1.02]">
-                <Image
-                  src={item.posterUrl}
-                  alt={item.title}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/60 pointer-events-none" />
-
-                <div className="absolute top-1.5 left-1.5 z-10">
-                  <span className="px-2 py-0.5 rounded-lg text-[8px] font-mono font-black uppercase tracking-wider bg-black/80 backdrop-blur-md border border-white/20 text-white shadow-md">
-                    {item.releaseDateText}
-                  </span>
-                </div>
-
-                <button
-                  onClick={(e) => toggleNotify(item.id, e)}
-                  className={`absolute top-1.5 right-1.5 z-20 w-7 h-7 rounded-full flex items-center justify-center backdrop-blur-xl border transition active:scale-90 shadow-md ${
-                    isNotified
-                      ? "bg-emerald-500 text-black border-emerald-400 font-bold"
-                      : "bg-black/60 hover:bg-black/80 text-white border-white/20"
-                  }`}
-                  aria-label="Notify Me"
-                >
-                  {isNotified ? (
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                  ) : (
-                    <Bell className="w-3.5 h-3.5" />
-                  )}
-                </button>
-
-                <div className="absolute bottom-1.5 left-1.5 right-1.5 z-10 text-center">
-                  <span className="inline-block w-full py-0.5 rounded-md bg-white/15 backdrop-blur-md border border-white/20 text-[8px] font-mono font-bold text-zinc-100">
-                    {item.bookedCount} booked
-                  </span>
-                </div>
-              </div>
-
-              <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition">
-                {item.title}
-              </h4>
-            </Link>
-          );
-        })}
       </div>
     </div>
   );
@@ -235,16 +135,9 @@ export const StarsSpotlightShelf: React.FC<{ stars: StarSpotlight[] }> = ({ star
               className={`relative w-24 h-28 sm:w-28 sm:h-32 rounded-3xl overflow-hidden p-0.5 border border-white/20 shadow-xl group-hover:scale-105 group-hover:border-white/40 transition duration-300 ${star.gradient}`}
             >
               <div className="relative w-full h-full rounded-[22px] overflow-hidden bg-zinc-950">
-                <Image
-                  src={star.imageUrl}
-                  alt={star.name}
-                  fill
-                  unoptimized
-                  className="object-cover object-top"
-                />
+                <SafeImage src={star.imageUrl} alt={star.name} fill />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent pointer-events-none" />
-
-                <div className="absolute bottom-1.5 inset-x-1 text-center">
+                <div className="absolute bottom-1.5 inset-x-1 text-center z-10">
                   <h4 className="text-[9px] sm:text-[10px] font-black text-white tracking-tight uppercase line-clamp-1 drop-shadow leading-tight">
                     {star.name}
                   </h4>
@@ -286,7 +179,6 @@ export const ContextualPersonalizedShelves: React.FC<{
 
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {favorites.map((item, idx) => {
-              const poster = getPosterSrc(item.poster_path);
               const type = item.media_type || "movie";
 
               return (
@@ -297,18 +189,16 @@ export const ContextualPersonalizedShelves: React.FC<{
                   className="flex-none w-28 sm:w-32 group relative"
                 >
                   <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                    <Image src={poster} alt="" fill unoptimized className="object-cover" />
-                    
-                    {/* Top-Left Rating */}
+                    <SafeImage src={item.poster_path} alt={item.title || item.name || ""} fill />
+
                     {item.vote_average ? (
-                      <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/15 text-[8px] font-black text-white">
+                      <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/15 text-[8px] font-black text-white">
                         <Star className="w-2.5 h-2.5 fill-white text-white" />
                         <span>{item.vote_average.toFixed(1)}</span>
                       </div>
                     ) : null}
 
-                    {/* Top-Right Language Tag */}
-                    <div className="absolute top-1.5 right-1.5">
+                    <div className="absolute top-1.5 right-1.5 z-10">
                       <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200">
                         MULTI
                       </span>
@@ -345,7 +235,6 @@ export const ContextualPersonalizedShelves: React.FC<{
 
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
             {becauseWatchedItems.map((item, idx) => {
-              const poster = getPosterSrc(item.poster_path);
               const type = item.media_type || "movie";
 
               return (
@@ -356,18 +245,16 @@ export const ContextualPersonalizedShelves: React.FC<{
                   className="flex-none w-28 sm:w-32 group relative"
                 >
                   <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-md group-hover:scale-[1.02]">
-                    <Image src={poster} alt="" fill unoptimized className="object-cover" />
+                    <SafeImage src={item.poster_path} alt={item.title || item.name || ""} fill />
 
-                    {/* Top-Left Rating */}
                     {item.vote_average ? (
-                      <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/15 text-[8px] font-black text-white">
+                      <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/15 text-[8px] font-black text-white">
                         <Star className="w-2.5 h-2.5 fill-white text-white" />
                         <span>{item.vote_average.toFixed(1)}</span>
                       </div>
                     ) : null}
 
-                    {/* Top-Right Language */}
-                    <div className="absolute top-1.5 right-1.5">
+                    <div className="absolute top-1.5 right-1.5 z-10">
                       <span className="px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase bg-red-600/30 backdrop-blur-md border border-red-500/40 text-red-200">
                         MULTI
                       </span>
@@ -402,12 +289,13 @@ export const MultiRowGridDiscover: React.FC<{ items: MediaItem[] }> = ({ items }
 
       <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
         {items.map((item, idx) => {
-          const poster = getPosterSrc(item.poster_path);
           const type = item.media_type || "movie";
           const displayLang =
             item.audioLanguages && item.audioLanguages.length > 1
               ? "MULTI"
-              : item.audioLanguages?.[0] || "Hindi";
+              : item.audioLanguages?.[0] || "HIN";
+
+          const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : "8.5";
 
           return (
             <Link
@@ -417,27 +305,24 @@ export const MultiRowGridDiscover: React.FC<{ items: MediaItem[] }> = ({ items }
               className="group relative flex flex-col"
             >
               <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/30 transition shadow-lg group-hover:scale-[1.02]">
-                <Image
-                  src={poster}
+                <SafeImage
+                  src={item.poster_path}
                   alt={item.title || item.name || "Media"}
                   fill
-                  unoptimized
-                  className="object-cover transition duration-300"
                 />
 
-                {/* Floating Top-Left Rating */}
-                {item.vote_average ? (
-                  <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-0.5 bg-black/75 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-black text-white border border-white/15">
-                    <Star className="w-2 h-2 fill-white text-white" />
-                    <span>{item.vote_average.toFixed(1)}</span>
-                  </div>
-                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
-                {/* Floating Top-Right Language */}
-                <div className="absolute top-1.5 right-1.5 z-10">
-                  <span className="px-1.5 py-0.5 rounded-lg text-[7px] font-black uppercase tracking-wider bg-black/60 backdrop-blur-md border border-white/20 text-zinc-200">
-                    {displayLang}
-                  </span>
+                {/* Floating Top Header Badges */}
+                <div className="absolute top-1.5 inset-x-1.5 z-20 flex items-center justify-between pointer-events-none">
+                  <div className="flex items-center gap-0.5 h-4.5 px-1.5 rounded-md bg-black/80 backdrop-blur-md border border-white/15 text-[8px] font-black text-white shadow-md leading-none">
+                    <Star className="w-2.5 h-2.5 fill-white text-white shrink-0" />
+                    <span>{rating}</span>
+                  </div>
+
+                  <div className="flex items-center h-4.5 px-1.5 rounded-md bg-red-600/35 backdrop-blur-md border border-red-500/40 text-[7px] font-black uppercase tracking-wider text-red-100 shadow-[0_0_8px_rgba(239,68,68,0.4)] leading-none">
+                    <span>{displayLang}</span>
+                  </div>
                 </div>
               </div>
 
