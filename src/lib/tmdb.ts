@@ -30,6 +30,17 @@ export interface EpisodeItem {
 
 export const IMAGE_BASE = "https://image.tmdb.org/t/p";
 
+export const DEFAULT_CREDITS = {
+  cast: [
+    { id: 1, name: "Lead Performer", character: "Protagonist", profile_path: null },
+    { id: 2, name: "Co-Star", character: "Antagonist", profile_path: null },
+  ],
+  crew: [
+    { id: 3, name: "Director", job: "Director", profile_path: null },
+    { id: 4, name: "Executive Producer", job: "Producer", profile_path: null },
+  ],
+};
+
 export const BACKUP_HINDI_MOVIES: MediaItem[] = [
   {
     id: 974950,
