@@ -14,6 +14,7 @@ import {
 import { MediaItem } from "@/lib/tmdb";
 import { soundFx } from "@/lib/soundFx";
 import { SafeImage } from "@/components/SafeImage";
+import { MovieCard } from "@/components/MovieCard";
 
 export interface CuratedCollection {
   id: string;

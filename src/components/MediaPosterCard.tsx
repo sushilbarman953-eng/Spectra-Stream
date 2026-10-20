@@ -1,11 +1,8 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { Star } from "lucide-react";
 import { MediaItem } from "@/lib/tmdb";
-import { soundFx } from "@/lib/soundFx";
-import { SafeImage } from "@/components/SafeImage";
+import { MovieCard } from "@/components/MovieCard";
 
 interface MediaPosterCardProps {
   item: MediaItem & { rank?: number; audioLanguages?: string[] };
@@ -19,8 +16,6 @@ interface MediaPosterCardProps {
 
 export const MediaPosterCard: React.FC<MediaPosterCardProps> = ({
   item,
-  href,
-  rank,
   badgeLabel,
   defaultType = "movie",
   widthClass = "w-28 sm:w-32",
@@ -28,52 +23,23 @@ export const MediaPosterCard: React.FC<MediaPosterCardProps> = ({
 }) => {
   const title = item.title || item.name || "Untitled";
   const targetType = item.media_type || defaultType;
-  const targetHref = href || `/details/${item.id}?type=${targetType}`;
-
   const langTag =
     badgeLabel ||
     (item.audioLanguages && item.audioLanguages.length > 1
       ? "MULTI"
       : item.audioLanguages?.[0] || "HIN");
 
-  const rating = item.vote_average ? Number(item.vote_average).toFixed(1) : "8.5";
-
   return (
-    <Link
-      href={targetHref}
-      onClick={() => soundFx.playCinematicPop()}
-      className={`flex-none ${widthClass} group relative flex flex-col select-none`}
-    >
-      <div className="relative aspect-[2/3] w-full rounded-2xl overflow-hidden bg-zinc-950 border border-white/10 group-hover:border-white/35 transition-all shadow-md group-hover:scale-[1.02]">
-        <SafeImage
-          src={item.poster_path}
-          alt={title}
-          priority={priority}
-        />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-
-        <div className="absolute top-2 inset-x-2 z-20 flex items-center justify-between pointer-events-none">
-          <div className="flex items-center gap-1 h-5 px-1.5 rounded-md bg-black/80 backdrop-blur-md border border-white/15 text-[9px] font-bold text-white shadow-md leading-none">
-            <Star className="w-2.5 h-2.5 fill-white text-white shrink-0" />
-            <span>{rating}</span>
-          </div>
-
-          <div className="flex items-center h-5 px-1.5 rounded-md bg-red-600/35 backdrop-blur-md border border-red-500/40 text-[8px] font-black uppercase tracking-wider text-red-100 shadow-[0_0_8px_rgba(239,68,68,0.4)] leading-none">
-            <span>{langTag}</span>
-          </div>
-        </div>
-
-        {typeof rank === "number" && (
-          <span className="absolute -bottom-2 right-1 text-5xl sm:text-6xl font-black italic tracking-tighter text-white/35 pointer-events-none select-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] font-sans">
-            {rank}
-          </span>
-        )}
-      </div>
-
-      <h4 className="text-[11px] font-bold text-white truncate mt-1.5 group-hover:text-red-300 transition-colors">
-        {title}
-      </h4>
-    </Link>
+    <div className={"flex-none " + widthClass}>
+      <MovieCard
+        id={item.id}
+        title={title}
+        posterPath={item.poster_path || ""}
+        rating={item.vote_average || "8.5"}
+        langBadge={langTag}
+        mediaType={targetType}
+        isPriority={priority}
+      />
+    </div>
   );
 };
