@@ -3,9 +3,27 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Film } from "lucide-react";
 
+export const resolveImageUrl = (path?: string | null): string | null => {
+  if (!path || typeof path !== "string") return null;
+  const trimmed = path.trim();
+  if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
+
+  // Already a full HTTP/HTTPS URL
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    if (trimmed.includes("image.tmdb.org/t/p/")) {
+      return trimmed.replace(/\/p\/(original|w1280|w500)\//, "/p/w342/");
+    }
+    return trimmed;
+  }
+
+  // Bare image filename or relative path
+  const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return `https://image.tmdb.org/t/p/w342${cleanPath}`;
+};
+
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fill?: boolean;
-  fallbackSrc?: string;
+  priority?: boolean;
 }
 
 export const SafeImage: React.FC<SafeImageProps> = ({
@@ -13,14 +31,19 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   alt,
   className,
   fill,
+  priority = false,
   ...props
 }) => {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Check if image is already cached/complete on initial mount
+  const finalSrc = resolveImageUrl(src);
+
   useEffect(() => {
+    setLoaded(false);
+    setFailed(false);
+
     if (imgRef.current && imgRef.current.complete) {
       if (imgRef.current.naturalWidth > 0) {
         setLoaded(true);
@@ -28,13 +51,13 @@ export const SafeImage: React.FC<SafeImageProps> = ({
         setFailed(true);
       }
     }
-  }, [src]);
+  }, [finalSrc]);
 
-  if (!src || failed) {
+  if (!finalSrc || failed) {
     return (
-      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-2.5 text-center bg-gradient-to-b from-[#181824] to-[#0c0c14] border border-white/10 select-none">
-        <Film className="w-5 h-5 text-zinc-500 mb-1" />
-        <span className="text-[10px] font-bold text-zinc-300 line-clamp-2 px-1">
+      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[#0d0d14] border border-white/10 select-none">
+        <Film className="w-5 h-5 text-zinc-600 mb-1" />
+        <span className="text-[10px] font-bold text-zinc-400 line-clamp-2 px-1">
           {alt || "Media"}
         </span>
       </div>
@@ -42,26 +65,25 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   }
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0d0d14]">
-      {/* Dynamic Pulse Shimmer Skeleton: unmounted as soon as loaded is true */}
+    <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0a0a10]">
       {!loaded && (
-        <div className="absolute inset-0 z-0 overflow-hidden bg-zinc-900 pointer-events-none">
-          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-        </div>
+        <div className="absolute inset-0 z-0 bg-zinc-900 animate-pulse pointer-events-none" />
       )}
 
-      {/* Primary Image: elevated z-index ensures it sits above the shimmer canvas */}
       <img
         {...props}
         ref={imgRef}
-        src={src}
+        src={finalSrc}
         alt={alt || "Media artwork"}
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
+        crossOrigin="anonymous"
         onLoad={() => setLoaded(true)}
         onError={() => {
           setFailed(true);
           setLoaded(true);
         }}
-        className={`relative z-10 w-full h-full object-cover select-none transition-opacity duration-200 ${
+        className={`relative z-10 w-full h-full object-cover select-none transition-opacity duration-150 ${
           loaded ? "opacity-100" : "opacity-0"
         } ${className || ""}`}
       />
