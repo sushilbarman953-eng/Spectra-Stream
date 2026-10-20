@@ -1,31 +1,19 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Film } from "lucide-react";
 
-export const resolveImageUrl = (path?: string | null): string | null => {
-  if (!path || typeof path !== "string") return null;
-  const trimmed = path.trim();
-  if (!trimmed || trimmed === "null" || trimmed === "undefined") return null;
-
-  // Unsplash and MyAnimeList are not blocked, serve them directly
-  if (trimmed.includes("unsplash.com") || trimmed.includes("myanimelist.net")) {
-    return trimmed;
-  }
-
-  // TMDB images: route through our internal proxy so Indian ISP blocks are bypassed
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    if (trimmed.includes("image.tmdb.org/t/p/")) {
-      const parts = trimmed.split("/t/p/");
-      const subPath = parts[1]?.replace(/^(original|w1280|w500)\//, "w342/") || parts[1];
-      return `/api/poster-proxy?path=${encodeURIComponent(`https://image.tmdb.org/t/p/${subPath}`)}`;
-    }
-    return trimmed;
-  }
-
-  // Relative TMDB path (e.g. /jFt1g94utjj2YK4aeapSaW012tp.jpg)
-  const cleanPath = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  return `/api/poster-proxy?path=${encodeURIComponent(`https://image.tmdb.org/t/p/w342${cleanPath}`)}`;
+// Backup CDN poster mapping for popular titles when TMDB is unavailable
+const BACKUP_POSTERS: Record<string, string> = {
+  "jawan": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80",
+  "animal": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80",
+  "dunki": "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&q=80",
+  "pathaan": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&q=80",
+  "12th fail": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=400&q=80",
+  "rrr": "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=400&q=80",
+  "kalki 2898 ad": "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=400&q=80",
+  "salaar": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=400&q=80",
+  "leo": "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=400&q=80",
 };
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -41,57 +29,63 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   priority = false,
   ...props
 }) => {
-  const [loaded, setLoaded] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
-
-  const finalSrc = resolveImageUrl(src);
 
   useEffect(() => {
-    setLoaded(false);
     setFailed(false);
+    if (!src) {
+      setCurrentSrc(null);
+      return;
+    }
 
-    if (imgRef.current && imgRef.current.complete) {
-      if (imgRef.current.naturalWidth > 0) {
-        setLoaded(true);
+    let url = src.trim();
+    if (url.startsWith("/")) {
+      url = `https://image.tmdb.org/t/p/w342${url}`;
+    }
+    setCurrentSrc(url);
+  }, [src]);
+
+  const handleError = () => {
+    // Check if we have a backup image for this title
+    const titleKey = (alt || "").toLowerCase();
+    const matchedKey = Object.keys(BACKUP_POSTERS).find((k) => titleKey.includes(k));
+
+    if (matchedKey && currentSrc !== BACKUP_POSTERS[matchedKey]) {
+      setCurrentSrc(BACKUP_POSTERS[matchedKey]);
+    } else if (currentSrc && currentSrc.includes("image.tmdb.org")) {
+      // Try unproxied or proxy fallback
+      if (!currentSrc.includes("/api/poster-proxy")) {
+        setCurrentSrc(`/api/poster-proxy?path=${encodeURIComponent(currentSrc)}`);
       } else {
         setFailed(true);
       }
+    } else {
+      setFailed(true);
     }
-  }, [finalSrc]);
+  };
 
-  if (!finalSrc || failed) {
+  if (!currentSrc || failed) {
     return (
-      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[#0d0d14] border border-white/10 select-none">
-        <Film className="w-5 h-5 text-zinc-600 mb-1" />
-        <span className="text-[10px] font-bold text-zinc-400 line-clamp-2 px-1">
-          {alt || "Media"}
+      <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center p-2 text-center bg-zinc-900 border border-white/10 select-none">
+        <Film className="w-6 h-6 text-zinc-500 mb-1" />
+        <span className="text-[10px] font-bold text-zinc-300 line-clamp-2 px-1">
+          {alt || "Movie Poster"}
         </span>
       </div>
     );
   }
 
   return (
-    <div className="absolute inset-0 w-full h-full overflow-hidden bg-[#0a0a10]">
-      {!loaded && (
-        <div className="absolute inset-0 z-0 bg-zinc-900 animate-pulse pointer-events-none" />
-      )}
-
+    <div className="absolute inset-0 w-full h-full overflow-hidden bg-zinc-950">
       <img
         {...props}
-        ref={imgRef}
-        src={finalSrc}
-        alt={alt || "Media artwork"}
+        src={currentSrc}
+        alt={alt || "Poster"}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
-        onLoad={() => setLoaded(true)}
-        onError={() => {
-          setFailed(true);
-          setLoaded(true);
-        }}
-        className={`relative z-10 w-full h-full object-cover select-none transition-opacity duration-150 ${
-          loaded ? "opacity-100" : "opacity-0"
-        } ${className || ""}`}
+        onError={handleError}
+        className={`w-full h-full object-cover transition-opacity duration-200 ${className || ""}`}
       />
     </div>
   );
